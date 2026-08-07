@@ -1,0 +1,202 @@
+:root {
+  --pac-minH: 256px;
+  --pac-kpi-f: 18px;
+  --pac-legend-f: 13px;
+  --pac-kpi-row-h: 44px;
+  --pac-body-gap: 20px;
+  --pac-hover-bg: rgba(59, 130, 246, 0.06);
+  --pac-border: #e5e7eb;
+  --pac-total-color: #111827;
+  --pac-pct-color: #8c8c8c;
+}
+
+.PAC-root {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--pac-minH);
+  padding: 16px;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.PAC-kpiRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--pac-kpi-row-h);
+  flex-shrink: 0;
+}
+
+.PAC-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.PAC-totalNum {
+  font-size: var(--pac-kpi-f);
+  font-weight: 700;
+  color: var(--pac-total-color);
+}
+
+.PAC-totalUnit {
+  font-size: calc(var(--pac-kpi-f) - 4px);
+  color: #6b7280;
+}
+
+.PAC-compare {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.PAC-up {
+  color: #10b981;
+}
+
+.PAC-down {
+  color: #ef4444;
+}
+
+.PAC-dash {
+  color: #9ca3af;
+}
+
+.PAC-bodyRow {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--pac-body-gap);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.PAC-legend {
+  flex: 6 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.PAC-legendRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  height: 28px;
+}
+
+.PAC-legendRow.is-hover {
+  background: var(--pac-hover-bg);
+}
+
+.PAC-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.PAC-channel {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #595959;
+  font-size: var(--pac-legend-f);
+}
+
+.PAC-count {
+  flex: 0 0 auto;
+  min-width: 60px;
+  text-align: right;
+  font-weight: 600;
+  color: #374151;
+  font-size: var(--pac-legend-f);
+}
+
+.PAC-pct {
+  flex: 0 0 auto;
+  min-width: 56px;
+  text-align: right;
+  color: var(--pac-pct-color);
+  font-size: calc(var(--pac-legend-f) - 1px);
+}
+
+.PAC-pieWrap {
+  flex: 5 1 0;
+  min-width: 0;
+  min-width: 44%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.PAC-pieSvg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  display: block;
+  min-width: 180px;
+}
+
+.PAC-lead-line {
+  stroke: #d9d9d9;
+  stroke-width: 1;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 1 !important;
+}
+
+.PAC-leadText {
+  font-size: 12px;
+  fill: #666;
+  pointer-events: none;
+}
+
+.PAC-innerText {
+  font-size: 10px;
+  fill: #fff;
+  pointer-events: none;
+  font-weight: 600;
+}
+
+/* ===== 三档分辨率 CSS 变量覆盖 ===== */
+/* 2K (≥ 2560px) */
+@media (min-width: 2560px) {
+  :root {
+    --pac-minH: 280px;
+    --pac-kpi-f: 20px;
+    --pac-legend-f: 14px;
+    --pac-pie-R: 78px;
+  }
+  .PAC-legendRow { height: 28px; }
+}
+
+/* 1080P 默认（1920~2559）：保持 :root 原值不覆盖 */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  .PAC-legendRow { height: 28px; }
+}
+
+/* Compact (< 1920，比如 1600×900 常见商务笔记本) */
+@media (max-width: 1919px) {
+  :root {
+    --pac-minH: 232px;
+    --pac-kpi-f: 16px;
+    --pac-legend-f: 12px;
+    --pac-pie-R: 56px;
+    --pac-kpi-row-h: 40px;
+    --pac-body-gap: 14px;
+  }
+  .PAC-legendRow { height: 24px; }
+}

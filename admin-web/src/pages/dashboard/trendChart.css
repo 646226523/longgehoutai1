@@ -1,0 +1,339 @@
+/* 数据趋势模块 V3: Cockpit 6:4 双栏驾驶舱样式
+   作用域前缀：.TrendChart-root / .TCC-*，防止污染全局 */
+
+:root {
+  /* --- 保留原 tokens（向后兼容） --- */
+  --trend-bg-from: #F8FAFC;
+  --trend-bg-to: #FFFFFF;
+  --trend-card-br: 8px;
+  --trend-tooltip-bg: rgba(255,255,255,0.95);
+  --trend-tooltip-border: #3B82F6;
+  --trend-insight-bg: #f6ffed;
+  --trend-insight-color: #389e0d;
+  --trend-font-2k: 16px;
+  --trend-font-1080p: 14px;
+  --trend-font-compact: 13px;
+
+  /* --- 新增 V3 令牌 --- */
+  --tcc-surface: #ffffff;
+  --tcc-border: #eef1f5;
+  --tcc-border-strong: #dfe4ea;
+  --tcc-text: #1f2937;
+  --tcc-text-muted: #6b7280;
+  --tcc-text-dim: #9ca3af;
+  --tcc-blue: #3B82F6;
+  --tcc-green: #10B981;
+  --tcc-amber: #faad14;
+  --tcc-lime: #52c41a;
+  --tcc-red: #ef4444;
+  --tcc-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  --tcc-kpi-highlight: rgba(22,119,255,0.06);
+  --tcc-kpi-highlight-border: rgba(22,119,255,0.3);
+}
+
+/* ============ 外层卡片 ============ */
+.TrendChart-root {
+  border-radius: var(--trend-card-br) !important;
+  overflow: visible;
+}
+.TrendChart-root > .ant-card-body {
+  padding: 0 !important;
+}
+
+/* ============ 主体区（body = 双栏区 + 底部图例） ============ */
+.TCC-body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  background: linear-gradient(180deg, var(--trend-bg-from) 0%, var(--trend-bg-to) 100%);
+  border-radius: 0 0 var(--trend-card-br) var(--trend-card-br);
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-size: var(--trend-font-1080p);
+}
+
+/* 三档字号联动（与 useResolutionTier 阈值同步 2560 / 1920 / <1920） */
+@media (min-width: 2560px) {
+  .TCC-body { font-size: var(--trend-font-2k); }
+}
+@media (max-width: 1919px) {
+  .TCC-body { font-size: var(--trend-font-compact); }
+}
+
+/* ============ 6:4 双栏 ============ */
+.TCC-columns {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  min-height: 0;
+}
+/* 紧凑档右栏略缩（少挤） */
+@media (max-width: 1919px) {
+  .TCC-columns { grid-template-columns: 58% 42%; }
+}
+
+/* ============ 左栏：主辅双图 ============ */
+.TCC-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.TCC-mainTitles {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tcc-text-muted);
+  font-weight: 500;
+  padding: 0 2px 4px 2px;
+  user-select: none;
+}
+.TCC-mainTitles-sep {
+  color: var(--tcc-text-dim);
+  opacity: 0.6;
+}
+.TCC-mainChart,
+.TCC-subChart {
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
+  box-shadow: inset 0 0 0 1px var(--tcc-border, #ebedf0);
+  border: 1px solid var(--tcc-border);
+}
+
+@media (max-width: 2559px) {
+  .TCC-mainChart,
+  .TCC-subChart {
+    outline: 1px solid var(--tcc-border, #ebedf0);
+    outline-offset: -1px;
+  }
+}
+@media (max-width: 1919px) {
+  .TCC-mainChart,
+  .TCC-subChart {
+    outline: 1px solid var(--tcc-border, #ebedf0);
+    outline-offset: -1px;
+  }
+}
+
+/* ============ 右栏：KPI + 抽屉 + 洞察 ============ */
+.TCC-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ----- 4 张 KPI 卡垂直 ----- */
+.TCC-kpi-grid {
+  display: grid;
+  grid-auto-rows: auto;
+}
+.TCC-kpi-card {
+  background: var(--tcc-surface);
+  border: 1px solid var(--tcc-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  box-shadow: var(--tcc-shadow);
+  user-select: none;
+}
+.TCC-kpi-card:hover {
+  border-color: var(--tcc-border-strong);
+  box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+}
+.TCC-kpi-card.is-highlighted {
+  background: var(--tcc-kpi-highlight);
+  border-color: var(--tcc-kpi-highlight-border);
+}
+.TCC-kpi-title {
+  color: var(--tcc-text-muted);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.TCC-kpi-valueRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  line-height: 1.2;
+}
+.TCC-kpi-value {
+  color: var(--tcc-text);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  font-family: "'PingFang SC','Microsoft YaHei',sans-serif";
+}
+.TCC-kpi-hint {
+  font-weight: 500;
+  line-height: 1.3;
+}
+/* pulse 动画（hover 到最后一天时） */
+@keyframes TCC-kpi-pulse-anim {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.TCC-kpi-card.TCC-kpi-pulse .TCC-kpi-value {
+  animation: TCC-kpi-pulse-anim 600ms cubic-bezier(.33,1,.68,1);
+}
+
+/* ----- 指标统计抽屉（竖表） ----- */
+.TCC-stats {
+  background: var(--tcc-surface);
+  border: 1px solid var(--tcc-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--tcc-shadow);
+  transition: min-height 180ms ease;
+}
+.TCC-statsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #fafcff;
+  border-bottom: 1px solid var(--tcc-border);
+  cursor: pointer;
+  user-select: none;
+  color: var(--tcc-text);
+  font-weight: 600;
+}
+.TCC-statsCaret {
+  color: var(--tcc-text-muted);
+  font-size: 0.85em;
+}
+.TCC-statsBody {
+  padding: 6px 8px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.TCC-statsRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
+  gap: 6px;
+  padding: 6px 6px;
+  border-radius: 4px;
+}
+.TCC-statsRow:hover {
+  background: rgba(59,130,246,0.04);
+}
+.TCC-statsRow--th {
+  color: var(--tcc-text-muted);
+  border-bottom: 1px dashed var(--tcc-border-strong);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+.TCC-statsRow--th > .TCC-statsCell {
+  font-weight: 600;
+  text-align: center;
+}
+.TCC-statsRow--th > .TCC-statsCell--dim {
+  text-align: left;
+}
+.TCC-statsRow.is-hidden-row {
+  opacity: 0.4;
+}
+.TCC-statsCell {
+  color: var(--tcc-text);
+  line-height: 1.5;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  word-break: keep-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.TCC-statsCell--dim {
+  justify-content: flex-start;
+  text-align: left;
+  color: var(--tcc-text);
+  font-weight: 500;
+}
+.TCC-statsCell--num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #1f2937;
+}
+.TCC-statsSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* ----- 洞察块（绿色摘要） ----- */
+.TrendChart-insight.TCC-insight {
+  margin-top: 0;
+  padding: 12px 14px;
+  background: var(--trend-insight-bg);
+  color: var(--trend-insight-color);
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+  font-size: 0.95em;
+  line-height: 1.65;
+  box-shadow: var(--tcc-shadow);
+}
+
+/* ============ 底部图例条（4 项一行） ============ */
+.TCC-legend {
+  display: flex;
+  gap: 24px;
+  padding: 8px 4px 4px 4px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--tcc-border-strong);
+  margin-top: 4px;
+}
+.TCC-legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 140ms ease, opacity 140ms ease;
+}
+.TCC-legendItem:hover {
+  background: rgba(59,130,246,0.05);
+}
+.TCC-legendItem.is-hidden {
+  opacity: 0.5;
+}
+.TCC-legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.TCC-legendLabel {
+  color: var(--tcc-text);
+  font-weight: 500;
+}
+.TCC-legendIcon {
+  width: 18px;
+  text-align: center;
+  display: inline-block;
+  font-weight: 700;
+}
+
+/* ============ Antd Card Title 区操作栏 ============ */
+.TrendChart-extra-wrap {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ============ 兼容：原 TrendLegendStatsPanel 类（保留防止其他页面报错，样式弱化） ============ */
+.TrendLegendStatsPanel-root { display: none; }
+.TrendChart-main, .TrendChart-sub { display: none; }
+.TrendChart-outer-wrap { display: none; }

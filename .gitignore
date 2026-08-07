@@ -1,0 +1,83 @@
+# ====== 依赖 ======
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ====== 构建产物 ======
+dist/
+dist-ssr/
+build/
+out/
+*.tsbuildinfo
+*.local
+
+# ====== 日志 ======
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ====== 环境变量 / 机密（绝不提交）======
+.env
+.env.local
+.env.*.local
+.env.*.bak
+*.pem
+*.key
+
+# ====== 数据库 ======
+*.db
+*.sqlite
+*.sqlite3
+admin-api/data/*.db
+admin-api/data/*.db-journal
+admin-api/data/*.db-shm
+admin-api/data/*.db-wal
+
+# ====== 编辑器 / IDE ======
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.DS_Store
+Thumbs.db
+
+# ====== Vite / 临时缓存 ======
+admin-web/node_modules/.vite/
+admin-api/node_modules/
+
+# ====== 临时 / 验证产物（本地生成的截图/报告）======
+admin-web/dist_dashboard_full.png
+admin-web/alert_center.png
+admin-web/login_filled.png
+admin-web/login_port.png
+admin-web/register_port.png
+admin-web/register_port_hover.png
+admin-web/MainChart.story.html
+admin-web/SubChart.story.html
+admin-web/index.html
+admin-web/smoke-press.cjs
+admin-web/recon_dashboard.py
+admin-web/verify_*.cjs
+admin-web/verify_*.js
+admin-web/verify_*.py
+admin-web/verify_*.tsx
+scripts/verify_*.py
+verify_*.cjs
+verify_*.js
+out/fit_v4/*.png
+out/port_v2/*.md
+out/port_v3/*.md
+
+# ====== Trae 本地运行时（会话相关，不进仓库）======
+.trae/sessions/
+.trae/memory/
+*.tmp
+!admin-web/vite.config.js.timestamp-*.mjs
