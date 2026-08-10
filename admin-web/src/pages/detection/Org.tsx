@@ -7,11 +7,11 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Tag } from 'antd';
+import { App, Button, Popconfirm, Space, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -30,7 +30,7 @@ const STATUS_OPTIONS = [
 
 // 检测机构管理:列表 + 新增/编辑 + 状态切换
 const DetectionOrg = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'detection:view');
   const actionRef = useRef<ActionType>();

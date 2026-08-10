@@ -12,13 +12,13 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import {
+  App,
   Button,
   Drawer,
   Popconfirm,
   Space,
   Switch,
   Tag,
-  message,
 } from 'antd';
 import {
   PlusOutlined,
@@ -62,6 +62,7 @@ const LEVEL_ICON_MAP: Record<string, string> = {
 };
 
 const MemberLevel = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'member:edit');
   const actionRef = useRef<ActionType>();
@@ -462,7 +463,7 @@ const MemberLevel = () => {
         open={levelModal.visible}
         onOpenChange={(v) => setLevelModal({ visible: v, record: v ? levelModal.record : null })}
         onFinish={handleLevelSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={560}
         initialValues={
           levelModal.record
@@ -579,7 +580,7 @@ const MemberLevel = () => {
           setBenefitModal({ visible: v, record: v ? benefitModal.record : null })
         }
         onFinish={handleBenefitSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={520}
         initialValues={
           benefitModal.record

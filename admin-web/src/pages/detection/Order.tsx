@@ -11,6 +11,7 @@ import {
   type ProFormInstance,
 } from '@ant-design/pro-components';
 import {
+  App,
   Badge,
   Button,
   Calendar,
@@ -22,7 +23,6 @@ import {
   Segmented,
   Space,
   Tag,
-  message,
 } from 'antd';
 import {
   CalendarOutlined,
@@ -72,6 +72,7 @@ type ScheduleValue = Dayjs | null;
 
 // 检测预约订单管理:列表 + 新增/编辑 + 状态流转 + 排期日历
 const DetectionOrder = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'detection:view');
   const actionRef = useRef<ActionType>();
@@ -633,7 +634,7 @@ const DetectionOrder = () => {
         open={scheduleVisible}
         onOpenChange={setScheduleVisible}
         onFinish={handleScheduleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         submitter={{ searchConfig: { submitText: '确认排期' } }}
         initialValues={
           scheduleTarget?.scheduled_date

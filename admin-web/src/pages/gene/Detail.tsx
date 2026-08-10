@@ -8,13 +8,13 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Card, Descriptions, Empty, Popconfirm, Space, Spin, Tabs, Tag, Tree } from 'antd';
+import { App, Button, Card, Descriptions, Empty, Popconfirm, Space, Spin, Tabs, Tag, Tree } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -79,7 +79,7 @@ function toTreeData(node: LineageNode | null, path: string): TreeNode[] {
 
 // 基因档案详情
 const GeneDetail = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const { id } = useParams<{ id: string }>();
   const profileId = Number(id);
   const navigate = useNavigate();
@@ -326,7 +326,8 @@ const GeneDetail = () => {
                   request={async () => {
                     try {
                       const res = await getGeneTests(profileId);
-                      return { data: res, success: true, total: res.length };
+                      const data = Array.isArray(res) ? res : [];
+                      return { data, success: true, total: data.length };
                     } catch {
                       return { data: [], success: false, total: 0 };
                     }
@@ -371,7 +372,7 @@ const GeneDetail = () => {
         open={testModalVisible}
         onOpenChange={setTestModalVisible}
         onFinish={handleTestSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={520}
         initialValues={
           editingTest

@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import { getCurrentUser } from './services/auth';
 import type { CurrentUser } from './access';
 import { CurrentUserContext } from './app-context';
+import { setAppInstance } from './utils/antd-app-instance';
 
 // 各业务模块占位页面
 import GeneList from './pages/gene/List';
@@ -80,9 +81,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <CurrentUserContext.Provider value={user}>{children}</CurrentUserContext.Provider>;
 }
 
-function App() {
+function Bootstrap() {
+  const app = AntdApp.useApp();
+  useEffect(() => {
+    setAppInstance(app);
+  }, [app]);
   return (
-    <AntdApp>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -152,6 +156,13 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AntdApp>
+      <Bootstrap />
     </AntdApp>
   );
 }

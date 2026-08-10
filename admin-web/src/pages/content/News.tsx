@@ -6,11 +6,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Image, Popconfirm, Space, Tag, Input, Tabs, Form } from 'antd';
+import { App, Button, Drawer, Image, Popconfirm, Space, Tag, Input, Tabs, Form } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -35,7 +34,7 @@ const STATUS_MAP: Record<string, { text: string; color: string }> = {
 
 // 资讯管理:支持草稿/发布/下架、置顶,正文使用 HTML 输入 + 预览(未引入富文本库)
 const ContentNews = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'content:edit');
   const actionRef = useRef<ActionType>();

@@ -91,6 +91,13 @@ export interface GeneProfileOption {
   ring_number: string;
   name: string;
   gender: string;
+  breed?: string;
+  color?: string;
+  eye_color?: string;
+  achievement?: string;
+  owner_name?: string;
+  owner_id?: number | null;
+  photo_url?: string;
 }
 
 // 血统树节点(递归)
@@ -105,7 +112,7 @@ export interface LineageNode {
   dam: LineageNode | null;
 }
 
-// ==================== 手动录入审核 ====================
+// ==================== 基因档案审核 ====================
 export interface GeneSubmission {
   id: number;
   ring_number: string;
@@ -250,4 +257,43 @@ export async function approveGeneSubmission(id: number): Promise<{ profile_id: n
 // 驳回
 export async function rejectGeneSubmission(id: number, audit_remark: string): Promise<void> {
   await http.post(`/gene/submissions/${id}/reject`, { audit_remark });
+}
+
+// ==================== 新增档案辅助接口 ====================
+
+export interface OwnerOption {
+  id: number;
+  name: string;
+  phone: string;
+}
+
+export interface GeneDicts {
+  colors: string[];
+  eye_colors: string[];
+  genders: { label: string; value: string }[];
+  statuses: { label: string; value: number }[];
+  breeds: string[];
+  bloodlines: string[];
+}
+
+export async function checkRingNumber(ring_number: string): Promise<{ exists: boolean }> {
+  return await http.get<{ exists: boolean }>('/gene/profiles/check-ring', { params: { ring_number } });
+}
+
+export async function searchOwners(keyword?: string): Promise<OwnerOption[]> {
+  return await http.get<OwnerOption[]>('/gene/owners', { params: keyword ? { keyword } : {} });
+}
+
+export async function searchGeneProfiles(keyword?: string): Promise<GeneProfileOption[]> {
+  return await http.get<GeneProfileOption[]>('/gene/profiles/search', { params: keyword ? { keyword } : {} });
+}
+
+export async function uploadImage(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await http.post<{ url: string }>('/upload', formData);
+}
+
+export async function getGeneDicts(): Promise<GeneDicts> {
+  return await http.get<GeneDicts>('/gene/dicts');
 }

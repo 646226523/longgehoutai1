@@ -9,12 +9,12 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Card, Select, Tag, Popconfirm } from 'antd';
+import { App, Button, Card, Select, Tag, Popconfirm } from 'antd';
 import { PlusOutlined, TrophyOutlined, OrderedListOutlined } from '@ant-design/icons';
 import { useRef, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -32,7 +32,7 @@ import {
 
 // 成绩录入与排名:成绩录入表 + 排名榜展示 + 批量录入
 const CompetitionResult = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'competition:edit');
   const params = useParams<{ id: string }>();
@@ -305,7 +305,7 @@ const CompetitionResult = () => {
         open={createVisible}
         onOpenChange={setCreateVisible}
         onFinish={handleCreate}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={520}
       >
         <ProFormSelect
@@ -338,7 +338,7 @@ const CompetitionResult = () => {
         open={batchVisible}
         onOpenChange={setBatchVisible}
         onFinish={handleBatch}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={760}
       >
         <ProFormList

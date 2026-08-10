@@ -8,13 +8,13 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import {
+  App,
   Button,
   Descriptions,
   Drawer,
   Popconfirm,
   Space,
   Tag,
-  message,
 } from 'antd';
 import {
   ArrowRightOutlined,
@@ -69,6 +69,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 // 拍卖场次管理:列表 + 新增/编辑 + 状态流转 + 进入拍品/成交入口
 const AuctionSession = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'auction:edit');
   const canDeal = hasPermission(currentUser, 'auction:deal');

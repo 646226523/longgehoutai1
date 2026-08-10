@@ -11,6 +11,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import {
+  App,
   Button,
   Descriptions,
   Drawer,
@@ -20,7 +21,6 @@ import {
   Spin,
   Tabs,
   Tag,
-  message,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -77,6 +77,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 // 拍品管理(按场次):列表 + 上架/编辑 + 开拍/流拍 + 详情(含竞价历史)
 const AuctionItems = () => {
+  const { message } = App.useApp();
   const { sessionId } = useParams<{ sessionId: string }>();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'auction:edit');
@@ -467,7 +468,9 @@ const AuctionItems = () => {
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin tip="加载中..." />
+            <Spin tip="加载中...">
+              <div style={{ minHeight: 200, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+            </Spin>
           </div>
         ) : !detail ? (
           <Empty description="暂无数据" />
@@ -555,7 +558,7 @@ const AuctionItems = () => {
         open={bidModalOpen}
         onOpenChange={setBidModalOpen}
         onFinish={handleCreateBid}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         initialValues={{}}
       >
         <ProFormText

@@ -1,9 +1,8 @@
 import { ModalForm, ProFormText, ProFormSelect, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Switch, Tag, Modal, Select } from 'antd';
+import { App, Button, Popconfirm, Space, Switch, Tag, Modal, Select } from 'antd';
 import { PlusOutlined, KeyOutlined, TeamOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -21,7 +20,7 @@ import {
 
 // 管理员管理:账号 CRUD、状态、重置密码、分配角色
 const SystemAdmin = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:admin:manage');
   const actionRef = useRef<ActionType>();
@@ -280,7 +279,7 @@ const SystemAdmin = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         initialValues={
           editing
             ? {
@@ -362,7 +361,7 @@ const SystemAdmin = () => {
           await handleResetPassword(values.password as string);
           return true;
         }}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={420}
       >
         <ProFormText

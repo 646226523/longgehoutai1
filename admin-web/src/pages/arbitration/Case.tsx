@@ -10,6 +10,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import {
+  App,
   Button,
   Descriptions,
   Drawer,
@@ -19,7 +20,6 @@ import {
   Spin,
   Tabs,
   Tag,
-  message,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -127,6 +127,7 @@ const EXECUTE_STATUS_COLOR: Record<string, string> = {
 
 // 仲裁案件管理:列表 + 受理/立案 + 详情抽屉(证据 + 裁决)
 const ArbitrationCase = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'arbitration:view');
   const canJudge = hasPermission(currentUser, 'arbitration:judge');
@@ -590,7 +591,9 @@ const ArbitrationCase = () => {
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin tip="加载中..." />
+            <Spin tip="加载中...">
+              <div style={{ minHeight: 200, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+            </Spin>
           </div>
         ) : !detail ? (
           <Empty description="暂无数据" />
@@ -767,7 +770,7 @@ const ArbitrationCase = () => {
         open={evidenceModalOpen}
         onOpenChange={setEvidenceModalOpen}
         onFinish={handleCreateEvidence}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         initialValues={{ party: 'complainant', file_type: 'document' }}
       >
         <ProFormSelect
@@ -808,7 +811,7 @@ const ArbitrationCase = () => {
         open={awardModalOpen}
         onOpenChange={setAwardModalOpen}
         onFinish={handleCreateAward}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         initialValues={{ action: 'other' }}
       >
         <ProFormSelect

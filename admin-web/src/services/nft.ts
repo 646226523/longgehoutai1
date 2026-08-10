@@ -11,13 +11,15 @@ export interface NftAsset {
   image_url: string | null; // 资产图片
   metadata: string | null; // JSON 元数据(TEXT)
   owner_name: string; // 持有者(鸽主)
-  status: string; // draft/pending/approved/minting/minted/failed
+  status: string; // draft/pending/approved/minting/minted/failed/rejected
   status_label: string; // 状态中文标签
   contract_address: string | null; // 合约地址
   tx_hash: string | null; // 铸造交易哈希
   minted_at: number | null; // 上链时间
   created_at: number;
   updated_at: number;
+  rejected_at: number | null; // 驳回时间
+  audit_remark: string | null; // 审核备注（驳回理由等）
   // 列表/详情关联的基因档案简要
   gene_profile: GeneBrief | null;
 }
@@ -42,6 +44,8 @@ export interface NftMintTask {
   started_at: number | null;
   finished_at: number | null;
   created_at: number;
+  block_current: number;
+  block_target: number;
   // 任务列表关联字段
   asset_name?: string | null;
   token_id?: string | null;
@@ -181,6 +185,33 @@ export async function approveNftAudit(id: number): Promise<{ task_id: number }> 
 // 审核驳回
 export async function rejectNftAudit(id: number, audit_remark: string): Promise<void> {
   await http.post(`/nft/audit/${id}/reject`, { audit_remark });
+}
+
+// 批量审核通过（对选中的多条 pending 资产依次调用 approve 逻辑）
+export async function batchApproveNftAudit(ids: number[]): Promise<{ total: number; success: number; failed: number }> {
+  return await http.post('/nft/audit/batch-approve', { ids });
+}
+
+// 批量驳回（ids + 公共驳回理由）
+export async function batchRejectNftAudit(ids: number[], reject_reason: string): Promise<{ total: number; success: number; failed: number }> {
+  return await http.post('/nft/audit/batch-reject', { ids, reject_reason });
+}
+
+// 今日审核统计
+export interface NftAuditStats {
+  today_approved: number;
+  today_mint_success: number;
+  today_mint_failed: number;
+  avg_duration_sec: number;
+}
+
+export async function getNftAuditStats(): Promise<NftAuditStats> {
+  return await http.get<NftAuditStats>('/nft/audit/stats');
+}
+
+// 已驳回重新提交审核
+export async function resubmitNftAudit(id: number): Promise<void> {
+  await http.post(`/nft/assets/${id}/resubmit`);
 }
 
 // ==================== 上链任务 ====================

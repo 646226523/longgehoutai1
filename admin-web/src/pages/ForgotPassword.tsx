@@ -1,11 +1,11 @@
 import { LockOutlined, UserOutlined, MobileOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Steps } from 'antd';
+import { App, Button, Form, Input, Steps } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useAntdApp } from '../hooks/useAntdApp';
+
 
 const ForgotPassword = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(false);

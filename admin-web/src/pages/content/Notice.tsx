@@ -6,11 +6,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Tag, Input } from 'antd';
+import { App, Button, Popconfirm, Space, Tag, Input } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -38,7 +37,7 @@ const PUSH_TARGET_MAP: Record<string, string> = {
 
 // 公告与推送管理:支持草稿/发布、按类型筛选
 const ContentNotice = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'content:edit');
   const actionRef = useRef<ActionType>();
@@ -258,7 +257,7 @@ const ContentNotice = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={640}
         initialValues={
           editing

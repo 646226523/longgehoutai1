@@ -9,12 +9,12 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Tag } from 'antd';
+import { App, Button, Popconfirm, Space, Tag } from 'antd';
 import { PlusOutlined, TrophyOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -49,7 +49,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 // 赛事列表:ProTable + 新增/编辑表单 + 状态操作 + 进入核验/成绩入口
 const CompetitionList = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'competition:edit');
   const canVerify = hasPermission(currentUser, 'competition:verify');
@@ -311,7 +311,7 @@ const CompetitionList = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={640}
         initialValues={
           editing

@@ -1,15 +1,14 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { Button, Input, Space, Spin, Table, Tabs, Tag, type TableProps } from 'antd';
+import { App, Button, Input, Space, Spin, Table, Tabs, Tag, type TableProps } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import { getConfigs, updateConfig, type ConfigItem } from '../../services/system';
 
 // 系统配置:按分组 Tab 展示,行内编辑值
 const SystemConfig = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:config:manage');
   const [groups, setGroups] = useState<Array<{ group: string; items: ConfigItem[] }>>([]);

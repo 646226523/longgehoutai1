@@ -9,11 +9,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, List, Popconfirm, Space, Spin, Tag } from 'antd';
+import { App, Button, List, Popconfirm, Space, Spin, Tag } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -28,7 +27,7 @@ import {
 
 // 字典管理:左侧类型列表 + 右侧字典项 ProTable
 const SystemDict = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:config:manage');
   const actionRef = useRef<ActionType>();
@@ -286,7 +285,7 @@ const SystemDict = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={560}
         initialValues={
           editing

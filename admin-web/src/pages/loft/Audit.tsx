@@ -6,11 +6,11 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { PageContainer } from '@ant-design/pro-components';
-import { Button, Descriptions, Drawer, Space, Tag } from 'antd';
+import { App, Button, Descriptions, Drawer, Space, Tag } from 'antd';
 import { CheckOutlined, CloseOutlined, EyeOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -30,7 +30,7 @@ const statusTag: Record<ApplicationStatus, { text: string; color: string }> = {
 
 // 公棚入驻申请审核:待审列表 + 审核详情抽屉 + 通过/驳回
 const LoftAudit = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canAudit = hasPermission(currentUser, 'loft:audit');
   const actionRef = useRef<ActionType>();
@@ -229,7 +229,7 @@ const LoftAudit = () => {
         open={opModal.visible}
         onOpenChange={(v) => setOpModal({ visible: v, type: opModal.type, id: v ? opModal.id : null })}
         onFinish={handleAudit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={480}
       >
         <ProFormTextArea

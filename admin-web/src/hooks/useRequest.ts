@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
-import { useAntdApp } from './useAntdApp';
+import { App } from 'antd';
 
 export function useRequest() {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
 
   const request = useCallback(async <T>(
     fn: () => Promise<T>,

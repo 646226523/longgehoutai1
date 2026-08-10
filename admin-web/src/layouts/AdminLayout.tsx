@@ -1,6 +1,6 @@
 import { ProLayout } from '@ant-design/pro-components';
 import type { MenuDataItem, ProLayoutProps } from '@ant-design/pro-components';
-import { Dropdown, Spin } from 'antd';
+import { App, Dropdown, Spin } from 'antd';
 import {
   ApiOutlined,
   AppstoreOutlined,
@@ -26,12 +26,10 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useCurrentUser } from '../app-context';
 import { hasPermission, isSuperAdmin } from '../access';
 import { logout } from '../services/auth';
-import { useAntdApp } from '../hooks/useAntdApp';
-import { setMessageInstance } from '../services/request';
 
 // 菜单配置:9 大业务模块 + 数据统计中心 + 系统管理
 // 每个菜单项可指定所需权限,无权限则被过滤
@@ -56,7 +54,7 @@ const menuData: MenuItem[] = [
     permission: 'gene:view',
     children: [
       { path: '/gene/list', name: '基因档案', permission: 'gene:view' },
-      { path: '/gene/audit', name: '手动录入审核', permission: 'gene:audit' },
+      { path: '/gene/audit', name: '基因档案审核', permission: 'gene:audit' },
     ],
   },
   {
@@ -179,14 +177,10 @@ function filterMenuByPermission(items: MenuItem[], user: ReturnType<typeof useCu
 }
 
 const AdminLayout = () => {
+  const { message } = App.useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
-  const { message } = useAntdApp();
-
-  useEffect(() => {
-    setMessageInstance(message);
-  }, [message]);
 
   // 过滤后的菜单
   const filteredMenu = useMemo(() => filterMenuByPermission(menuData, currentUser), [currentUser]);

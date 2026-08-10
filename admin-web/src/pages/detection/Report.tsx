@@ -9,11 +9,11 @@ import {
   type ProColumns,
   type ProFormInstance,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Popconfirm, Space } from 'antd';
+import { App, Button, Drawer, Popconfirm, Space } from 'antd';
 import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import { getGeneProfileOptions, type GeneProfileOption } from '../../services/gene';
@@ -34,7 +34,7 @@ import {
 
 // 检测报告管理:列表 + 新增/编辑 + 关联订单/鸽只 + 报告详情
 const DetectionReport = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canReport = hasPermission(currentUser, 'detection:report');
   const actionRef = useRef<ActionType>();

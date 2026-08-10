@@ -78,6 +78,47 @@ out/port_v3/*.md
 
 # ====== Trae 本地运行时（会话相关，不进仓库）======
 .trae/sessions/
-.trae/memory/
-*.tmp
-!admin-web/vite.config.js.timestamp-*.mjs
+
+# ====== Vite 运行时缓存（vite.config.xxx.timestamp-yyy.mjs，每次启动 vite 都会生成）======
+admin-web/vite.config.*.timestamp-*.mjs
+
+# ====== 浏览器自动化 & 验证运行产物（截图、报告 JSON，不应提交到代码仓库）======
+admin-web/screenshots/
+admin-web/screenshots-task9/
+admin-web/screenshots-task9-v2/
+admin-web/screenshots-task9-v3/
+admin-web/shots-task9-v4/
+screenshots/
+admin-web/browser-test-results.json
+admin-web/task9-checkpoint-results.json
+admin-web/task9-checkpoint-results-v2.json
+admin-web/task9-final-results.json
+admin-web/task9-final-results-v4.json
+
+# ====== 本次会话临时调度脚本（运行时产物）======
+browser-cmds.json
+browser-step1.json
+run-browser-tests.js
+t3-batch-commands.txt
+t3-run-batch.ps1
+scripts/_git_push_isolated.bat
+scripts/batch-final-screenshots.json
+scripts/batch-goto-audit.json
+scripts/batch-login-2.json
+scripts/batch-login.json
+scripts/batch-step2.json
+scripts/build-step2-batch.js
+scripts/fill-login.b64
+scripts/fill-login.js
+scripts/read-counts-stats.b64
+scripts/read-counts-stats.js
+scripts/run-ac-via-api.js
+task-c-verify.js
+task-c-verify-v2.js
+task-c-verify-v3-final.js
+verify-case2.js
+verify-metadata-logic.js
+admin-web/.tmp-helpers-test.cjs
+admin-web/agent-browser.json
+admin-web/debug-cp7.mjs
+admin-web/patch-v5.mjs

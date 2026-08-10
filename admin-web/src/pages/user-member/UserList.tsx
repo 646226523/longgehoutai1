@@ -10,11 +10,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Descriptions, Drawer, Popconfirm, Space, Switch, Tag, Input } from 'antd';
+import { App, Button, Descriptions, Drawer, Popconfirm, Space, Switch, Tag, Input } from 'antd';
 import { EyeOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -53,7 +52,7 @@ function maskIdCard(idCard: string | null): string {
 }
 
 const UserList = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'user:edit');
   const actionRef = useRef<ActionType>();
@@ -341,7 +340,7 @@ const UserList = () => {
         open={editModal.visible}
         onOpenChange={(v) => setEditModal({ visible: v, record: v ? editModal.record : null })}
         onFinish={handleEdit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={560}
         initialValues={
           editModal.record
@@ -549,7 +548,7 @@ const UserList = () => {
           await handleAudit();
           return true;
         }}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={480}
       >
         <div style={{ marginBottom: 8, color: '#888' }}>

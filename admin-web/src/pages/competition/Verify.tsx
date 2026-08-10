@@ -6,12 +6,12 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Card, Select, Tag, Popconfirm } from 'antd';
+import { App, Button, Card, Select, Tag, Popconfirm } from 'antd';
 import { ImportOutlined, CheckOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useRef, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -29,7 +29,7 @@ import {
 
 // 赛事核验:参赛鸽列表 + 批量导入 + 逐个/批量核验
 const CompetitionVerify = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canVerify = hasPermission(currentUser, 'competition:verify');
   const params = useParams<{ id: string }>();
@@ -247,7 +247,7 @@ const CompetitionVerify = () => {
         open={importVisible}
         onOpenChange={setImportVisible}
         onFinish={handleImport}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={560}
       >
         <ProFormText

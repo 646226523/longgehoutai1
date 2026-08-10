@@ -1,49 +1,31 @@
 import {
-  DrawerForm,
-  ProFormDatePicker,
-  ProFormSelect,
-  ProFormText,
-  ProFormTextArea,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Tag } from 'antd';
+import { App, Button, Drawer, Popconfirm, Space, Tag } from 'antd';
 import { PlusOutlined, QrcodeOutlined, EyeOutlined } from '@ant-design/icons';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import GeneForm from './GeneForm';
 import {
   createGeneProfile,
   deleteGeneProfile,
-  getGeneProfileOptions,
   getGeneProfiles,
   regenerateGeneQrcode,
   updateGeneProfile,
   type GeneProfile,
-  type GeneProfileOption,
+  type GeneProfileCreateParams,
 } from '../../services/gene';
 
-// 性别选项
-const GENDER_OPTIONS = [
-  { label: '雄', value: 'male' },
-  { label: '雌', value: 'female' },
-  { label: '未知', value: 'unknown' },
-];
 const GENDER_MAP: Record<string, string> = { male: '雄', female: '雌', unknown: '未知' };
 
-// 档案状态选项
-const STATUS_OPTIONS = [
-  { label: '正常', value: 1 },
-  { label: '停用', value: 0 },
-];
-
-// 基因档案管理:列表 + 新增/编辑抽屉 + 查看详情跳转
 const GeneList = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'gene:edit');
   const navigate = useNavigate();
@@ -51,68 +33,37 @@ const GeneList = () => {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<GeneProfile | null>(null);
-  const [parentOptions, setParentOptions] = useState<GeneProfileOption[]>([]);
-
-  // 双保险：无论 state 被写入什么都在 render 路径归一为数组
-  const safeParentOptions = useMemo<GeneProfileOption[]>(
-    () => (Array.isArray(parentOptions) ? parentOptions : []),
-    [parentOptions],
-  );
-  // 父/母下拉共用的 options：新增态不过滤，编辑态排除自身 id（防止自循环父母）
-  const sireDamRawOptions = useMemo(() => {
-    return safeParentOptions
-      .filter((o) => !editing || o.id !== editing.id)
-      .map((o) => ({
-        label: `${o.ring_number} ${o.name}`.trim(),
-        value: o.id,
-      }));
-  }, [safeParentOptions, editing]);
-
-  // 加载父/母下拉选项
-  const loadParentOptions = () => {
-    if (!Array.isArray(parentOptions) || !parentOptions.length) {
-      getGeneProfileOptions()
-        .then((raw) => setParentOptions(Array.isArray(raw) ? raw : []))
-        .catch(() => {
-          // 拦截器已提示错误
-        });
-    }
-  };
+  const [formKey, setFormKey] = useState(0);
 
   const openCreate = () => {
     setEditing(null);
     setDrawerVisible(true);
-    loadParentOptions();
   };
 
   const openEdit = (record: GeneProfile) => {
     setEditing(record);
     setDrawerVisible(true);
-    loadParentOptions();
   };
 
-  // 提交新增/编辑
-  const handleSubmit = async (values: Record<string, unknown>) => {
-    const birthDate = values.birth_date
-      ? dayjs(values.birth_date as string).format('YYYY-MM-DD')
-      : undefined;
+  const handleFormSubmit = async (values: GeneProfileCreateParams, mode: 'confirm' | 'save-new') => {
     const payload = {
-      ring_number: values.ring_number as string,
-      name: values.name as string,
-      gender: (values.gender as string) ?? 'unknown',
-      breed: (values.breed as string) ?? '',
-      bloodline: (values.bloodline as string) ?? '',
-      owner_name: (values.owner_name as string) ?? '',
-      owner_phone: (values.owner_phone as string) ?? undefined,
-      color: (values.color as string) ?? undefined,
-      eye_color: (values.eye_color as string) ?? undefined,
-      birth_date: birthDate,
-      gene_sequence: (values.gene_sequence as string) ?? undefined,
-      photo_url: (values.photo_url as string) ?? undefined,
-      status: (values.status as number) ?? 1,
-      sire_id: (values.sire_id as number | undefined) ?? null,
-      dam_id: (values.dam_id as number | undefined) ?? null,
+      ring_number: values.ring_number,
+      name: values.name,
+      gender: values.gender ?? 'unknown',
+      breed: values.breed ?? '',
+      bloodline: values.bloodline ?? '',
+      owner_name: values.owner_name ?? '',
+      owner_phone: values.owner_phone ?? undefined,
+      color: values.color ?? undefined,
+      eye_color: values.eye_color ?? undefined,
+      birth_date: values.birth_date || undefined,
+      gene_sequence: values.gene_sequence ?? undefined,
+      photo_url: values.photo_url ?? undefined,
+      status: values.status ?? 1,
+      sire_id: values.sire_id ?? null,
+      dam_id: values.dam_id ?? null,
     };
+
     if (editing) {
       await updateGeneProfile(editing.id, payload);
       message.success('更新成功');
@@ -120,12 +71,17 @@ const GeneList = () => {
       await createGeneProfile(payload);
       message.success('新增成功');
     }
-    setDrawerVisible(false);
+
     actionRef.current?.reload();
-    return true;
+
+    if (mode === 'confirm') {
+      setDrawerVisible(false);
+    } else {
+      setEditing(null);
+      setFormKey((prev) => prev + 1);
+    }
   };
 
-  // 重新生成二维码
   const handleRegenQrcode = async (record: GeneProfile) => {
     try {
       await regenerateGeneQrcode(record.id);
@@ -136,7 +92,6 @@ const GeneList = () => {
     }
   };
 
-  // 删除
   const handleDelete = async (record: GeneProfile) => {
     try {
       await deleteGeneProfile(record.id);
@@ -170,7 +125,9 @@ const GeneList = () => {
       valueType: 'select',
       valueEnum: { 1: { text: '正常' }, 0: { text: '停用' } },
       render: (_, record) => (
-        <Tag color={record.status === 1 ? 'green' : 'default'}>{record.status === 1 ? '正常' : '停用'}</Tag>
+        <Tag color={record.status === 1 ? 'green' : 'default'}>
+          {record.status === 1 ? '正常' : '停用'}
+        </Tag>
       ),
     },
     {
@@ -178,7 +135,8 @@ const GeneList = () => {
       dataIndex: 'created_at',
       width: 160,
       hideInSearch: true,
-      render: (_, record) => (record.created_at ? dayjs(record.created_at).format('YYYY-MM-DD HH:mm') : '-'),
+      render: (_, record) =>
+        record.created_at ? dayjs(record.created_at).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
       title: '操作',
@@ -188,7 +146,12 @@ const GeneList = () => {
       hideInSearch: true,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => navigate(`/gene/detail/${record.id}`)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/gene/detail/${record.id}`)}
+          >
             详情
           </Button>
           {canEdit && (
@@ -197,12 +160,20 @@ const GeneList = () => {
             </Button>
           )}
           {canEdit && (
-            <Button type="link" size="small" icon={<QrcodeOutlined />} onClick={() => handleRegenQrcode(record)}>
+            <Button
+              type="link"
+              size="small"
+              icon={<QrcodeOutlined />}
+              onClick={() => handleRegenQrcode(record)}
+            >
               二维码
             </Button>
           )}
           {canEdit && (
-            <Popconfirm title="确认删除该基因档案?关联的检测记录与血统关系将一并删除。" onConfirm={() => handleDelete(record)}>
+            <Popconfirm
+              title="确认删除该基因档案?关联的检测记录与血统关系将一并删除。"
+              onConfirm={() => handleDelete(record)}
+            >
               <Button type="link" size="small" danger>
                 删除
               </Button>
@@ -251,79 +222,23 @@ const GeneList = () => {
         pagination={{ pageSize: 10, showSizeChanger: true }}
       />
 
-      {/* 新增/编辑抽屉 */}
-      <DrawerForm
+      <Drawer
         title={editing ? '编辑基因档案' : '新增基因档案'}
         open={drawerVisible}
-        onOpenChange={setDrawerVisible}
-        onFinish={handleSubmit}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
-        initialValues={
-          editing
-            ? {
-                ring_number: editing.ring_number,
-                name: editing.name,
-                gender: editing.gender,
-                breed: editing.breed,
-                bloodline: editing.bloodline,
-                owner_name: editing.owner_name,
-                owner_phone: editing.owner_phone ?? undefined,
-                color: editing.color ?? undefined,
-                eye_color: editing.eye_color ?? undefined,
-                birth_date: editing.birth_date ? dayjs(editing.birth_date) : undefined,
-                gene_sequence: editing.gene_sequence ?? undefined,
-                photo_url: editing.photo_url ?? undefined,
-                status: editing.status,
-                sire_id: editing.sire_id ?? undefined,
-                dam_id: editing.dam_id ?? undefined,
-              }
-            : { gender: 'unknown', status: 1 }
-        }
+        onClose={() => setDrawerVisible(false)}
+        width={window.innerWidth >= 1920 ? 1100 : 720}
+        destroyOnClose
+        maskClosable={false}
+        footer={null}
+        styles={{ body: { padding: 0 } }}
       >
-        <ProFormText
-          name="ring_number"
-          label="足环号"
-          placeholder="请输入足环号(唯一)"
-          rules={[{ required: true, message: '请输入足环号' }]}
-          disabled={!!editing}
+        <GeneForm
+          key={formKey}
+          initialData={editing || undefined}
+          onCancel={() => setDrawerVisible(false)}
+          onSubmit={handleFormSubmit}
         />
-        <ProFormText
-          name="name"
-          label="鸽名"
-          placeholder="请输入鸽名"
-          rules={[{ required: true, message: '请输入鸽名' }]}
-        />
-        <ProFormSelect name="gender" label="性别" options={GENDER_OPTIONS} />
-        <ProFormText name="breed" label="品种" placeholder="请输入品种" />
-        <ProFormText name="bloodline" label="血统" placeholder="请输入血统" />
-        <ProFormText name="owner_name" label="鸽主姓名" placeholder="请输入鸽主姓名" />
-        <ProFormText name="owner_phone" label="鸽主电话" placeholder="请输入鸽主电话" />
-        <ProFormText name="color" label="羽色" placeholder="请输入羽色" />
-        <ProFormText name="eye_color" label="眼砂" placeholder="请输入眼砂" />
-        <ProFormDatePicker name="birth_date" label="出生日期" />
-        <ProFormTextArea
-          name="gene_sequence"
-          label="基因序列"
-          placeholder="请输入基因序列数据(可选)"
-          fieldProps={{ autoSize: { minRows: 3, maxRows: 8 } }}
-        />
-        <ProFormText name="photo_url" label="照片 URL" placeholder="请输入鸽只照片地址" />
-        <ProFormSelect name="status" label="档案状态" options={STATUS_OPTIONS} />
-        <ProFormSelect
-          name="sire_id"
-          label="父鸽"
-          placeholder="请选择父鸽档案(可选)"
-          showSearch
-          options={sireDamRawOptions}
-        />
-        <ProFormSelect
-          name="dam_id"
-          label="母鸽"
-          placeholder="请选择母鸽档案(可选)"
-          showSearch
-          options={sireDamRawOptions}
-        />
-      </DrawerForm>
+      </Drawer>
     </>
   );
 };

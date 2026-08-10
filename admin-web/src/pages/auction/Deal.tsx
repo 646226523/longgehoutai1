@@ -4,6 +4,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import {
+  App,
   Button,
   Descriptions,
   Drawer,
@@ -11,7 +12,6 @@ import {
   Space,
   Spin,
   Tag,
-  message,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -64,6 +64,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 // 拍卖成交管理:列表 + 状态流转操作 + 详情抽屉
 const AuctionDeal = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canDeal = hasPermission(currentUser, 'auction:deal');
   const actionRef = useRef<ActionType>();
@@ -286,7 +287,9 @@ const AuctionDeal = () => {
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin tip="加载中..." />
+            <Spin tip="加载中...">
+              <div style={{ minHeight: 200, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+            </Spin>
           </div>
         ) : !detail ? (
           <div style={{ textAlign: 'center', padding: 48 }}>暂无数据</div>

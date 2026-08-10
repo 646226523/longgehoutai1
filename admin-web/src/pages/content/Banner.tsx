@@ -8,11 +8,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Image, InputNumber, Popconfirm, Space, Switch, Tag } from 'antd';
+import { App, Button, Image, InputNumber, Popconfirm, Space, Switch, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -41,7 +40,7 @@ const POSITION_LABEL: Record<string, string> = {
 
 // Banner 管理:首页 Banner 图管理,支持上下架、排序、定时上下架
 const ContentBanner = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'content:edit');
   const actionRef = useRef<ActionType>();
@@ -282,7 +281,7 @@ const ContentBanner = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={640}
         initialValues={
           editing

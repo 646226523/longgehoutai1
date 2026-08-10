@@ -7,11 +7,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Space, Spin, Tag, Tree, Popconfirm } from 'antd';
+import { App, Button, Drawer, Space, Spin, Tag, Tree, Popconfirm } from 'antd';
 import { PlusOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -28,7 +27,7 @@ import {
 
 // 角色权限管理:角色列表 + 新增/编辑 + 分配权限(Tree)
 const SystemRole = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:role:manage');
   const actionRef = useRef<ActionType>();
@@ -269,7 +268,7 @@ const SystemRole = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={520}
         initialValues={
           editing

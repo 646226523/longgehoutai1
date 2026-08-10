@@ -1,9 +1,9 @@
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, Descriptions, Drawer, Input, Popconfirm, Space, Tag } from 'antd';
+import { App, Button, Descriptions, Drawer, Input, Popconfirm, Space, Tag } from 'antd';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -21,9 +21,9 @@ const STATUS_MAP: Record<string, { text: string; color: string }> = {
   rejected: { text: '已驳回', color: 'red' },
 };
 
-// 手动录入审核:待审列表 + 审核详情抽屉(通过/驳回)
+// 基因档案审核:待审列表 + 审核详情抽屉(通过/驳回)
 const GeneAudit = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canAudit = hasPermission(currentUser, 'gene:audit');
   const actionRef = useRef<ActionType>();
@@ -164,7 +164,7 @@ const GeneAudit = () => {
   return (
     <>
       <ProTable<GeneSubmission>
-        headerTitle="手动录入审核"
+        headerTitle="基因档案审核"
         actionRef={actionRef}
         rowKey="id"
         columns={columns}

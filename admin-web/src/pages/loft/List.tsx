@@ -7,12 +7,12 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Switch, Tag } from 'antd';
+import { App, Button, Popconfirm, Space, Switch, Tag } from 'antd';
 import { EditOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -24,7 +24,7 @@ import {
 
 // 公棚信息管理:列表 / 编辑 / 状态切换 / 进入存棚鸽只管理
 const LoftList = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'loft:edit');
   const actionRef = useRef<ActionType>();
@@ -191,7 +191,7 @@ const LoftList = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleSubmit}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={560}
         initialValues={
           editing

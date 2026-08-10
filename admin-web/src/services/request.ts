@@ -1,17 +1,13 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, AxiosError } from 'axios';
-import type { MessageInstance } from 'antd/es/message/interface';
-
-let _message: MessageInstance | null = null;
-
-export function setMessageInstance(msg: MessageInstance) {
-  _message = msg;
-}
+import { getMessage } from '../utils/antd-app-instance';
+// eslint-disable-next-line no-restricted-imports -- fallback 仅在 App 组件挂载前极端情况使用，正常请求链路均通过 <AntdApp> context 消费的 getMessage()
+import { message as staticMessageFallback } from 'antd';
 
 function showError(content: string) {
-  if (_message) {
-    _message.error(content);
-  } else {
-    console.error(content);
+  try {
+    getMessage().error(content);
+  } catch {
+    staticMessageFallback.error(content);
   }
 }
 

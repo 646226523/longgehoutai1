@@ -8,12 +8,12 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { PageContainer } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Tag } from 'antd';
+import { App, Button, Popconfirm, Space, Tag } from 'antd';
 import { ArrowLeftOutlined, DeleteOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { useAntdApp } from '../../hooks/useAntdApp';
+
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import {
@@ -28,7 +28,7 @@ import {
 
 // 鸽棚与存棚鸽只管理:列表 + 入棚登记 + 出棚操作
 const LoftPigeons = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const params = useParams<{ id: string }>();
   const loftId = Number(params.id);
   const navigate = useNavigate();
@@ -224,7 +224,7 @@ const LoftPigeons = () => {
         open={modalVisible}
         onOpenChange={setModalVisible}
         onFinish={handleCreate}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         width={520}
       >
         <ProFormText

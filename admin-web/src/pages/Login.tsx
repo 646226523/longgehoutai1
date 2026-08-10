@@ -1,9 +1,8 @@
 import { LockOutlined, UserOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { Alert, Modal, Typography } from 'antd';
+import { Alert, App, Modal, Typography } from 'antd';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAntdApp } from '../hooks/useAntdApp';
 import { login } from '../services/auth';
 
 const { Text } = Typography;
@@ -16,7 +15,7 @@ const CAROUSEL_IMAGES = [
 ];
 
 const Login = () => {
-  const { message } = useAntdApp();
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');

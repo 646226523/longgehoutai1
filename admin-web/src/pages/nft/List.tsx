@@ -1,25 +1,29 @@
 import {
-  DrawerForm,
+  // DrawerForm, // 旧代码段保留注释中，暂不使用
   ModalForm,
   ProFormDigit,
   ProFormSelect,
   ProFormText,
-  ProFormTextArea,
+  // ProFormTextArea, // 旧代码段保留注释中，暂不使用
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
 import {
+  App,
   Button,
+  Card,
   Descriptions,
   Drawer,
   Empty,
+  Flex,
+  Image,
   Popconfirm,
   Space,
   Spin,
   Tabs,
   Tag,
-  message,
+  Typography,
 } from 'antd';
 import { EyeOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
@@ -39,6 +43,29 @@ import {
   type NftAssetDetail,
   type NftTransfer,
 } from '../../services/nft';
+import NftMintForm from './NftMintForm';
+import {
+  intelligentValueRenderer,
+  parseMetadata,
+  renderMetadataInfoSection,
+} from '../../utils/nft-metadata-render';
+
+const IPFS_PLACEHOLDER_IMG =
+  'data:image/svg+xml;base64,' +
+  btoa(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" rx="8" fill="#f5f5f5" stroke="#f0f0f0" stroke-width="1"/><g fill="#bfbfbf"><rect x="30" y="36" width="40" height="28" rx="3"/><circle cx="40" cy="46" r="3" fill="#8c8c8c"/><path d="M70 64L56 50L46 60L38 52L30 60V64H70Z"/></g></svg>`
+  );
+
+function isImageUrl(val: any): val is string {
+  return typeof val === 'string' && /^(https?:\/\/|ipfs:\/\/)/i.test(val);
+}
+
+function ipfsToHttp(url: string): string {
+  if (url.startsWith('ipfs://')) {
+    return 'https://ipfs.io/ipfs/' + url.slice(7);
+  }
+  return url;
+}
 
 // 资产状态选项
 const STATUS_OPTIONS = [
@@ -82,18 +109,19 @@ const TRANSFER_TYPE_LABEL: Record<string, string> = {
   gift: '赠与',
 };
 
-// 元数据 JSON 字符串格式化为可读文本
-function formatMetadata(metadata: string | null): string {
-  if (!metadata) return '-';
-  try {
-    return JSON.stringify(JSON.parse(metadata), null, 2);
-  } catch {
-    return metadata;
-  }
+function computeMintInitialData(asset: any): Record<string, any> {
+  const md = (() => { try { return typeof asset.metadata === 'string' ? JSON.parse(asset.metadata) : (asset.metadata || {}); } catch { return {}; } })();
+  const baseKeys = new Set(['name', 'ring_number', 'breed', 'gender', 'color', 'eye_color', 'achievement', 'owner', 'ipfs_image']);
+  const customAttrs = Object.entries(md).filter(([k]) => !baseKeys.has(k)).map(([key, val]) => ({ key, val: String(val) }));
+  return {
+    ...asset,
+    customAttrs,
+  };
 }
 
 // NFT 资产管理:列表 + 新增/编辑抽屉 + 详情抽屉(含流转记录与链上状态)
 const NftList = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'nft:edit');
   const actionRef = useRef<ActionType>();
@@ -101,6 +129,7 @@ const NftList = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<NftAsset | null>(null);
   const [parentOptions, setParentOptions] = useState<GeneProfileOption[]>([]);
+  const [formKey, setFormKey] = useState(0);
 
   // 详情抽屉
   const [detailVisible, setDetailVisible] = useState(false);
@@ -123,12 +152,14 @@ const NftList = () => {
 
   const openCreate = () => {
     setEditing(null);
+    setFormKey((k) => k + 1);
     setDrawerVisible(true);
     loadParentOptions();
   };
 
   const openEdit = (record: NftAsset) => {
     setEditing(record);
+    setFormKey((k) => k + 1);
     setDrawerVisible(true);
     loadParentOptions();
   };
@@ -158,20 +189,13 @@ const NftList = () => {
     }
   };
 
-  // 提交新增/编辑
+  // 提交新增/编辑（旧 handleSubmit - Task7 替换为新的提交逻辑）
   const handleSubmit = async (values: Record<string, unknown>) => {
-    // 构造 metadata 对象
-    let metadata: Record<string, unknown> | undefined;
-    if (values.metadata_obj) {
-      metadata = values.metadata_obj as Record<string, unknown>;
-    }
-
     const payload = {
       gene_profile_id: (values.gene_profile_id as number | undefined) ?? null,
       name: values.name as string,
       description: (values.description as string) ?? undefined,
       image_url: (values.image_url as string) ?? undefined,
-      metadata,
       owner_name: (values.owner_name as string) ?? undefined,
     };
     if (editing) {
@@ -194,6 +218,45 @@ const NftList = () => {
       actionRef.current?.reload();
     } catch {
       // 拦截器已提示错误
+    }
+  };
+
+  const handleMintSubmit = async (values: Record<string, any>, mode: 'draft' | 'audit') => {
+    if (!values.gene_profile_id) {
+      message.error('请先关联基因档案');
+      return;
+    }
+    if (!values.name?.trim()) {
+      message.error('请输入资产名称');
+      return;
+    }
+    if (!values.image_url) {
+      message.error('请上传至少一张资产图片');
+      return;
+    }
+    if (mode === 'audit') {
+      const ok = window.confirm('确定要提交上链审核吗？提交后将进入上链流程，无法撤销。');
+      if (!ok) return;
+    }
+    try {
+      let id: number | undefined;
+      if (editing?.id) {
+        await updateNftAsset(editing.id, values as any);
+        id = editing.id;
+      } else {
+        const result = await createNftAsset(values as any);
+        id = (result as any)?.id;
+      }
+      if (mode === 'audit' && id) {
+        await submitNftAssetAudit(id);
+        message.success('已提交上链审核');
+      } else {
+        message.success('已保存为草稿');
+      }
+      setDrawerVisible(false);
+      actionRef.current?.reload();
+    } catch (e: any) {
+      message.error(e?.message || '操作失败');
     }
   };
 
@@ -369,6 +432,8 @@ const NftList = () => {
     },
   ];
 
+  void handleSubmit;
+
   return (
     <>
       <ProTable<NftAsset>
@@ -407,55 +472,22 @@ const NftList = () => {
       />
 
       {/* 新增/编辑抽屉 */}
-      <DrawerForm
+      <Drawer
         title={editing ? '编辑 NFT 资产' : '新增铸造申请'}
         open={drawerVisible}
-        onOpenChange={setDrawerVisible}
-        onFinish={handleSubmit}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
-        initialValues={
-          editing
-            ? {
-                gene_profile_id: editing.gene_profile_id ?? undefined,
-                name: editing.name,
-                description: editing.description ?? undefined,
-                image_url: editing.image_url ?? undefined,
-                owner_name: editing.owner_name,
-              }
-            : {}
-        }
+        onClose={() => setDrawerVisible(false)}
+        width={window.innerWidth >= 1920 ? 1100 : 720}
+        destroyOnHidden
+        maskClosable={false}
+        styles={{ body: { padding: 0 } }}
+        key={formKey}
       >
-        <ProFormSelect
-          name="gene_profile_id"
-          label="关联基因档案"
-          placeholder="请选择基因档案(铸造时关联)"
-          showSearch
-          options={parentOptions
-            .filter((o) => o.id !== editing?.id)
-            .map((o) => ({ label: `${o.ring_number} ${o.name}`, value: o.id }))}
+        <NftMintForm
+          initialData={editing ? computeMintInitialData(editing) : undefined}
+          onCancel={() => setDrawerVisible(false)}
+          onSubmit={handleMintSubmit}
         />
-        <ProFormText
-          name="name"
-          label="资产名称"
-          placeholder="请输入资产名称"
-          rules={[{ required: true, message: '请输入资产名称' }]}
-        />
-        <ProFormTextArea
-          name="description"
-          label="资产描述"
-          placeholder="请输入资产描述"
-          fieldProps={{ autoSize: { minRows: 2, maxRows: 5 } }}
-        />
-        <ProFormText name="image_url" label="资产图片 URL" placeholder="请输入资产图片地址" />
-        <ProFormText name="owner_name" label="持有者(鸽主)" placeholder="留空将自动取基因档案鸽主" />
-        <ProFormTextArea
-          name="metadata_obj"
-          label="元数据(JSON)"
-          placeholder='{"key":"value"} - 可选,将序列化为 JSON 存储'
-          fieldProps={{ autoSize: { minRows: 3, maxRows: 8 } }}
-          tooltip="可直接输入 JSON 字符串,也可输入对象结构"
-        />
-      </DrawerForm>
+      </Drawer>
 
       {/* 详情抽屉 */}
       <Drawer
@@ -467,7 +499,9 @@ const NftList = () => {
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin tip="加载中..." />
+            <Spin tip="加载中...">
+              <div style={{ minHeight: 200, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+            </Spin>
           </div>
         ) : !detail ? (
           <Empty description="暂无数据" />
@@ -479,47 +513,128 @@ const NftList = () => {
                 key: 'info',
                 label: '基本信息',
                 children: (
-                  <Descriptions column={2} bordered size="small">
-                    <Descriptions.Item label="资产名称" span={2}>
-                      {detail.name}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="资产 ID">{detail.id}</Descriptions.Item>
-                    <Descriptions.Item label="Token ID">{detail.token_id || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="状态">
-                      <Tag color={STATUS_COLOR[detail.status] ?? 'default'}>
-                        {STATUS_LABEL[detail.status] ?? detail.status}
-                      </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="持有者">{detail.owner_name}</Descriptions.Item>
-                    <Descriptions.Item label="关联基因档案" span={2}>
-                      {detail.gene_profile
-                        ? `${detail.gene_profile.ring_number} ${detail.gene_profile.name}(${detail.gene_profile.owner_name})`
-                        : '未关联'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="资产描述" span={2}>
-                      {detail.description || '-'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="资产图片" span={2}>
-                      {detail.image_url ? (
-                        <a href={detail.image_url} target="_blank" rel="noreferrer">
-                          {detail.image_url}
-                        </a>
-                      ) : (
-                        '-'
-                      )}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="元数据" span={2}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                        {formatMetadata(detail.metadata)}
-                      </pre>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="创建时间">
-                      {dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="更新时间">
-                      {dayjs(detail.updated_at).format('YYYY-MM-DD HH:mm:ss')}
-                    </Descriptions.Item>
-                  </Descriptions>
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <Card
+                      variant="outlined"
+                      title="基础信息"
+                      styles={{ body: { padding: 12 } }}
+                    >
+                      <Descriptions column={2} bordered size="small">
+                        <Descriptions.Item label="资产名称" span={2}>
+                          {detail.name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="资产 ID">{detail.id}</Descriptions.Item>
+                        <Descriptions.Item label="Token ID">{detail.token_id || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="状态">
+                          <Tag color={STATUS_COLOR[detail.status] ?? 'default'}>
+                            {STATUS_LABEL[detail.status] ?? detail.status}
+                          </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="持有者">{detail.owner_name}</Descriptions.Item>
+                        <Descriptions.Item label="关联基因档案" span={2}>
+                          {detail.gene_profile
+                            ? `${detail.gene_profile.ring_number} ${detail.gene_profile.name}(${detail.gene_profile.owner_name})`
+                            : '未关联'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="资产描述" span={2}>
+                          {intelligentValueRenderer('description', detail.description, detail.name)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="创建时间">
+                          {dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="更新时间">
+                          {dayjs(detail.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
+
+                    <Card
+                      variant="outlined"
+                      title="资产图片"
+                      styles={{ body: { padding: 12 } }}
+                    >
+                      {(() => {
+                        const mainImg = detail.image_url;
+                        const md = parseMetadata(detail.metadata);
+                        const ipfsImage: any = md?.ipfs_image;
+                        const hasMain = isImageUrl(mainImg);
+                        const hasIpfs = isImageUrl(ipfsImage) && ipfsImage !== mainImg;
+                        if (!hasMain && !hasIpfs) {
+                          return <Empty description="暂无图片" />;
+                        }
+                        return (
+                          <Flex gap={16} wrap="wrap">
+                            {hasMain && (
+                              <div style={{ textAlign: 'center' }}>
+                                {mainImg.startsWith('ipfs://') ? (
+                                  <>
+                                    <img
+                                      src={IPFS_PLACEHOLDER_IMG}
+                                      alt={detail.name || '主图'}
+                                      style={{
+                                        width: 100,
+                                        height: 100,
+                                        objectFit: 'cover',
+                                        borderRadius: 8,
+                                        border: '1px solid #f0f0f0',
+                                      }}
+                                    />
+                                    <div>
+                                      <Typography.Link target="_blank" href={ipfsToHttp(mainImg)}>
+                                        链上原图
+                                      </Typography.Link>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Image
+                                      src={mainImg}
+                                      width={100}
+                                      height={100}
+                                      style={{
+                                        objectFit: 'cover',
+                                        borderRadius: 8,
+                                        border: '1px solid #f0f0f0',
+                                      }}
+                                      fallback={IPFS_PLACEHOLDER_IMG}
+                                      alt={detail.name || '主图'}
+                                    />
+                                    <div>
+                                      <Typography.Link target="_blank" href={mainImg}>
+                                        查看原图
+                                      </Typography.Link>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {hasIpfs && (
+                              <div style={{ textAlign: 'center' }}>
+                                <img
+                                  src={IPFS_PLACEHOLDER_IMG}
+                                  alt="链上图片(ipfs)"
+                                  style={{
+                                    width: 100,
+                                    height: 100,
+                                    objectFit: 'cover',
+                                    borderRadius: 8,
+                                    border: '1px solid #f0f0f0',
+                                  }}
+                                />
+                                <div>
+                                  <Typography.Link target="_blank" href={ipfsToHttp(ipfsImage)}>
+                                    链上原图(ipfs)
+                                  </Typography.Link>
+                                </div>
+                              </div>
+                            )}
+                          </Flex>
+                        );
+                      })()}
+                    </Card>
+
+                    {renderMetadataInfoSection(detail.metadata, detail.image_url, detail.description)}
+                  </Space>
                 ),
               },
               {
@@ -620,7 +735,7 @@ const NftList = () => {
         open={transferModalOpen}
         onOpenChange={setTransferModalOpen}
         onFinish={handleCreateTransfer}
-        modalProps={{ destroyOnClose: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false }}
         initialValues={{ transfer_type: 'transfer' }}
       >
         <ProFormSelect
