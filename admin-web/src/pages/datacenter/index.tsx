@@ -1111,6 +1111,51 @@ const DataCenter = () => {
   const [pigeonDetailOpen, setPigeonDetailOpen] = useState(false);
   const [selectedPigeon, setSelectedPigeon] = useState<FlightData | null>(null);
 
+  const [auctions, setAuctions] = useState<AuctionItem[]>(() => [...mockAuctions]);
+  const [races, setRaces] = useState<RaceItem[]>(() => [...mockRaces]);
+  const [scrollOffset, setScrollOffset] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setAuctions((prev) => {
+        const updated = prev.map((a) => {
+          if (a.status !== 'bidding') return a;
+          const delta = Math.floor(Math.random() * 8) + 1;
+          const newBidCount = a.bidCount + delta;
+          const priceDelta = Math.floor(Math.random() * 3000) + 500;
+          const newPrice = Math.max(a.startingBid, a.currentPrice + priceDelta);
+          return {
+            ...a,
+            bidCount: newBidCount,
+            currentPrice: newPrice,
+            heat: Math.min(5, a.heat + (Math.random() > 0.5 ? 1 : 0)),
+          };
+        });
+        return updated.sort((a, b) => b.currentPrice - a.currentPrice);
+      });
+
+      setRaces((prev) =>
+        prev.map((r) => {
+          const newProgress = Math.min(100, r.progress + (Math.random() * 2));
+          const newReturned = Math.min(r.totalCount, r.returnedCount + Math.floor(Math.random() * 15) + 1);
+          let status = r.status;
+          if (newProgress >= 95) status = '已结束';
+          else if (newProgress >= 85) status = '即将结束';
+          else if (newProgress >= 50) status = '进行中';
+          return { ...r, progress: Math.round(newProgress * 10) / 10, returnedCount: newReturned, status };
+        })
+      );
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const scrollTimer = setInterval(() => {
+      setScrollOffset((prev) => prev + 1);
+    }, 50);
+    return () => clearInterval(scrollTimer);
+  }, []);
+
   const provinceFromPosition = useMemo(() => {
     const map: Record<string, string> = {};
     Object.entries(cityToProvince).forEach(([city, prov]) => {
@@ -1625,83 +1670,113 @@ const DataCenter = () => {
 
   const renderAuctionList = useCallback(() => {
     const filtered = selectedProvince
-      ? mockAuctions.filter((a) => a.province === selectedProvince)
-      : mockAuctions;
+      ? auctions.filter((a) => a.province === selectedProvince)
+      : auctions;
+    const itemHeight = 44;
+    const totalHeight = filtered.length * itemHeight;
+    const offset = totalHeight > 0 ? -(scrollOffset % totalHeight) : 0;
+    const displayList = [...filtered, ...filtered];
     return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 4 }}>
-        {filtered.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textSecondary, fontSize: 12 }}>
-            <FireOutlined style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }} />
-            <div>{selectedProvince ? `${selectedProvince} 暂无拍卖` : '暂无拍卖数据'}</div>
-          </div>
-        ) : filtered.map((item) => (
-          <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: 6, background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, #151d2d 100%)`, border: `1px solid ${COLORS.border}`, gap: 8 }}>
-            <span style={{ fontSize: 20 }}>{item.image}</span>
-            <span style={{ flex: 1, color: COLORS.textPrimary, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-            <span style={{ color: COLORS.accentGold, fontWeight: 600, fontSize: 12 }}>¥{item.currentPrice.toLocaleString()}</span>
-            <span style={{ color: COLORS.accentCyan, fontSize: 12, marginLeft: 6 }}>{item.bidCount}出价</span>
-          </div>
-        ))}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        <div
+          style={{
+            transform: `translateY(${offset}px)`,
+            transition: 'transform 0.05s linear',
+          }}
+        >
+          {displayList.map((item, idx) => (
+            <div key={`${item.id}-${idx}`} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: 6, background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, #151d2d 100%)`, border: `1px solid ${COLORS.border}`, gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 20 }}>{item.image}</span>
+              <span style={{ flex: 1, color: COLORS.textPrimary, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+              <span style={{ color: COLORS.accentGold, fontWeight: 600, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>¥{item.currentPrice.toLocaleString()}</span>
+              <span style={{ color: COLORS.accentCyan, fontSize: 12, marginLeft: 6, fontVariantNumeric: 'tabular-nums' }}>{item.bidCount}出价</span>
+              {item.status === 'bidding' && (
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff4d4f', boxShadow: '0 0 6px #ff4d4f', flexShrink: 0 }} />
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 20, background: `linear-gradient(180deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 20, background: `linear-gradient(0deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
       </div>
     </div>
   );
-  }, [selectedProvince]);
+  }, [selectedProvince, auctions, scrollOffset]);
 
   const renderRaceList = useCallback(() => {
     const filtered = selectedProvince
-      ? mockRaces.filter((r) => r.provinces?.includes(selectedProvince))
-      : mockRaces;
+      ? races.filter((r) => r.provinces?.includes(selectedProvince))
+      : races;
+    const raceItemHeight = 96;
+    const totalHeight = filtered.length * raceItemHeight;
+    const offset = totalHeight > 0 ? -(scrollOffset % totalHeight) : 0;
+    const displayList = [...filtered, ...filtered];
     return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {selectedProvince && (
-        <div style={{ background: `${COLORS.accentCyan}15`, border: `1px solid ${COLORS.accentCyan}40`, borderRadius: 4, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: COLORS.accentCyan, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: `${COLORS.accentCyan}15`, border: `1px solid ${COLORS.accentCyan}40`, borderRadius: 4, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: COLORS.accentCyan, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <span>📍 筛选: {selectedProvince} ({filtered.length} 项赛事)</span>
           <Button type="link" size="small" onClick={handleBackToNational} style={{ padding: '0 4px', fontSize: 11, height: 'auto' }}>清除</Button>
         </div>
       )}
-      {filtered.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textSecondary, fontSize: 12 }}>
-          <TrophyOutlined style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }} />
-          <div>{selectedProvince ? `${selectedProvince} 暂无进行中赛事` : '暂无赛事数据'}</div>
-        </div>
-      ) : (
-        filtered.map((race) => (
-          <div key={race.id} style={{ display: 'flex', flexDirection: 'column', padding: '10px 12px', borderRadius: 6, background: 'linear-gradient(135deg, #1a2332 0%, #151d2d 100%)', border: '1px solid #2a3a5a', marginBottom: 8, gap: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: 8 }}>{race.name}</div>
-              <Tag color={race.status === '即将结束' ? 'orange' : 'green'} style={{ margin: 0, padding: '0 4px', fontSize: 11, lineHeight: '18px' }}>{race.status}</Tag>
-            </div>
-            <div>
-              <Progress percent={race.progress} strokeColor={COLORS.accentCyan} showInfo={true} size="small" />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: COLORS.textSecondary }}>
-              <span>总 {race.totalCount} 羽</span>
-              <span>已归巢 {race.returnedCount}</span>
-              <span>线路: {race.location}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button type="link" size="small" onClick={() => handleRaceDetail(race)} style={{ padding: '0 4px', fontSize: 11 }}>详情</Button>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => handleFlylineHighlight(race)}
-                style={{
-                  padding: '0 4px',
-                  fontSize: 11,
-                  color: highlightedRaceId === race.id ? '#ff4d4f' : undefined,
-                  fontWeight: highlightedRaceId === race.id ? 700 : 400,
-                }}
-              >
-                飞线
-              </Button>
-            </div>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        {filtered.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textSecondary, fontSize: 12 }}>
+            <TrophyOutlined style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }} />
+            <div>{selectedProvince ? `${selectedProvince} 暂无进行中赛事` : '暂无赛事数据'}</div>
           </div>
-        ))
-      )}
+        ) : (
+          <div
+            style={{
+              transform: `translateY(${offset}px)`,
+              transition: 'transform 0.05s linear',
+            }}
+          >
+            {displayList.map((race, idx) => (
+              <div key={`${race.id}-${idx}`} style={{ display: 'flex', flexDirection: 'column', padding: '10px 12px', borderRadius: 6, background: 'linear-gradient(135deg, #1a2332 0%, #151d2d 100%)', border: '1px solid #2a3a5a', marginBottom: 8, gap: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: 8 }}>{race.name}</div>
+                  <Tag color={race.status === '即将结束' ? 'orange' : race.status === '已结束' ? 'default' : 'green'} style={{ margin: 0, padding: '0 4px', fontSize: 11, lineHeight: '18px' }}>{race.status}</Tag>
+                </div>
+                <div>
+                  <Progress percent={race.progress} strokeColor={COLORS.accentCyan} showInfo={true} size="small" />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: COLORS.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                  <span>总 {race.totalCount} 羽</span>
+                  <span style={{ color: COLORS.accentCyan }}>已归巢 {race.returnedCount}</span>
+                  <span>线路: {race.location}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button type="link" size="small" onClick={() => handleRaceDetail(race)} style={{ padding: '0 4px', fontSize: 11 }}>详情</Button>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => handleFlylineHighlight(race)}
+                    style={{
+                      padding: '0 4px',
+                      fontSize: 11,
+                      color: highlightedRaceId === race.id ? '#ff4d4f' : undefined,
+                      fontWeight: highlightedRaceId === race.id ? 700 : 400,
+                    }}
+                  >
+                    飞线
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {filtered.length > 0 && (
+          <>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 16, background: `linear-gradient(180deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 16, background: `linear-gradient(0deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
+          </>
+        )}
+      </div>
     </div>
   );
-  }, [selectedProvince, handleBackToNational]);
+  }, [selectedProvince, handleBackToNational, races, scrollOffset, highlightedRaceId]);
 
   const renderFlightData = useCallback(() => {
     const source = selectedProvince ? filteredFlightData : flightData;
@@ -1718,10 +1793,14 @@ const DataCenter = () => {
     const filterOptions: { key: typeof flightFilter; label: string }[] = [
       { key: 'all', label: '全部' }, { key: 'flying', label: '飞行中' }, { key: 'returning', label: '归巢中' }, { key: 'anomaly', label: '异常' },
     ];
+    const rowHeight = 34;
+    const totalHeight = sorted.length * rowHeight;
+    const offset = totalHeight > 0 ? -(scrollOffset % totalHeight) : 0;
+    const displayList = [...sorted, ...sorted];
     return (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         {flightExpanded && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexShrink: 0 }}>
             {filterOptions.map((opt) => (
               <Button key={opt.key} size="small" type={flightFilter === opt.key ? 'primary' : 'default'} onClick={() => setFlightFilter(opt.key)} style={flightFilter === opt.key ? { background: COLORS.accentCyan, borderColor: COLORS.accentCyan, color: COLORS.bgPrimary } : {}}>
                 {opt.label}
@@ -1729,7 +1808,7 @@ const DataCenter = () => {
             ))}
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 2fr 1fr 1fr 0.8fr 1fr 1.2fr', gap: 8, padding: '6px 10px', background: `${COLORS.accentCyan}15`, borderRadius: '6px 6px 0 0', borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, color: COLORS.accentCyan, fontWeight: 600 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 2fr 1fr 1fr 0.8fr 1fr 1.2fr', gap: 8, padding: '6px 10px', background: `${COLORS.accentCyan}15`, borderRadius: '6px 6px 0 0', borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, color: COLORS.accentCyan, fontWeight: 600, flexShrink: 0 }}>
           <span>足环号</span><span>当前位置</span>
           <span style={{ textAlign: 'right' }}>速度(km/h)</span>
           <span style={{ textAlign: 'right' }}>高度(m)</span>
@@ -1737,47 +1816,69 @@ const DataCenter = () => {
           <span style={{ textAlign: 'center' }}>预计归巢</span>
           <span style={{ textAlign: 'center' }}>操作</span>
         </div>
-        {sorted.map((item) => (
-          <div key={item.id} className={item.isAnomaly ? 'anomaly-row' : ''} style={{ display: 'grid', gridTemplateColumns: '1.5fr 2fr 1fr 1fr 0.8fr 1fr 1.2fr', gap: 8, padding: '6px 10px', borderBottom: `1px solid ${COLORS.border}40`, fontSize: 12, transition: 'background 0.3s', background: item.isAnomaly ? 'rgba(239, 68, 68, 0.1)' : item.status === 'returning' ? 'rgba(245, 158, 11, 0.08)' : 'transparent' }}>
-            <span style={{ color: COLORS.textPrimary, fontFamily: 'monospace' }}>{item.ringNumber}</span>
-            <span style={{ color: item.isAnomaly ? '#ff4d4f' : COLORS.textSecondary }}>{item.currentPosition}</span>
-            <span style={{ color: item.isAnomaly ? '#ff4d4f' : COLORS.accentCyan, textAlign: 'right', fontWeight: 500 }}>{item.speed}</span>
-            <span style={{ color: COLORS.accentGold, textAlign: 'right', fontWeight: 500 }}>{item.altitude}</span>
-            <span style={{ textAlign: 'center' }}>
-              <Tag icon={item.isAnomaly ? <FireOutlined /> : item.status === 'flying' ? <ThunderboltOutlined /> : item.status === 'returning' ? <CloudOutlined /> : <CheckCircleOutlined />} color={item.isAnomaly ? 'red' : item.status === 'flying' ? 'green' : item.status === 'returning' ? 'blue' : 'default'} style={{ marginRight: 0, padding: '0 4px', fontSize: 11, lineHeight: '18px' }}>
-                {item.isAnomaly ? '异常' : statusLabelMap[item.status]}
-              </Tag>
-            </span>
-            <span style={{ textAlign: 'center', color: item.etaMinutes !== undefined && item.etaMinutes > 120 ? '#ff4d4f' : COLORS.textSecondary }}>{item.etaMinutes !== undefined ? `${item.etaMinutes} 分钟` : '-'}</span>
-            <span style={{ textAlign: 'center' }}>
-              <Space size={4}>
-                <Button
-                  size="small"
-                  type="link"
-                  onClick={() => handlePigeonTrack(item)}
-                  style={{
-                    padding: '0 4px',
-                    color: trackedPigeonId === item.id ? '#ff4d4f' : undefined,
-                    fontWeight: trackedPigeonId === item.id ? 700 : 400,
-                  }}
-                >
-                  {trackedPigeonId === item.id ? '取消追踪' : '追踪'}
-                </Button>
-                <Button
-                  size="small"
-                  type="link"
-                  onClick={() => handlePigeonView(item)}
-                  style={{ padding: '0 4px' }}
-                >
-                  查看
-                </Button>
-              </Space>
-            </span>
-          </div>
-        ))}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+          {sorted.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textSecondary, fontSize: 12 }}>
+              <CloudOutlined style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }} />
+              <div>暂无飞行数据</div>
+            </div>
+          ) : (
+            <div
+              style={{
+                transform: `translateY(${offset}px)`,
+                transition: 'transform 0.05s linear',
+              }}
+            >
+              {displayList.map((item, idx) => (
+                <div key={`${item.id}-${idx}`} className={item.isAnomaly ? 'anomaly-row' : ''} style={{ display: 'grid', gridTemplateColumns: '1.5fr 2fr 1fr 1fr 0.8fr 1fr 1.2fr', gap: 8, padding: '6px 10px', borderBottom: `1px solid ${COLORS.border}40`, fontSize: 12, transition: 'background 0.3s', background: item.isAnomaly ? 'rgba(239, 68, 68, 0.1)' : item.status === 'returning' ? 'rgba(245, 158, 11, 0.08)' : 'transparent' }}>
+                  <span style={{ color: COLORS.textPrimary, fontFamily: 'monospace' }}>{item.ringNumber}</span>
+                  <span style={{ color: item.isAnomaly ? '#ff4d4f' : COLORS.textSecondary }}>{item.currentPosition}</span>
+                  <span style={{ color: item.isAnomaly ? '#ff4d4f' : COLORS.accentCyan, textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{item.speed}</span>
+                  <span style={{ color: COLORS.accentGold, textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{item.altitude}</span>
+                  <span style={{ textAlign: 'center' }}>
+                    <Tag icon={item.isAnomaly ? <FireOutlined /> : item.status === 'flying' ? <ThunderboltOutlined /> : item.status === 'returning' ? <CloudOutlined /> : <CheckCircleOutlined />} color={item.isAnomaly ? 'red' : item.status === 'flying' ? 'green' : item.status === 'returning' ? 'blue' : 'default'} style={{ marginRight: 0, padding: '0 4px', fontSize: 11, lineHeight: '18px' }}>
+                      {item.isAnomaly ? '异常' : statusLabelMap[item.status]}
+                    </Tag>
+                  </span>
+                  <span style={{ textAlign: 'center', color: item.etaMinutes !== undefined && item.etaMinutes > 120 ? '#ff4d4f' : COLORS.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{item.etaMinutes !== undefined ? `${item.etaMinutes} 分钟` : '-'}</span>
+                  <span style={{ textAlign: 'center' }}>
+                    <Space size={4}>
+                      <Button
+                        size="small"
+                        type="link"
+                        onClick={() => handlePigeonTrack(item)}
+                        style={{
+                          padding: '0 4px',
+                          color: trackedPigeonId === item.id ? '#ff4d4f' : undefined,
+                          fontWeight: trackedPigeonId === item.id ? 700 : 400,
+                        }}
+                      >
+                        {trackedPigeonId === item.id ? '取消追踪' : '追踪'}
+                      </Button>
+                      <Button
+                        size="small"
+                        type="link"
+                        onClick={() => handlePigeonView(item)}
+                        style={{ padding: '0 4px' }}
+                      >
+                        查看
+                      </Button>
+                    </Space>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {sorted.length > 0 && (
+            <>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 16, background: `linear-gradient(180deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 16, background: `linear-gradient(0deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
+            </>
+          )}
+        </div>
       </div>
     );
-  }, [flightData, filteredFlightData, flightFilter, flightExpanded, selectedProvince, trackedPigeonId, handlePigeonTrack, handlePigeonView]);
+  }, [flightData, filteredFlightData, flightFilter, flightExpanded, selectedProvince, trackedPigeonId, handlePigeonTrack, handlePigeonView, scrollOffset]);
 
   const provinceDetail = useMemo<ProvinceDetailData | null>(() => {
     if (!selectedProvince) return null;
@@ -1878,9 +1979,9 @@ const DataCenter = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 320px', gap: 12, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr 320px', gap: 12, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden', width: '400px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, width: '400px' }}>
             <MetricCard title={`${selectedProvince ? selectedProvince + ' · ' : ''}在线公棚数`} value={provinceMetrics.online} unit="个" change={selectedProvince ? 3.8 : 5.2} trend={[Math.round(provinceMetrics.online * 0.9), Math.round(provinceMetrics.online * 0.92), Math.round(provinceMetrics.online * 0.94), Math.round(provinceMetrics.online * 0.96), Math.round(provinceMetrics.online * 0.97), Math.round(provinceMetrics.online * 0.99), provinceMetrics.online]} progress={selectedProvince ? Math.round(provinceMetrics.online / provinceMetrics.lofts * 100) : 73} progressLabel="在线率" icon={<CheckCircleOutlined />} color={COLORS.flying} extra={<div style={{ fontSize: 10, color: COLORS.textSecondary, marginTop: 2 }}>总 {provinceMetrics.lofts} · 在棚 {provinceMetrics.online}</div>} />
             <MetricCard title="鸽子总数" value={provinceMetrics.pigeons} unit="羽" change={selectedProvince ? 8.2 : 12.3} trend={[Math.round(provinceMetrics.pigeons * 0.88), Math.round(provinceMetrics.pigeons * 0.9), Math.round(provinceMetrics.pigeons * 0.92), Math.round(provinceMetrics.pigeons * 0.94), Math.round(provinceMetrics.pigeons * 0.96), Math.round(provinceMetrics.pigeons * 0.98), provinceMetrics.pigeons]} progress={85} progressLabel="同比去年" icon={<TrophyOutlined />} color={COLORS.accentGold} />
             <MetricCard title="进行中赛事" value={provinceMetrics.races} unit="项" change={0} trend={[Math.max(0, provinceMetrics.races - 2), Math.max(0, provinceMetrics.races - 1), provinceMetrics.races, Math.max(0, provinceMetrics.races - 1), provinceMetrics.races, provinceMetrics.races, provinceMetrics.races]} icon={<FireOutlined />} color={COLORS.accentGold} />
@@ -1888,7 +1989,7 @@ const DataCenter = () => {
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12 }}>
+            <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, width: '400px' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ width: 3, height: 12, background: COLORS.accentCyan, borderRadius: 2, marginRight: 6 }} />
                 <span style={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: 600 }}>{selectedProvince ? `${selectedProvince}下辖城市公棚数量` : '各省份公棚数量 TOP10'}</span>
@@ -1896,7 +1997,7 @@ const DataCenter = () => {
               </div>
               <ReactECharts option={getBarChartOption(selectedProvince)} style={{ height: 220, width: '100%' }} opts={{ renderer: 'canvas' }} notMerge />
             </div>
-            <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12 }}>
+            <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, width: '400px' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ width: 3, height: 12, background: COLORS.accentGold, borderRadius: 2, marginRight: 6 }} />
                 <span style={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: 600 }}>{selectedProvince ? `${selectedProvince} 拍卖成交额估算` : '最近 7 天拍卖成交额趋势'}</span>
@@ -1938,7 +2039,7 @@ const DataCenter = () => {
           </div>
         </div>
 
-        <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', minWidth: '1200px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ width: 3, height: 12, background: selectedProvince ? COLORS.accentGold : COLORS.accentCyan, borderRadius: 2, marginRight: 6 }} />
             <span style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: 600 }}>
