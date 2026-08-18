@@ -28,6 +28,14 @@ import {
   RocketOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import pigeonPhoto0 from './pigeon-photo-0.jpg';
+import pigeonPhoto1 from './pigeon-photo-1.jpg';
+import pigeonPhoto2 from './pigeon-photo-2.jpg';
+import pigeonPhoto3 from './pigeon-photo-3.jpg';
+import pigeonPhoto4 from './pigeon-photo-4.jpg';
+import pigeonPhoto5 from './pigeon-photo-5.jpg';
+
+const pigeonPhotos = [pigeonPhoto0, pigeonPhoto1, pigeonPhoto2, pigeonPhoto3, pigeonPhoto4, pigeonPhoto5];
 
 interface LoftCity {
   name: string;
@@ -90,6 +98,7 @@ interface FlightData {
   startTime?: string;
   distance?: number;
   coord?: [number, number];
+  photo?: string;
 }
 
 interface CityDetail {
@@ -553,6 +562,7 @@ function generateFlightData(): FlightData[] {
     loft: lofts[i],
     startTime: dayjs().subtract(2 + i, 'hour').format('YYYY-MM-DD HH:mm'),
     distance: 300 + i * 40,
+    photo: pigeonPhotos[i % pigeonPhotos.length],
   }));
   const anomalyIndex = result.findIndex((r) => r.ringNumber === 'CHN-2026-002567');
   if (anomalyIndex >= 0) {
@@ -2539,14 +2549,28 @@ const DataCenter = () => {
                 position: 'relative',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 14,
-                    background: `linear-gradient(135deg, ${isAnomaly ? '#ff4d4f' : COLORS.accentCyan}, ${COLORS.accentGold})`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: `0 4px 20px ${(isAnomaly ? '#ff4d4f' : COLORS.accentCyan)}40`,
-                  }}>
-                    🐦
-                  </div>
+                  {p.photo ? (
+                    <img
+                      src={p.photo}
+                      alt={p.ringNumber}
+                      style={{
+                        width: 56, height: 56, borderRadius: 14,
+                        objectFit: 'cover',
+                        border: `2px solid ${isAnomaly ? '#ff4d4f' : COLORS.accentCyan}`,
+                        boxShadow: `0 4px 20px ${(isAnomaly ? '#ff4d4f' : COLORS.accentCyan)}40`,
+                        backgroundColor: COLORS.bgCard,
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 14,
+                      background: `linear-gradient(135deg, ${isAnomaly ? '#ff4d4f' : COLORS.accentCyan}, ${COLORS.accentGold})`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: `0 4px 20px ${(isAnomaly ? '#ff4d4f' : COLORS.accentCyan)}40`,
+                    }}>
+                      🐦
+                    </div>
+                  )}
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                       <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: COLORS.textPrimary, fontFamily: 'monospace' }}>
