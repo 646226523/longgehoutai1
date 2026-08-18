@@ -1,22 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-// 真实后端模式：所有 /api 请求转发到 admin-api (localhost:3015)。
-// 如需要纯前端 Mock 独立运行，可改为启用 mockApiPlugin() 并注释 proxy。
-// import { mockApiPlugin } from './server/mock';
+import { mockApiPlugin } from './server/mock-plugin.js';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    // mockApiPlugin(),
+    mockApiPlugin(),
   ],
   server: {
+    host: '0.0.0.0',
     port: 3014,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3015',
-        changeOrigin: true,
-      },
+    strictPort: true,
+    hmr: {
+      host: 'localhost',
+      port: 3014,
+      clientPort: 3014,
+      protocol: 'ws',
+      overlay: false,
     },
+    watch: {
+      ignored: ['**/node_modules/**', '**/dist/**'],
+    },
+  },
+  preview: {
+    host: '127.0.0.1',
+    port: 3014,
   },
 });

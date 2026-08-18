@@ -42,7 +42,6 @@ export function calcPieSlicesWithLeads(
   data: PortAnalysisData[],
   cfg: { R: number; padOuter?: number; showOuterMinPct?: number; showInnerMinPct?: number },
 ): PieSliceWithLead[] {
-  // showInnerMinPct deprecated — all items >=1% now go outer (V3 spec)
   const { R, padOuter = 72, showOuterMinPct = 1 } = cfg;
   const cx = R + padOuter;
   const cy = R + padOuter;
@@ -71,7 +70,6 @@ export function calcPieSlicesWithLeads(
     const p1x = cx + (R + 2) * cosMid;
     const p1y = cy + (R + 2) * sinMid;
 
-    // Stage-1 anchorRadius — later corrected by boundary pass if needed
     let anchorRadius = R + 32;
     let p2x = cx + anchorRadius * cosMid;
     let p2y = cy + anchorRadius * sinMid;
@@ -103,7 +101,6 @@ export function calcPieSlicesWithLeads(
     } else if (labelSide === 'left') {
       p2BarEndX = p2x - 4;
     } else {
-      // center (near top/bottom midline): bar still horizontal, extend to the right 4px & place text below/above bar
       p2BarEndX = p2x + 4;
     }
 
@@ -131,7 +128,6 @@ export function calcPieSlicesWithLeads(
       labelAnchor: { x: labelAnchorX, y: labelAnchorY },
       labelSide,
       textOuter,
-      // V3: innerText deprecated — keep field for type compat but never fill
       innerText: undefined,
       textAnchor,
       p1x,
@@ -151,8 +147,7 @@ export function calcPieSlicesWithLeads(
     };
   });
 
-  // —— Stage 2: vertical nudge within each labelSide group to avoid overlap
-  const GAP = 14; // one line (12px font) + 2px
+  const GAP = 14;
   (['right', 'left', 'center'] as const).forEach((side) => {
     const groupIdxs = drafts
       .map((d, i) => ({ d, i }))
@@ -164,7 +159,6 @@ export function calcPieSlicesWithLeads(
       const cur = groupIdxs[k].d;
       if (cur.labelAnchor.y - prev.labelAnchor.y < GAP) {
         const delta = GAP - (cur.labelAnchor.y - prev.labelAnchor.y);
-        // Push cur and all subsequent in group DOWN by delta (preserve order & never overlap previous)
         for (let j = k; j < groupIdxs.length; j++) {
           const t = groupIdxs[j].d;
           t.p2y += delta;
@@ -175,9 +169,8 @@ export function calcPieSlicesWithLeads(
     }
   });
 
-  // —— Stage 3: Boundary pass, shrink radial stage if label bbox would clip (2 levels)
-  const TXT_W_EST = 36; // 4 chars × 12px
-  const TXT_H_EST = 14; // 12px + 2px
+  const TXT_W_EST = 36;
+  const TXT_H_EST = 14;
   const BUF = 6;
   drafts.forEach((d, idx) => {
     if (!d.textOuter) return;
@@ -201,7 +194,6 @@ export function calcPieSlicesWithLeads(
         lx = p2xTrial;
       }
 
-      // Use preserved (nudged) y for anchor check
       const checkY = d.labelAnchor.y;
       const leftEdge = d.textAnchor === 'end' ? lx - TXT_W_EST : d.textAnchor === 'middle' ? lx - TXT_W_EST / 2 : lx;
       const rightEdge = d.textAnchor === 'end' ? lx : d.textAnchor === 'middle' ? lx + TXT_W_EST / 2 : lx + TXT_W_EST;
@@ -210,11 +202,10 @@ export function calcPieSlicesWithLeads(
 
       const ok = leftEdge >= BUF && rightEdge <= viewBoxW - BUF && topEdge >= BUF && botEdge <= viewBoxH - BUF;
       if (ok || aR === shrinkRadii[shrinkRadii.length - 1]) {
-        // Apply even on last fallback to keep things as close as possible
         drafts[idx].p2x = p2xTrial;
-        drafts[idx].p2y = d.labelAnchor.y; // preserve nudged y
+        drafts[idx].p2y = d.labelAnchor.y;
         drafts[idx].p2BarEndX = p2BarEndXTrial;
-        drafts[idx].p2BarEndY = d.labelAnchor.y; // match nudged y
+        drafts[idx].p2BarEndY = d.labelAnchor.y;
         if (d.labelSide === 'right') {
           drafts[idx].labelAnchor = { x: p2BarEndXTrial + 2, y: d.labelAnchor.y };
         } else if (d.labelSide === 'left') {
@@ -230,7 +221,6 @@ export function calcPieSlicesWithLeads(
     }
   });
 
-  // —— Convert drafts to final PieSliceWithLead
   return drafts.map((d) => ({
     path: d.path,
     color: d.color,
@@ -250,7 +240,7 @@ interface PortAnalysisChartProps {
   style?: CSSProperties;
 }
 
-const DEFAULT_COLORS = ['#1677ff', '#52c41a', '#faad14', '#722ed1', '#eb2f96', '#13c2c2', '#fa541c'];
+const DEFAULT_COLORS = ['#00d4ff', '#ffcc00', '#52c41a', '#722ed1', '#ff4d4f', '#13c2c2', '#fa541c'];
 
 const PortAnalysisChart = ({ title, data, style }: PortAnalysisChartProps) => {
   const { tier } = useResolutionTier();
@@ -306,7 +296,29 @@ const PortAnalysisChart = ({ title, data, style }: PortAnalysisChartProps) => {
   const viewBox = `0 0 ${svgSize} ${svgSize}`;
 
   return (
-    <Card title={title} size="small" style={style}>
+    <Card
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <span
+            style={{
+              display: 'inline-block',
+              width: 3,
+              height: 16,
+              background: 'linear-gradient(180deg, #00d4ff, #ffcc00)',
+              borderRadius: 2,
+              marginRight: 8,
+            }}
+          />
+          {title}
+        </span>
+      }
+      size="small"
+      style={{
+        ...style,
+        borderRadius: 12,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      }}
+    >
       <div ref={containerRef} className="PAC-root" style={{ position: 'relative' }}>
         <div className="PAC-kpiRow">
           <div className="PAC-total">
@@ -429,19 +441,23 @@ const PortAnalysisChart = ({ title, data, style }: PortAnalysisChartProps) => {
               position: 'absolute',
               left: tooltipPos.x,
               top: tooltipPos.y,
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              backgroundColor: 'rgba(10, 20, 40, 0.92)',
               color: '#fff',
-              padding: '8px 12px',
-              borderRadius: 6,
+              padding: '10px 14px',
+              borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               pointerEvents: 'none',
               zIndex: 1000,
               whiteSpace: 'nowrap',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              border: '1px solid #00d4ff',
+              boxShadow: '0 4px 16px rgba(0,212,255,0.3)',
             }}
           >
-            {data[hoverIdx].channel}: {data[hoverIdx].value.toLocaleString()} ({slices[hoverIdx].percent}%)
+            <div style={{ color: '#00d4ff', fontSize: 11, marginBottom: 4 }}>{data[hoverIdx].channel}</div>
+            <div>
+              {data[hoverIdx].value.toLocaleString()} ({slices[hoverIdx].percent}%)
+            </div>
           </div>
         )}
       </div>

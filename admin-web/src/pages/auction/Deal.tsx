@@ -1,4 +1,4 @@
-import {
+﻿import {
   ProTable,
   type ActionType,
   type ProColumns,
@@ -22,8 +22,10 @@ import {
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import {
   cancelAuctionDeal,
   confirmDealDelivery,
@@ -68,6 +70,7 @@ const AuctionDeal = () => {
   const currentUser = useCurrentUser();
   const canDeal = hasPermission(currentUser, 'auction:deal');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
   const [searchParams] = useSearchParams();
   const initialSessionId = searchParams.get('session_id');
 
@@ -75,6 +78,7 @@ const AuctionDeal = () => {
   const [detail, setDetail] = useState<AuctionDeal | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sessionOptions, setSessionOptions] = useState<AuctionSession[]>([]);
+
 
   // 加载场次选项(用于筛选)
   const loadSessionOptions = () => {
@@ -105,7 +109,7 @@ const AuctionDeal = () => {
     try {
       await confirmDealPayment(record.id);
       message.success('已确认付款');
-      actionRef.current?.reload();
+      handleRefresh();
       if (detail?.id === record.id) openDetail(record);
     } catch {
       // 拦截器已提示错误
@@ -117,7 +121,7 @@ const AuctionDeal = () => {
     try {
       await confirmDealDelivery(record.id);
       message.success('交割状态已推进');
-      actionRef.current?.reload();
+      handleRefresh();
       if (detail?.id === record.id) openDetail(record);
     } catch {
       // 拦截器已提示错误
@@ -129,7 +133,7 @@ const AuctionDeal = () => {
     try {
       await cancelAuctionDeal(record.id);
       message.success('成交已取消');
-      actionRef.current?.reload();
+      handleRefresh();
       if (detail?.id === record.id) openDetail(record);
     } catch {
       // 拦截器已提示错误
@@ -137,6 +141,7 @@ const AuctionDeal = () => {
   };
 
   const columns: ProColumns<AuctionDeal>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     {
       title: '成交单号',
       dataIndex: 'id',
@@ -156,7 +161,7 @@ const AuctionDeal = () => {
       ),
       fieldProps: {
         showSearch: true,
-        onDropdownVisibleChange: (open: boolean) => {
+        onOpenChange: (open: boolean) => {
           if (open) loadSessionOptions();
         },
       },
@@ -254,9 +259,10 @@ const AuctionDeal = () => {
       <ProTable<AuctionDeal>
         headerTitle="拍卖成交列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1400 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -274,7 +280,12 @@ const AuctionDeal = () => {
             return { data: [], success: false, total: 0 };
           }
         }}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
+        toolBarRender={() => [<RefreshButton key="refresh" actionRef={actionRef as any} />]}
       />
 
       {/* 详情抽屉 */}
@@ -283,7 +294,7 @@ const AuctionDeal = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={720}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>

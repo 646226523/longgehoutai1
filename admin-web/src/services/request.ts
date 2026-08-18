@@ -13,6 +13,7 @@ function showError(content: string) {
 
 // 后端 API 基础地址(通过 vite proxy 转发到 3015)
 const BASE_URL = '/api';
+const LOGIN_PATH = '/login';
 
 // Token 在 localStorage 中的存储 key
 export const ACCESS_TOKEN_KEY = 'admin_access_token';
@@ -26,7 +27,7 @@ let pendingQueue: Array<() => void> = [];
 // axios 实例
 const request: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 5000,
 });
 
 // 请求拦截器:自动携带 Token
@@ -105,6 +106,21 @@ request.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // 网络级错误(无 HTTP 响应)
+    if (!error.response) {
+      const netCode = (error as any).code || '';
+      // ERR_ABORTED 是浏览器导航/组件卸载时的正常行为,不显示错误
+      if (netCode === 'ERR_ABORTED') {
+        return Promise.reject(error);
+      }
+      if (['ECONNREFUSED', 'ETIMEDOUT', 'ERR_NETWORK'].includes(netCode)) {
+        showError('后端服务连接失败,请检查后端服务是否启动');
+      } else {
+        showError('网络连接异常,请检查网络状态');
+      }
+      return Promise.reject(error);
+    }
+
     const msg = error.response?.data?.message || error.message || '网络错误';
     showError(msg);
     return Promise.reject(error);
@@ -115,9 +131,8 @@ request.interceptors.response.use(
 function redirectToLogin() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
-  // 避免在登录页循环跳转
-  if (!window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login';
+  if (!window.location.pathname.startsWith(LOGIN_PATH)) {
+    window.location.replace(LOGIN_PATH);
   }
 }
 

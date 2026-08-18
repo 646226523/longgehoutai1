@@ -79,17 +79,22 @@ router.post('/login', (req: AuthedRequest, res: Response) => {
   db.prepare('UPDATE admin_users SET last_login_at = ? WHERE id = ?').run(Date.now(), user.id);
 
   // 记录审计日志
-  recordAuditLog({
-    adminUserId: user.id,
-    adminUsername: user.username,
-    module: 'auth',
-    action: 'login',
-    method: req.method,
-    path: req.originalUrl,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-    statusCode: 200,
-  });
+  try {
+    recordAuditLog({
+      adminUserId: user.id,
+      adminUsername: user.username,
+      module: 'auth',
+      action: 'login',
+      method: req.method,
+      path: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      statusCode: 200,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[AUTH] 登录审计日志记录失败:', err);
+  }
 
   return ok(res, {
     accessToken,

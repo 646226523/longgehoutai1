@@ -1,4 +1,4 @@
-import {
+﻿import {
   ProTable,
   ModalForm,
   ProFormSelect,
@@ -16,6 +16,8 @@ import { useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import { useCurrentUser } from '../../app-context';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
+import RefreshButton from '../../components/RefreshButton';
 import { hasPermission } from '../../access';
 import {
   getResultList,
@@ -42,18 +44,22 @@ const CompetitionResult = () => {
   const [options, setOptions] = useState<CompetitionOption[]>([]);
   const [participantOptions, setParticipantOptions] = useState<ParticipantItem[]>([]);
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   // 单条录入弹窗
   const [createVisible, setCreateVisible] = useState(false);
   // 批量录入弹窗
   const [batchVisible, setBatchVisible] = useState(false);
 
+
   // 加载赛事下拉选项
   useEffect(() => {
     getCompetitionOptions()
-      .then(setOptions)
+      .then((data) => {
+        setOptions(Array.isArray(data) ? data : []);
+      })
       .catch(() => {
-        // 拦截器已提示错误
+        setOptions([]);
       });
   }, []);
 
@@ -100,7 +106,7 @@ const CompetitionResult = () => {
       distance: values.distance as number | undefined,
     });
     message.success('成绩录入成功');
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -125,7 +131,7 @@ const CompetitionResult = () => {
     }));
     const res = await createResultsBatch(competitionId, payload);
     message.success(`批量录入完成:新增 ${res.inserted} 条,跳过 ${res.skipped} 条`);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -135,7 +141,7 @@ const CompetitionResult = () => {
     try {
       const res = await autoRankResults(competitionId);
       message.success(`排名完成,共 ${res.ranked} 条成绩`);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -147,13 +153,14 @@ const CompetitionResult = () => {
     try {
       await deleteResult(competitionId, record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<ResultItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     {
       title: '排名',
       dataIndex: 'rank',
@@ -221,7 +228,9 @@ const CompetitionResult = () => {
   ];
 
   // 当前选中的赛事名称
-  const currentName = options.find((o) => o.id === competitionId)?.name;
+  const currentName = Array.isArray(options)
+    ? options.find((o) => o.id === competitionId)?.name
+    : undefined;
 
   // 未选择赛事时显示赛事选择器
   if (!competitionId) {
@@ -249,9 +258,10 @@ const CompetitionResult = () => {
       <ProTable<ResultItem>
         headerTitle={`成绩排名榜${currentName ? ` - ${currentName}` : ''}`}
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1000 }}
         search={false}
         request={async (params) => {
@@ -292,10 +302,15 @@ const CompetitionResult = () => {
                 >
                   录入成绩
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
         params={{ competitionId }}
       />
 

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
 import { Card, Col, Row, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +29,11 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
 
+  const cardStyle: CSSProperties = {
+    borderRadius: 12,
+    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+  };
+
   return (
     <PageContainer
       header={{
@@ -35,22 +41,42 @@ const Dashboard = () => {
         breadcrumb: {},
       }}
     >
-      {/* 1. 欢迎卡片 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row align="middle" justify="space-between">
-          <Col>
-            <Title level={4} style={{ marginBottom: 8 }}>
-              欢迎回来,{currentUser?.nickname || currentUser?.username || '管理员'} 👋
-            </Title>
-            <Text type="secondary">
-              今天是 {dayjs().format('YYYY年MM月DD日 dddd')},祝您工作顺利!
-            </Text>
-          </Col>
-        </Row>
+      <Card style={{ ...cardStyle, marginBottom: 16, overflow: 'hidden' }}>
+        <div
+          style={{
+            background: 'linear-gradient(90deg, #00d4ff10 0%, #ffcc0010 100%)',
+            margin: -24,
+            padding: '24px 24px',
+          }}
+        >
+          <Row align="middle" justify="space-between">
+            <Col>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 4,
+                    height: 32,
+                    background: 'linear-gradient(180deg, #00d4ff, #ffcc00)',
+                    borderRadius: 2,
+                    marginRight: 12,
+                  }}
+                />
+                <div>
+                  <Title level={4} style={{ marginBottom: 4 }}>
+                    欢迎回来,{currentUser?.nickname || currentUser?.username || '管理员'} 👋
+                  </Title>
+                  <Text type="secondary">
+                    今天是 {dayjs().format('YYYY年MM月DD日 dddd')},祝您工作顺利!
+                  </Text>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </div>
       </Card>
 
-      {/* 2. 4 个指标卡片 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <Row gutter={[20, 20]} style={{ marginBottom: 16 }}>
         {metrics.map((metric) => (
           <Col key={metric.key} xs={24} sm={12} xl={6}>
             <MetricCard data={metric} onClick={() => navigate(metric.navigatePath)} />
@@ -58,8 +84,7 @@ const Dashboard = () => {
         ))}
       </Row>
 
-      {/* 3. 预警中心 + 端口分析(一行三列) */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16, display: 'flex', alignItems: 'stretch' }}>
+      <Row gutter={[20, 20]} style={{ marginBottom: 16, display: 'flex', alignItems: 'stretch' }}>
         <Col xs={24} xl={8} style={{ display: 'flex' }}>
           <AlertCenter alerts={alerts} onViewAll={() => navigate('/alert/list')} style={{ height: '100%', width: '100%' }} />
         </Col>
@@ -71,7 +96,6 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      {/* 4. 快捷入口(独立行) */}
       <div style={{ marginBottom: 16 }}>
         <QuickEntryPanel
           entries={quickEntryState}
@@ -79,7 +103,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* 5. 运营趋势图(独立行) */}
       <div style={{ marginBottom: 16 }}>
         <TrendChart
           data7={trendData7}
@@ -89,7 +112,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* 6. 待办事项(独立行) */}
       <div>
         <TodoListPanel todos={todos} onNavigate={(path) => navigate(path)} />
       </div>

@@ -54,6 +54,7 @@ export const NFT_STATUS = {
   MINTING: 'minting', // 上链中
   MINTED: 'minted', // 已上链
   FAILED: 'failed', // 上链失败
+  REJECTED: 'rejected', // 已驳回
 } as const;
 
 // 上链任务状态枚举
@@ -77,7 +78,7 @@ export function initNftDb(db: Database): void {
       image_url TEXT,                             -- 资产图片 URL
       metadata TEXT,                              -- JSON 元数据(TEXT)
       owner_name TEXT NOT NULL DEFAULT '',        -- 持有者(鸽主)
-      status TEXT NOT NULL DEFAULT 'draft',       -- draft/pending/approved/minting/minted/failed
+      status TEXT NOT NULL DEFAULT 'draft',       -- draft/pending/approved/minting/minted/failed/rejected
       contract_address TEXT,                      -- 合约地址
       tx_hash TEXT,                               -- 铸造交易哈希
       minted_at INTEGER,                          -- 上链时间

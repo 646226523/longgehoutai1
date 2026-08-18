@@ -17,6 +17,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   createGeneTest,
   deleteGeneTest,
@@ -92,6 +94,7 @@ const GeneDetail = () => {
 
   // 检测记录弹窗
   const testActionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(testActionRef, { messageApi: message });
   const [testModalVisible, setTestModalVisible] = useState(false);
   const [editingTest, setEditingTest] = useState<GeneTest | null>(null);
 
@@ -152,7 +155,7 @@ const GeneDetail = () => {
       message.success('新增成功');
     }
     setTestModalVisible(false);
-    testActionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -160,7 +163,7 @@ const GeneDetail = () => {
     try {
       await deleteGeneTest(record.id);
       message.success('删除成功');
-      testActionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -317,9 +320,10 @@ const GeneDetail = () => {
                 <ProTable<GeneTest>
                   headerTitle="检测记录"
                   actionRef={testActionRef}
+                  loading={tableLoading}
                   rowKey="id"
                   columns={testColumns}
-                  options={{ density: false }}
+                  options={{ density: false, reload: false }}
                   search={false}
                   pagination={false}
                   scroll={{ x: 800 }}
@@ -343,8 +347,11 @@ const GeneDetail = () => {
                           >
                             新增检测记录
                           </Button>,
+                          <RefreshButton key="refresh" actionRef={testActionRef as any} />,
                         ]
-                      : []
+                      : [
+                          <RefreshButton key="refresh" actionRef={testActionRef as any} />,
+                        ]
                   }
                 />
               ),

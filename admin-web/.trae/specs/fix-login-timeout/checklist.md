@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: Mock 服务器启用后，admin/admin123 可成功登录并跳转到首页
+- [x] Checkpoint 2: 登录后访问 /datacenter 页面，数据正常渲染（50 条赛事、地图、飞线等）
+- [x] Checkpoint 3: 浏览器控制台无 net::ERR_ABORTED 或 ECONNREFUSED 错误
+- [x] Checkpoint 4: 后端不可达时，登录页在 5 秒内显示友好错误提示，不显示原始技术错误
+- [x] Checkpoint 5: 网络错误提示文案为中文友好信息（如"后端服务连接失败"），非英文技术术语
+- [x] Checkpoint 6: 认证守卫 RequireAuth 在网络错误时保留 token，不强制清除登录状态
+- [x] Checkpoint 7: 认证守卫提供重试按钮，用户可手动重试获取用户信息
+- [x] Checkpoint 8: 401 错误仍正常清除 token 并跳转登录页（回归测试）
+- [x] Checkpoint 9: TypeScript 编译通过（tsc --noEmit 零错误）
+- [x] Checkpoint 10: Mock 模式与真实后端模式可通过 vite.config.ts 切换

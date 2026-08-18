@@ -1,4 +1,4 @@
-import {
+﻿import {
   ModalForm,
   ProFormText,
   ProFormSelect,
@@ -12,6 +12,8 @@ import { PlusOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
+import RefreshButton from '../../components/RefreshButton';
 import { hasPermission } from '../../access';
 import {
   assignRolePermissions,
@@ -31,6 +33,7 @@ const SystemRole = () => {
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:role:manage');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<RoleItem | null>(null);
@@ -133,7 +136,7 @@ const SystemRole = () => {
       message.success('新增成功');
     }
     setModalVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -142,13 +145,14 @@ const SystemRole = () => {
     try {
       await deleteRole(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<RoleItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: 'ID', dataIndex: 'id', width: 60, hideInSearch: true },
     { title: '角色编码', dataIndex: 'code', width: 140, ellipsis: true },
     { title: '角色名称', dataIndex: 'name', width: 140, ellipsis: true },
@@ -225,9 +229,10 @@ const SystemRole = () => {
       <ProTable<RoleItem>
         headerTitle="角色列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1100 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -256,10 +261,15 @@ const SystemRole = () => {
                 >
                   新增角色
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑角色弹窗 */}

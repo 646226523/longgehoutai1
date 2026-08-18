@@ -91,6 +91,71 @@ interface LineageNode {
   dam: LineageNode | null;
 }
 
+// ==================== 字典数据 ====================
+
+const dicts = {
+  colors: ['灰', '雨点', '白', '红轮', '花', '石板', '其他'],
+  eye_colors: ['黄眼', '砂眼', '牛眼'],
+  genders: [
+    { label: '雄', value: 'male' },
+    { label: '雌', value: 'female' },
+    { label: '未知', value: 'unknown' },
+  ],
+  statuses: [
+    { label: '正常', value: 1 },
+    { label: '停用', value: 0 },
+  ],
+};
+
+// GET /api/gene/dicts - 字典数据(登录即可访问)
+geneRouter.get('/dicts', (_req: AuthedRequest, res: Response) => {
+  const breedRows = db
+    .prepare(
+      'SELECT DISTINCT breed FROM gene_profiles WHERE breed IS NOT NULL AND breed != "" ORDER BY breed ASC'
+    )
+    .all() as Array<{ breed: string }>;
+  const bloodlineRows = db
+    .prepare(
+      'SELECT DISTINCT bloodline FROM gene_profiles WHERE bloodline IS NOT NULL AND bloodline != "" ORDER BY bloodline ASC'
+    )
+    .all() as Array<{ bloodline: string }>;
+  const breeds = breedRows.map((r) => r.breed);
+  const bloodlines = bloodlineRows.map((r) => r.bloodline);
+  return ok(res, { ...dicts, breeds, bloodlines });
+});
+
+// GET /api/gene/owners - 鸽主搜索(去重,支持关键词)
+geneRouter.get(
+  '/owners',
+  (_req: AuthedRequest, res: Response) => {
+    const keyword = String(_req.query.keyword ?? '').trim();
+    const rows = keyword
+      ? db
+          .prepare(
+            `SELECT DISTINCT owner_name AS name, owner_phone AS phone
+             FROM gene_profiles
+             WHERE owner_name IS NOT NULL AND owner_name != '' AND owner_name LIKE ?
+             ORDER BY owner_name ASC`
+          )
+          .all(`%${keyword}%`)
+      : db
+          .prepare(
+            `SELECT DISTINCT owner_name AS name, owner_phone AS phone
+             FROM gene_profiles
+             WHERE owner_name IS NOT NULL AND owner_name != ''
+             ORDER BY owner_name ASC
+             LIMIT 50`
+          )
+          .all();
+    const list = (rows as Array<{ name: string; phone: string | null }>).map((r, i) => ({
+      id: i + 1,
+      name: r.name,
+      phone: r.phone ?? '',
+    }));
+    return ok(res, list);
+  }
+);
+
 // ==================== 基因档案 ====================
 
 // GET /api/gene/profiles - 分页列表(足环号/鸽主/血统/状态筛选)
@@ -198,6 +263,53 @@ geneRouter.get(
   }
 );
 
+// GET /api/gene/profiles/check-ring - 校验足环号是否已存在
+geneRouter.get(
+  '/profiles/check-ring',
+  requirePermission('gene:view'),
+  (req: AuthedRequest, res: Response) => {
+    const ring_number = String(req.query.ring_number ?? '').trim();
+    if (!ring_number) return ok(res, { exists: false });
+    const row = db.prepare('SELECT id FROM gene_profiles WHERE ring_number = ?').get(ring_number);
+    return ok(res, { exists: !!row });
+  }
+);
+
+// GET /api/gene/profiles/search - 档案搜索(按关键词匹配足环号/鸽名,支持性别筛选)
+geneRouter.get(
+  '/profiles/search',
+  requirePermission('gene:view'),
+  (req: AuthedRequest, res: Response) => {
+    const keyword = String(req.query.keyword ?? '').trim();
+    const gender = String(req.query.gender ?? '').trim();
+    const conditions: string[] = [];
+    const params: Array<string | number> = [];
+    if (keyword) {
+      conditions.push('(ring_number LIKE ? OR name LIKE ?)');
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (gender) {
+      conditions.push('gender = ?');
+      params.push(gender);
+    }
+    const whereSql = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const sql = `SELECT id, ring_number, name, gender, breed, owner_name, photo_url
+       FROM gene_profiles
+       ${whereSql}
+       ORDER BY id DESC LIMIT 20`;
+    const rows = db.prepare(sql).all(...params) as Array<{
+      id: number;
+      ring_number: string;
+      name: string;
+      gender: string;
+      breed: string;
+      owner_name: string;
+      photo_url: string | null;
+    }>;
+    return ok(res, rows);
+  }
+);
+
 // GET /api/gene/profiles/:id - 详情(含检测记录 + 直系父母)
 geneRouter.get(
   '/profiles/:id',
@@ -243,6 +355,30 @@ geneRouter.get(
   }
 );
 
+// 辅助: 解析父/母字段(支持 number ID 或 string 名称,自动查找或创建)
+function resolveParentId(value: number | string | null | undefined, gender?: string): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') {
+    const row = db.prepare('SELECT id FROM gene_profiles WHERE id = ?').get(value) as
+      | { id: number }
+      | undefined;
+    return row ? value : null;
+  }
+  const name = String(value).trim();
+  if (!name) return null;
+  const existing = db
+    .prepare('SELECT id FROM gene_profiles WHERE name = ? LIMIT 1')
+    .get(name) as { id: number } | undefined;
+  if (existing) return existing.id;
+  const tempRing = `AUTO-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const result = db
+    .prepare(
+      `INSERT INTO gene_profiles (ring_number, name, gender, status) VALUES (?, ?, ?, 0)`
+    )
+    .run(tempRing, name, gender ?? 'unknown');
+  return result.lastInsertRowid as number;
+}
+
 // POST /api/gene/profiles - 新增档案(自动生成溯源二维码与血统记录)
 geneRouter.post(
   '/profiles',
@@ -263,8 +399,8 @@ geneRouter.post(
       gene_sequence?: string;
       photo_url?: string;
       status?: number;
-      sire_id?: number | null;
-      dam_id?: number | null;
+      sire_id?: number | string | null;
+      dam_id?: number | string | null;
     };
 
     const ring_number = String(body.ring_number ?? '').trim();
@@ -274,11 +410,12 @@ geneRouter.post(
     const exists = db.prepare('SELECT id FROM gene_profiles WHERE ring_number = ?').get(ring_number);
     if (exists) return fail(res, 409, '足环号已存在');
 
-    // 校验父/母存在性
-    if (body.sire_id && !db.prepare('SELECT 1 FROM gene_profiles WHERE id = ?').get(body.sire_id)) {
+    const sireId = body.sire_id != null ? resolveParentId(body.sire_id as number | string, 'male') : null;
+    const damId = body.dam_id != null ? resolveParentId(body.dam_id as number | string, 'female') : null;
+    if (body.sire_id !== null && body.sire_id !== undefined && !sireId) {
       return fail(res, 400, '指定的父鸽档案不存在');
     }
-    if (body.dam_id && !db.prepare('SELECT 1 FROM gene_profiles WHERE id = ?').get(body.dam_id)) {
+    if (body.dam_id !== null && body.dam_id !== undefined && !damId) {
       return fail(res, 400, '指定的母鸽档案不存在');
     }
 
@@ -313,7 +450,7 @@ geneRouter.post(
       // 写入血统记录
       db.prepare(
         'INSERT INTO gene_lineage (gene_profile_id, sire_id, dam_id) VALUES (?, ?, ?)'
-      ).run(newId, body.sire_id ?? null, body.dam_id ?? null);
+      ).run(newId, sireId, damId);
     });
     tx();
 
@@ -349,29 +486,39 @@ geneRouter.put(
       gene_sequence?: string;
       photo_url?: string;
       status?: number;
-      sire_id?: number | null;
-      dam_id?: number | null;
+      sire_id?: number | string | null;
+      dam_id?: number | string | null;
     };
 
     const ring_number = String(body.ring_number ?? target.ring_number).trim();
     if (!ring_number) return fail(res, 400, '足环号不能为空');
 
-    // 足环号变更后校验唯一性
     if (ring_number !== target.ring_number) {
       const dup = db.prepare('SELECT id FROM gene_profiles WHERE ring_number = ? AND id <> ?').get(ring_number, id);
       if (dup) return fail(res, 409, '足环号已存在');
     }
-    // 校验父/母(不能指向自己)
-    if (body.sire_id !== undefined && body.sire_id !== null) {
-      if (body.sire_id === id) return fail(res, 400, '父鸽不能指向自身');
-      if (!db.prepare('SELECT 1 FROM gene_profiles WHERE id = ?').get(body.sire_id)) {
-        return fail(res, 400, '指定的父鸽档案不存在');
+
+    let sireResolved: number | null | undefined = undefined;
+    let damResolved: number | null | undefined = undefined;
+
+    if (body.sire_id !== undefined) {
+      if (body.sire_id === null) {
+        sireResolved = null;
+      } else {
+        const sid = resolveParentId(body.sire_id as number | string, 'male');
+        if (!sid) return fail(res, 400, '指定的父鸽档案不存在');
+        if (sid === id) return fail(res, 400, '父鸽不能指向自身');
+        sireResolved = sid;
       }
     }
-    if (body.dam_id !== undefined && body.dam_id !== null) {
-      if (body.dam_id === id) return fail(res, 400, '母鸽不能指向自身');
-      if (!db.prepare('SELECT 1 FROM gene_profiles WHERE id = ?').get(body.dam_id)) {
-        return fail(res, 400, '指定的母鸽档案不存在');
+    if (body.dam_id !== undefined) {
+      if (body.dam_id === null) {
+        damResolved = null;
+      } else {
+        const did = resolveParentId(body.dam_id as number | string, 'female');
+        if (!did) return fail(res, 400, '指定的母鸽档案不存在');
+        if (did === id) return fail(res, 400, '母鸽不能指向自身');
+        damResolved = did;
       }
     }
 
@@ -399,28 +546,26 @@ geneRouter.put(
         Date.now(),
         id
       );
-      // 足环号变更后同步更新溯源二维码
       if (ring_number !== target.ring_number) {
         db.prepare('UPDATE gene_profiles SET qr_code = ? WHERE id = ?').run(
           generateTraceUrl(id, ring_number),
           id
         );
       }
-      // 父/母关系 upsert(仅当请求显式传入时更新)
-      if (body.sire_id !== undefined || body.dam_id !== undefined) {
+      if (sireResolved !== undefined || damResolved !== undefined) {
         const existing = db.prepare('SELECT id FROM gene_lineage WHERE gene_profile_id = ?').get(id);
-        const sireVal = body.sire_id ?? null;
-        const damVal = body.dam_id ?? null;
+        const finalSire = sireResolved !== undefined ? sireResolved : (existing as any)?.sire_id ?? null;
+        const finalDam = damResolved !== undefined ? damResolved : (existing as any)?.dam_id ?? null;
         if (existing) {
           db.prepare('UPDATE gene_lineage SET sire_id = ?, dam_id = ? WHERE gene_profile_id = ?').run(
-            sireVal,
-            damVal,
+            finalSire,
+            finalDam,
             id
           );
         } else {
           db.prepare(
             'INSERT INTO gene_lineage (gene_profile_id, sire_id, dam_id) VALUES (?, ?, ?)'
-          ).run(id, sireVal, damVal);
+          ).run(id, finalSire, finalDam);
         }
       }
     });

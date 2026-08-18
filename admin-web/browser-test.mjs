@@ -41,7 +41,7 @@ async function clickTab(page, tabKey, tabText) {
       await sleep(1500);
       return true;
     } catch (e) {
-      console.log(`点击 tab ${tabKey} 失败: ${e.message?.slice(0, 60)}，尝试备用方式`);
+      console.log(`点击 tab ${tabKey} 失败: ${String(e.message).slice(0, 60)}, 尝试备用方式`);
     }
   }
   // Fallback: role tab + name
@@ -51,7 +51,7 @@ async function clickTab(page, tabKey, tabText) {
     await sleep(1500);
     return true;
   } catch (e) {
-    console.log(`备用点击 tab ${tabText} 也失败: ${e.message?.slice(0, 60)}`);
+    console.log(`备用点击 tab ${tabText} 也失败: ${String(e.message || e).slice(0, 60)}`);
     return false;
   }
 }

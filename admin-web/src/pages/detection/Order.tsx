@@ -1,4 +1,4 @@
-import {
+﻿import {
   DrawerForm,
   ModalForm,
   ProFormDatePicker,
@@ -32,8 +32,10 @@ import {
 } from '@ant-design/icons';
 import { useRef, useState, useEffect } from 'react';
 import dayjs, { type Dayjs } from 'dayjs';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import { getGeneProfileOptions, type GeneProfileOption } from '../../services/gene';
 import {
   cancelDetectionOrder,
@@ -76,6 +78,7 @@ const DetectionOrder = () => {
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'detection:view');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
   const formRef = useRef<ProFormInstance>();
 
   // 视图切换:列表 / 排期日历
@@ -107,6 +110,7 @@ const DetectionOrder = () => {
   const [dateOrders, setDateOrders] = useState<DetectionOrder[]>([]);
   const [dateDrawerVisible, setDateDrawerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
+
 
   // 切换到日历视图时加载当月排期数据
   useEffect(() => {
@@ -201,7 +205,7 @@ const DetectionOrder = () => {
       message.success('新增成功');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -210,7 +214,7 @@ const DetectionOrder = () => {
     try {
       await confirmDetectionOrder(record.id);
       message.success('已确认预约');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -233,7 +237,7 @@ const DetectionOrder = () => {
       await scheduleDetectionOrder(scheduleTarget.id, scheduleDate.format('YYYY-MM-DD'));
       message.success('排期成功');
       setScheduleVisible(false);
-      actionRef.current?.reload();
+      handleRefresh();
       return true;
     } catch {
       return false;
@@ -245,7 +249,7 @@ const DetectionOrder = () => {
     try {
       await cancelDetectionOrder(record.id);
       message.success('已取消订单');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -256,7 +260,7 @@ const DetectionOrder = () => {
     try {
       await deleteDetectionOrder(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -287,6 +291,7 @@ const DetectionOrder = () => {
   };
 
   const columns: ProColumns<DetectionOrder>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '订单号', dataIndex: 'order_no', width: 150, ellipsis: true },
     { title: '预约人', dataIndex: 'user_name', width: 100 },
     { title: '联系电话', dataIndex: 'phone', width: 130, hideInSearch: true, ellipsis: true },
@@ -418,6 +423,7 @@ const DetectionOrder = () => {
         <ProTable<DetectionOrder>
           headerTitle="检测预约订单"
           actionRef={actionRef}
+          loading={tableLoading}
           rowKey="id"
           columns={columns}
           scroll={{ x: 1400 }}
@@ -449,8 +455,13 @@ const DetectionOrder = () => {
               return { data: [], success: false, total: 0 };
             }
           }}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
-          options={{ density: false }}
+          pagination={{
+            showSizeChanger: true,
+            pageSizeOptions: [10, 20, 50, 100],
+            defaultPageSize: 10,
+          }}
+          options={{ density: false, reload: false }}
+          toolBarRender={() => [<RefreshButton key="refresh" actionRef={actionRef as any} />]}
         />
       ) : (
         <Card title="检测排期日历">
@@ -465,7 +476,7 @@ const DetectionOrder = () => {
         onOpenChange={setDrawerVisible}
         onFinish={handleSubmit}
         formRef={formRef}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
+        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
         initialValues={
           editing
             ? {
@@ -568,7 +579,7 @@ const DetectionOrder = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         {detail && (
           <div style={{ lineHeight: 2 }}>
@@ -665,7 +676,7 @@ const DetectionOrder = () => {
         open={dateDrawerVisible}
         onClose={() => setDateDrawerVisible(false)}
         width={680}
-        destroyOnClose
+        destroyOnHidden
       >
         <List
           dataSource={dateOrders}

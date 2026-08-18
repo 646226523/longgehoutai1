@@ -1,4 +1,4 @@
-import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+﻿import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Descriptions, Drawer, Input, Popconfirm, Space, Tag } from 'antd';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
@@ -6,6 +6,8 @@ import dayjs from 'dayjs';
 
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   approveGeneSubmission,
   getGeneSubmissions,
@@ -27,6 +29,7 @@ const GeneAudit = () => {
   const currentUser = useCurrentUser();
   const canAudit = hasPermission(currentUser, 'gene:audit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [current, setCurrent] = useState<GeneSubmission | null>(null);
@@ -47,7 +50,7 @@ const GeneAudit = () => {
       await approveGeneSubmission(current.id);
       message.success('审核通过,已生成正式基因档案与溯源二维码');
       setDrawerVisible(false);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     } finally {
@@ -68,7 +71,7 @@ const GeneAudit = () => {
       await rejectGeneSubmission(current.id, remark);
       message.success('已驳回');
       setDrawerVisible(false);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     } finally {
@@ -77,6 +80,7 @@ const GeneAudit = () => {
   };
 
   const columns: ProColumns<GeneSubmission>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '足环号', dataIndex: 'ring_number', width: 160, ellipsis: true, hideInSearch: true },
     { title: '鸽名', dataIndex: 'name', width: 110, ellipsis: true, hideInSearch: true },
     {
@@ -166,12 +170,16 @@ const GeneAudit = () => {
       <ProTable<GeneSubmission>
         headerTitle="基因档案审核"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
         form={{ initialValues: { status: 'pending' } }}
+        toolBarRender={() => [
+          <RefreshButton key="refresh" actionRef={actionRef as any} />,
+        ]}
         request={async (params) => {
           const { current: page, pageSize, status, keyword } = params;
           try {
@@ -186,7 +194,11 @@ const GeneAudit = () => {
             return { data: [], success: false, total: 0 };
           }
         }}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 审核详情抽屉 */}
@@ -195,7 +207,7 @@ const GeneAudit = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={560}
-        destroyOnClose
+        destroyOnHidden
         extra={
           current?.status === 'pending' && canAudit ? (
             <Space>

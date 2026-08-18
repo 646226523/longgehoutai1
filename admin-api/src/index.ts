@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
 import cors from 'cors';
 import { config } from './config';
 import { initDatabase } from './db';
@@ -14,6 +15,7 @@ import contentRouter from './routes/content';
 import auctionRouter from './routes/auction';
 import arbitrationRouter from './routes/arbitration';
 import statisticsRouter from './routes/statistics';
+import uploadRouter from './routes/upload';
 import type { ApiResponse } from './types';
 
 const app = express();
@@ -62,6 +64,11 @@ app.use('/api/content', contentRouter);
 app.use('/api/auction', auctionRouter);
 app.use('/api/arbitration', arbitrationRouter);
 app.use('/api/statistics', statisticsRouter);
+app.use('/api', uploadRouter);
+
+// 静态文件服务:下载目录
+app.use('/downloads', express.static(path.join(__dirname, '..', 'downloads')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // TODO: 后续按模块挂载其他业务路由
 // app.use('/api/gene', geneRoutes);

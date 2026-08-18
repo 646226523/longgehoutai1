@@ -1,43 +1,26 @@
-import {
-  ModalForm,
-  ProFormText,
-  ProFormSelect,
-  ProFormDateTimePicker,
-  ProFormTextArea,
-  ProFormDigit,
-  ProTable,
-  type ActionType,
-  type ProColumns,
-} from '@ant-design/pro-components';
+﻿import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Popconfirm, Space, Tag } from 'antd';
-import { PlusOutlined, TrophyOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { PlusOutlined, TrophyOutlined, SafetyCertificateOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import { useCurrentUser } from '../../app-context';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
+import RefreshButton from '../../components/RefreshButton';
 import { hasPermission } from '../../access';
+import CompetitionForm from './CompetitionForm';
 import {
-  createCompetition,
   deleteCompetition,
   getCompetitionList,
   publishCompetition,
   transitionCompetitionStatus,
-  updateCompetition,
   type CompetitionItem,
   COMPETITION_STATUS,
   STATUS_FLOW,
   STATUS_LABELS,
   STATUS_COLORS,
 } from '../../services/competition';
-
-// 赛事类型下拉选项(与字典 competition_type 一致)
-const TYPE_OPTIONS = [
-  { label: '春赛', value: 'spring' },
-  { label: '秋赛', value: 'autumn' },
-  { label: '特比环', value: 'boiler' },
-  { label: '公棚赛', value: 'pigeon_loft' },
-];
 
 // 赛事类型中文映射
 const TYPE_LABELS: Record<string, string> = {
@@ -47,7 +30,7 @@ const TYPE_LABELS: Record<string, string> = {
   pigeon_loft: '公棚赛',
 };
 
-// 赛事列表:ProTable + 新增/编辑表单 + 状态操作 + 进入核验/成绩入口
+// 赛事列表:ProTable + 全屏表单 + 状态操作 + 进入核验/成绩入口
 const CompetitionList = () => {
   const { message } = App.useApp();
   const currentUser = useCurrentUser();
@@ -55,46 +38,34 @@ const CompetitionList = () => {
   const canVerify = hasPermission(currentUser, 'competition:verify');
   const navigate = useNavigate();
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
-  const [modalVisible, setModalVisible] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CompetitionItem | null>(null);
 
-  // 打开新增弹窗
+  // 打开新增表单
   const openCreate = () => {
     setEditing(null);
-    setModalVisible(true);
+    setShowForm(true);
   };
 
-  // 打开编辑弹窗
+  // 打开编辑表单
   const openEdit = (record: CompetitionItem) => {
     setEditing(record);
-    setModalVisible(true);
+    setShowForm(true);
   };
 
-  // 提交新增/编辑
-  const handleSubmit = async (values: Record<string, unknown>) => {
-    const startTime = values.start_time;
-    const endTime = values.end_time;
-    const payload = {
-      name: values.name as string,
-      type: (values.type as string) || undefined,
-      start_time: startTime ? dayjs(startTime as dayjs.Dayjs).valueOf() : undefined,
-      end_time: endTime ? dayjs(endTime as dayjs.Dayjs).valueOf() : undefined,
-      location: (values.location as string) || undefined,
-      distance: values.distance as number | undefined,
-      description: (values.description as string) || undefined,
-      organizer: (values.organizer as string) || undefined,
-    };
-    if (editing) {
-      await updateCompetition(editing.id, payload);
-      message.success('更新成功');
-    } else {
-      await createCompetition(payload);
-      message.success('新增成功');
-    }
-    setModalVisible(false);
-    actionRef.current?.reload();
-    return true;
+  // 关闭表单
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
+
+  // 表单提交成功
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setEditing(null);
+    handleRefresh();
   };
 
   // 发布(草稿 → 报名中)
@@ -102,7 +73,7 @@ const CompetitionList = () => {
     try {
       await publishCompetition(record.id);
       message.success('发布成功,已进入报名中');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -115,7 +86,7 @@ const CompetitionList = () => {
     try {
       await transitionCompetitionStatus(record.id, next);
       message.success(`已切换为「${STATUS_LABELS[next]}」`);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -126,7 +97,7 @@ const CompetitionList = () => {
     try {
       await deleteCompetition(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -139,6 +110,7 @@ const CompetitionList = () => {
   };
 
   const columns: ProColumns<CompetitionItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '赛事名称', dataIndex: 'name', width: 200, ellipsis: true },
     {
       title: '类型',
@@ -194,7 +166,7 @@ const CompetitionList = () => {
       dataIndex: 'distance',
       width: 90,
       hideInSearch: true,
-      render: (_, record) => (record.distance != null ? `${record.distance} km` : '-'),
+      render: (_, record) => (record.distance != null ? `${Number(record.distance).toFixed(2)} km` : '-'),
     },
     { title: '主办方', dataIndex: 'organizer', width: 140, ellipsis: true, hideInSearch: true },
     {
@@ -268,97 +240,75 @@ const CompetitionList = () => {
     },
   ];
 
-  return (
-    <>
-      <ProTable<CompetitionItem>
-        headerTitle="赛事列表"
-        actionRef={actionRef}
-        rowKey="id"
-        columns={columns}
-        options={{ density: false }}
-        scroll={{ x: 1500 }}
-        search={{ labelWidth: 'auto' }}
-        request={async (params) => {
-          const { current, pageSize, name, status, type } = params;
-          try {
-            const res = await getCompetitionList({
-              page: current,
-              pageSize,
-              name: name as string | undefined,
-              status: status as string | undefined,
-              type: type as string | undefined,
-            });
-            return { data: res.list, success: true, total: res.total };
-          } catch {
-            return { data: [], success: false, total: 0 };
-          }
-        }}
-        toolBarRender={() =>
-          canEdit
-            ? [
-                <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                  新增赛事
-                </Button>,
-              ]
-            : []
-        }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
-      />
+  // 表单模式
+  if (showForm) {
+    return (
+      <div style={{ padding: '0' }}>
+        <div style={{ marginBottom: 16 }}>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={handleCancel}
+            style={{ marginBottom: 8 }}
+          >
+            返回赛事列表
+          </Button>
+          <h2 style={{ margin: 0 }}>{editing ? '编辑赛事' : '新增赛事'}</h2>
+          <p style={{ color: '#999', margin: 0 }}>
+            {editing
+              ? '修改赛事信息和赛线设置'
+              : '创建新赛事，通过地图选点规划赛线'}
+          </p>
+        </div>
+        <CompetitionForm
+          record={editing}
+          onCancel={handleCancel}
+          onSuccess={handleFormSuccess}
+        />
+      </div>
+    );
+  }
 
-      {/* 新增/编辑弹窗 */}
-      <ModalForm
-        title={editing ? '编辑赛事' : '新增赛事'}
-        open={modalVisible}
-        onOpenChange={setModalVisible}
-        onFinish={handleSubmit}
-        modalProps={{ destroyOnHidden: true, maskClosable: false }}
-        width={640}
-        initialValues={
-          editing
-            ? {
-                name: editing.name,
-                type: editing.type,
-                location: editing.location,
-                distance: editing.distance,
-                organizer: editing.organizer,
-                description: editing.description,
-                start_time: editing.start_time ? dayjs(editing.start_time) : undefined,
-                end_time: editing.end_time ? dayjs(editing.end_time) : undefined,
-              }
-            : {}
+  return (
+    <ProTable<CompetitionItem>
+      headerTitle="赛事列表"
+      actionRef={actionRef}
+      loading={tableLoading}
+      rowKey="id"
+      columns={columns}
+      options={{ density: false, reload: false }}
+      scroll={{ x: 1500 }}
+      search={{ labelWidth: 'auto' }}
+      request={async (params) => {
+        const { current, pageSize, name, status, type } = params;
+        try {
+          const res = await getCompetitionList({
+            page: current,
+            pageSize,
+            name: name as string | undefined,
+            status: status as string | undefined,
+            type: type as string | undefined,
+          });
+          return { data: res.list, success: true, total: res.total };
+        } catch {
+          return { data: [], success: false, total: 0 };
         }
-      >
-        <ProFormText
-          name="name"
-          label="赛事名称"
-          placeholder="请输入赛事名称"
-          rules={[{ required: true, message: '请输入赛事名称' }]}
-        />
-        <ProFormSelect
-          name="type"
-          label="赛事类型"
-          placeholder="请选择赛事类型"
-          options={TYPE_OPTIONS}
-        />
-        <ProFormText name="organizer" label="主办方" placeholder="请输入主办方" />
-        <ProFormText name="location" label="比赛地点" placeholder="请输入比赛地点" />
-        <ProFormDigit
-          name="distance"
-          label="空距(公里)"
-          placeholder="请输入空距"
-          min={0}
-          fieldProps={{ step: 0.1 }}
-        />
-        <ProFormDateTimePicker name="start_time" label="开始时间" />
-        <ProFormDateTimePicker name="end_time" label="结束时间" />
-        <ProFormTextArea
-          name="description"
-          label="赛事规程"
-          placeholder="请输入赛事规程"
-          fieldProps={{ rows: 4, maxLength: 2000 }}
-        />
-      </ModalForm>
-    </>
+      }}
+      toolBarRender={() =>
+        canEdit
+          ? [
+              <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                新增赛事
+              </Button>,
+              <RefreshButton key="refresh" actionRef={actionRef as any} />,
+            ]
+          : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
+      }
+      pagination={{
+        showSizeChanger: true,
+        pageSizeOptions: [10, 20, 50, 100],
+        defaultPageSize: 10,
+      }}
+    />
   );
 };
 

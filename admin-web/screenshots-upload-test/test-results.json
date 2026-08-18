@@ -1,0 +1,36 @@
+{
+  "tokenInjected": true,
+  "login": {
+    "success": true,
+    "url": "",
+    "error": ""
+  },
+  "navigation": {
+    "success": true,
+    "url": "http://127.0.0.1:3014/gene/list",
+    "error": ""
+  },
+  "drawer": {
+    "opened": true
+  },
+  "upload": {
+    "clickWorks": true,
+    "fileInputFound": true,
+    "uploadRequestSent": true,
+    "uploadRequestStatus": 200,
+    "uploadRequestMethod": "POST",
+    "uploadRequestUrl": "http://127.0.0.1:3014/api/upload",
+    "uploadRequestBodyPreview": "{\"data\":\"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAAB",
+    "uploadResponse": "{\"code\":0,\"message\":\"success\",\"data\":{\"url\":\"/uploads/1786778589212_pg05tt5q.jpg\"}}",
+    "previewUpdated": true,
+    "previewType": "http",
+    "consoleErrors": [],
+    "networkErrors": [],
+    "error": ""
+  },
+  "secondUpload": {
+    "sent": true,
+    "status": 200,
+    "response": "<!doctype html>\n<html lang=\"zh-CN\">\n  <head>\n    <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\";\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () => {};\nwindow.$RefreshSig$ = () => (type) => type;</script>\n\n    <script type=\"module\" src=\"/@vite/client\"></script>\n\n"
+  }
+}

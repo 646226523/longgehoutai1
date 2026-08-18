@@ -1,9 +1,11 @@
-import { ProTable, type ProColumns } from '@ant-design/pro-components';
-import { Button, Descriptions, Drawer, Space, Tag, Typography } from 'antd';
+import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+import { App, Button, Descriptions, Drawer, Space, Tag, Typography } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
+import RefreshButton from '../../components/RefreshButton';
 import { hasPermission } from '../../access';
 import { getAuditLogs, getAuditModules, type AuditLogItem } from '../../services/system';
 
@@ -39,8 +41,11 @@ function methodColor(method: string | null): string {
 
 // 操作日志审计
 const SystemAuditLog = () => {
+  const { message } = App.useApp();
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'system:audit:view');
+  const actionRef = useRef<ActionType>();
+  const { tableLoading } = useTableRefresh(actionRef, { messageApi: message });
   const [modules, setModules] = useState<string[]>([]);
   const [detail, setDetail] = useState<AuditLogItem | null>(null);
 
@@ -65,6 +70,7 @@ const SystemAuditLog = () => {
   );
 
   const columns: ProColumns<AuditLogItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     {
       title: '操作人',
       dataIndex: 'operator',
@@ -146,9 +152,11 @@ const SystemAuditLog = () => {
     <>
       <ProTable<AuditLogItem>
         headerTitle="操作日志"
+        actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -166,7 +174,12 @@ const SystemAuditLog = () => {
             return { data: [], success: false, total: 0 };
           }
         }}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        toolBarRender={() => [<RefreshButton key="refresh" actionRef={actionRef as any} />]}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 详情抽屉 */}

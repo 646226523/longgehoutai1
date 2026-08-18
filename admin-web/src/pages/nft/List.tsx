@@ -1,4 +1,4 @@
-import {
+﻿import {
   // DrawerForm, // 旧代码段保留注释中，暂不使用
   ModalForm,
   ProFormDigit,
@@ -30,6 +30,8 @@ import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { getGeneProfileOptions, type GeneProfileOption } from '../../services/gene';
 import {
   createNftAsset,
@@ -125,6 +127,7 @@ const NftList = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'nft:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<NftAsset | null>(null);
@@ -206,7 +209,7 @@ const NftList = () => {
       message.success('铸造申请已创建(草稿状态)');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -215,7 +218,7 @@ const NftList = () => {
     try {
       await submitNftAssetAudit(record.id);
       message.success('已提交审核');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -254,7 +257,7 @@ const NftList = () => {
         message.success('已保存为草稿');
       }
       setDrawerVisible(false);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch (e: any) {
       message.error(e?.message || '操作失败');
     }
@@ -265,7 +268,7 @@ const NftList = () => {
     try {
       await deleteNftAsset(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -293,6 +296,7 @@ const NftList = () => {
   };
 
   const columns: ProColumns<NftAsset>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '资产名称', dataIndex: 'name', width: 200, ellipsis: true },
     {
       title: 'Token ID',
@@ -439,9 +443,10 @@ const NftList = () => {
       <ProTable<NftAsset>
         headerTitle="NFT 资产列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1400 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -465,10 +470,17 @@ const NftList = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增铸造
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
+              ]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑抽屉 */}
@@ -495,7 +507,7 @@ const NftList = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={820}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>

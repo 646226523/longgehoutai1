@@ -5,6 +5,7 @@ import React, {
   useState,
 } from 'react';
 import { App, Typography } from 'antd';
+import { http } from '../services/request';
 
 const { Text } = Typography;
 
@@ -35,7 +36,7 @@ interface ImageUploaderProps {
 const toArr = (v: UploaderValue): string[] => {
   if (v == null) return [];
   if (Array.isArray(v)) return v.filter(Boolean);
-  return [v];
+  return v ? [v] : [];
 };
 
 const toEmit = (arr: string[], multi: boolean): UploaderValue => {
@@ -62,7 +63,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const emitChange = useCallback(
     (next: string[]) => {
       setPreviewList(next);
-      onChange?.(toEmit(next, multi));
+      queueMicrotask(() => {
+        onChange?.(toEmit(next, multi));
+      });
     },
     [onChange, multi]
   );
@@ -139,24 +142,55 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         return;
       }
 
+      const msgKey = 'img_upload';
       try {
-        message.loading('正在处理图片...', 0);
+        message.loading({ content: '正在压缩图片...', key: msgKey, duration: 0 });
         const dataUrl = await compressImage(file);
+
         setPreviewList((prev) => {
           if (multi) {
-            const next = [...prev, dataUrl].slice(0, maxCount);
-            onChange?.(toEmit(next, multi));
-            return next;
+            return [...prev, dataUrl].slice(0, maxCount);
           } else {
-            onChange?.(toEmit([dataUrl], multi));
             return [dataUrl];
           }
         });
-        message.destroy();
-        message.success('图片上传成功');
+
+        message.loading({ content: '正在上传图片...', key: msgKey, duration: 0 });
+        const result = await http.post<{ url: string }>('/upload', { data: dataUrl });
+        const serverUrl = result.url;
+
+        if (multi) {
+          let finalList: string[] = [];
+          setPreviewList((prev) => {
+            const next = [...prev];
+            const lastIdx = next.length - 1;
+            if (lastIdx >= 0) {
+              next[lastIdx] = serverUrl;
+            }
+            finalList = next.slice(0, maxCount);
+            return finalList;
+          });
+          queueMicrotask(() => {
+            onChange?.(toEmit(finalList, multi));
+          });
+        } else {
+          setPreviewList([serverUrl]);
+          queueMicrotask(() => {
+            onChange?.(toEmit([serverUrl], multi));
+          });
+        }
+
+        message.success({ content: '图片上传成功', key: msgKey });
       } catch (err) {
-        message.destroy();
-        message.error('图片处理失败,请重试');
+        const msg = err instanceof Error ? err.message : '未知错误';
+        setPreviewList((prev) => {
+          if (multi) {
+            return prev.slice(0, -1);
+          } else {
+            return [];
+          }
+        });
+        message.error({ content: `图片上传失败: ${msg}`, key: msgKey });
       }
     },
     [compressImage, message, onChange, multi, maxCount]

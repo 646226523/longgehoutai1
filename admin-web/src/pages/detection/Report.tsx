@@ -1,4 +1,4 @@
-import {
+﻿import {
   DrawerForm,
   ProFormDatePicker,
   ProFormSelect,
@@ -14,8 +14,10 @@ import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import { getGeneProfileOptions, type GeneProfileOption } from '../../services/gene';
 import {
   createDetectionReport,
@@ -38,6 +40,7 @@ const DetectionReport = () => {
   const currentUser = useCurrentUser();
   const canReport = hasPermission(currentUser, 'detection:report');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
   const formRef = useRef<ProFormInstance>();
 
   // 新增/编辑抽屉
@@ -53,6 +56,7 @@ const DetectionReport = () => {
   const [itemTypes, setItemTypes] = useState<DetectionItemType[]>([]);
   const [profileOptions, setProfileOptions] = useState<GeneProfileOption[]>([]);
   const [orderOptions, setOrderOptions] = useState<DetectionOrderOption[]>([]);
+
 
   // 加载下拉数据
   const loadOptions = () => {
@@ -135,7 +139,7 @@ const DetectionReport = () => {
       message.success('报告录入成功,关联订单已更新为已完成');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -144,13 +148,14 @@ const DetectionReport = () => {
     try {
       await deleteDetectionReport(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<DetectionReport>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '报告编号', dataIndex: 'report_no', width: 160, ellipsis: true, hideInSearch: true },
     {
       title: '检测机构',
@@ -236,9 +241,10 @@ const DetectionReport = () => {
       <ProTable<DetectionReport>
         headerTitle="检测报告管理"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -262,10 +268,15 @@ const DetectionReport = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   录入报告
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑抽屉 */}
@@ -275,7 +286,7 @@ const DetectionReport = () => {
         onOpenChange={setDrawerVisible}
         onFinish={handleSubmit}
         formRef={formRef}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 600 }}
+        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 600 }}
         initialValues={
           editing
             ? {
@@ -387,7 +398,7 @@ const DetectionReport = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         {detail && (
           <div style={{ lineHeight: 2 }}>

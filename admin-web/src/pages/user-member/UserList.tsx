@@ -1,4 +1,4 @@
-// 用户与会员体系 - 用户管理
+﻿// 用户与会员体系 - 用户管理
 // 功能:ProTable 分页列表(用户名/手机/状态/认证状态筛选)、编辑、封禁/解封、
 //      实名认证审核(通过/驳回)、鸽主认证审核、详情抽屉(展示认证材料占位)
 import {
@@ -16,6 +16,8 @@ import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   auditUserLoftOwner,
   auditUserRealName,
@@ -56,6 +58,7 @@ const UserList = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'user:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   // 编辑弹窗
   const [editModal, setEditModal] = useState<{ visible: boolean; record: UserItem | null }>({
@@ -108,7 +111,7 @@ const UserList = () => {
     });
     message.success('更新成功');
     setEditModal({ visible: false, record: null });
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -117,7 +120,7 @@ const UserList = () => {
     try {
       await updateUserStatus(record.id, next);
       message.success(next === 1 ? '已解封' : '已封禁');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -150,7 +153,7 @@ const UserList = () => {
       }
       setAuditModal({ visible: false, userId: null, type: 'real', action: 'approved' });
       setAuditRemark('');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -167,6 +170,7 @@ const UserList = () => {
   };
 
   const columns: ProColumns<UserItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: 'ID', dataIndex: 'id', width: 60, hideInSearch: true },
     {
       title: '用户名/手机',
@@ -311,11 +315,15 @@ const UserList = () => {
       <ProTable<UserItem>
         headerTitle="用户列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1300 }}
         search={{ labelWidth: 'auto' }}
+        toolBarRender={() => [
+          <RefreshButton key="refresh" actionRef={actionRef as any} />,
+        ]}
         request={async (params) => {
           const { current, pageSize, username, status, cert_status } = params;
           try {
@@ -331,7 +339,11 @@ const UserList = () => {
             return { data: [], success: false, total: 0 };
           }
         }}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 编辑/新增弹窗 */}
@@ -394,7 +406,7 @@ const UserList = () => {
         width={640}
         open={detailDrawer.visible}
         onClose={() => setDetailDrawer({ visible: false, record: null })}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailDrawer.record && (
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>

@@ -62,10 +62,39 @@ export function initCompetitionDb(db: Database): void {
       distance REAL,                                        -- 空距(公里)
       description TEXT,                                     -- 规程
       organizer TEXT,                                       -- 主办方
+      contact_phone TEXT,                                   -- 联系电话
+      start_lng REAL,                                       -- 起点(司放地)经度
+      start_lat REAL,                                       -- 起点(司放地)纬度
+      start_address TEXT,                                   -- 起点(司放地)详细地址
+      end_lng REAL,                                         -- 终点(归巢地)经度
+      end_lat REAL,                                         -- 终点(归巢地)纬度
+      end_address TEXT,                                     -- 终点(归巢地)详细地址
+      waypoints TEXT,                                       -- 中途点 JSON 数组
+      route_geojson TEXT,                                   -- 赛线 GeoJSON
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
       updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
     );
   `);
+
+  // 向后兼容:为已存在的表添加新字段(使用 ALTER TABLE)
+  const ensureColumn = (table: string, column: string, type: string) => {
+    const cols = db
+      .prepare(`PRAGMA table_info(${table})`)
+      .all() as Array<{ name: string }>;
+    if (!cols.some((c) => c.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+    }
+  };
+
+  ensureColumn('competitions', 'contact_phone', 'TEXT');
+  ensureColumn('competitions', 'start_lng', 'REAL');
+  ensureColumn('competitions', 'start_lat', 'REAL');
+  ensureColumn('competitions', 'start_address', 'TEXT');
+  ensureColumn('competitions', 'end_lng', 'REAL');
+  ensureColumn('competitions', 'end_lat', 'REAL');
+  ensureColumn('competitions', 'end_address', 'TEXT');
+  ensureColumn('competitions', 'waypoints', 'TEXT');
+  ensureColumn('competitions', 'route_geojson', 'TEXT');
 
   // 2. 参赛鸽表(足环与基因档案比对)
   db.exec(`

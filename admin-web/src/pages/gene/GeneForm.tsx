@@ -61,6 +61,8 @@ const STATUS_FALLBACK = [
 
 const COLOR_FALLBACK = ['灰', '雨点', '白', '红轮', '花', '石板', '其他'];
 const EYE_COLOR_FALLBACK = ['黄眼', '砂眼', '牛眼'];
+const BREED_FALLBACK: string[] = [];
+const BLOODLINE_FALLBACK: string[] = [];
 
 const GeneForm: React.FC<GeneFormProps> = ({
   initialData,
@@ -85,11 +87,14 @@ const GeneForm: React.FC<GeneFormProps> = ({
     owner_phone: initialData?.owner_phone || '',
     birth_date: initialData?.birth_date ? dayjs(initialData.birth_date) : undefined,
     gene_sequence: initialData?.gene_sequence || '',
-    photo_url: initialData?.photo_url || '',
+    photo_url: initialData?.photo_url || undefined,
     status: initialData?.status ?? 1,
-    sire_id: initialData?.sire_id ?? null,
-    dam_id: initialData?.dam_id ?? null,
+    sire_id: (initialData as Record<string, any>)?.sire_id ?? null,
+    dam_id: (initialData as Record<string, any>)?.dam_id ?? null,
   });
+
+  const [sireDefaultOptions, setSireDefaultOptions] = useState<SearchSelectOption[]>([]);
+  const [damDefaultOptions, setDamDefaultOptions] = useState<SearchSelectOption[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [ringCheckStatus, setRingCheckStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'invalid-format'>('idle');
@@ -122,6 +127,34 @@ const GeneForm: React.FC<GeneFormProps> = ({
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      const sireId = (initialData as any).sire_id;
+      const damId = (initialData as any).dam_id;
+      const sireRing = (initialData as any).sire_ring;
+      const sireName = (initialData as any).sire_name;
+      const damRing = (initialData as any).dam_ring;
+      const damName = (initialData as any).dam_name;
+
+      if (sireId && (sireRing || sireName)) {
+        setSireDefaultOptions([
+          {
+            value: sireId,
+            label: `${sireRing || ''} ${sireName || ''}`.trim(),
+          },
+        ]);
+      }
+      if (damId && (damRing || damName)) {
+        setDamDefaultOptions([
+          {
+            value: damId,
+            label: `${damRing || ''} ${damName || ''}`.trim(),
+          },
+        ]);
+      }
+    }
+  }, [isEditMode, initialData]);
 
   const updateField = useCallback((key: string, value: any) => {
     setFormValues((prev) => ({ ...prev, [key]: value }));
@@ -174,7 +207,7 @@ const GeneForm: React.FC<GeneFormProps> = ({
     }));
   }, []);
 
-  const handleOwnerChange = useCallback((value: string | number | undefined, option?: SearchSelectOption) => {
+  const handleOwnerChange = useCallback((value: string | number | null | undefined, option?: SearchSelectOption) => {
     if (value === undefined) {
       setFormValues((prev) => ({
         ...prev,
@@ -193,15 +226,25 @@ const GeneForm: React.FC<GeneFormProps> = ({
     setErrors((prev) => ({ ...prev, owner_name: '' }));
   }, []);
 
-  const handleSireDamSearch = useCallback(async (keyword: string): Promise<SearchSelectOption[]> => {
-    const profiles = await searchGeneProfiles(keyword);
+  const handleSireDamSearch = useCallback(async (keyword: string, gender?: string): Promise<SearchSelectOption[]> => {
+    const profiles = await searchGeneProfiles(keyword, gender);
+    const seen = new Set<string>();
     return profiles
       .filter((p: GeneProfileOption) => !isEditMode || p.id !== initialData?.id)
       .map((p: GeneProfileOption) => ({
         value: p.id,
         label: `${p.ring_number} ${p.name}`.trim(),
-      }));
+      }))
+      .filter((o) => {
+        const key = String(o.value);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
   }, [isEditMode, initialData?.id]);
+
+  const handleSireSearch = useCallback((keyword: string) => handleSireDamSearch(keyword, 'male'), [handleSireDamSearch]);
+  const handleDamSearch = useCallback((keyword: string) => handleSireDamSearch(keyword, 'female'), [handleSireDamSearch]);
 
   const handleSubmit = useCallback(async (mode: 'confirm' | 'save-new') => {
     const newErrors: Record<string, string> = {};
@@ -329,7 +372,7 @@ const GeneForm: React.FC<GeneFormProps> = ({
                 <AutoComplete
                   value={formValues.breed}
                   onChange={(val) => updateField('breed', val)}
-                  options={(dicts?.breeds || []).map((b) => ({ value: b }))}
+                  options={((dicts?.breeds ?? BREED_FALLBACK)).map((b) => ({ value: b }))}
                   placeholder="请输入或选择品种"
                   filterOption={(inputValue, option) =>
                     option!.value.toUpperCase().includes(inputValue.toUpperCase())
@@ -345,7 +388,7 @@ const GeneForm: React.FC<GeneFormProps> = ({
                 <AutoComplete
                   value={formValues.bloodline}
                   onChange={(val) => updateField('bloodline', val)}
-                  options={(dicts?.bloodlines || []).map((b) => ({ value: b }))}
+                  options={((dicts?.bloodlines ?? BLOODLINE_FALLBACK)).map((b) => ({ value: b }))}
                   placeholder="请输入或选择血统"
                   filterOption={(inputValue, option) =>
                     option!.value.toUpperCase().includes(inputValue.toUpperCase())
@@ -513,20 +556,40 @@ const GeneForm: React.FC<GeneFormProps> = ({
             <Col xs={24} lg={12}>
               <Form.Item label="父鸽">
                 <SearchSelect
-                  value={formValues.sire_id || undefined}
-                  onChange={(val) => updateField('sire_id', val ?? null)}
-                  onSearch={handleSireDamSearch}
-                  placeholder="搜索并选择父鸽"
+                  mode="tags"
+                  value={formValues.sire_id ?? undefined}
+                  onChange={(val, option) => {
+                    if (val === undefined) {
+                      updateField('sire_id', null);
+                    } else if (option) {
+                      updateField('sire_id', val);
+                    } else {
+                      updateField('sire_id', String(val));
+                    }
+                  }}
+                  onSearch={handleSireSearch}
+                  placeholder="搜索并选择父鸽，或输入新鸽名"
+                  defaultOptions={sireDefaultOptions}
                 />
               </Form.Item>
             </Col>
             <Col xs={24} lg={12}>
               <Form.Item label="母鸽">
                 <SearchSelect
-                  value={formValues.dam_id || undefined}
-                  onChange={(val) => updateField('dam_id', val ?? null)}
-                  onSearch={handleSireDamSearch}
-                  placeholder="搜索并选择母鸽"
+                  mode="tags"
+                  value={formValues.dam_id ?? undefined}
+                  onChange={(val, option) => {
+                    if (val === undefined) {
+                      updateField('dam_id', null);
+                    } else if (option) {
+                      updateField('dam_id', val);
+                    } else {
+                      updateField('dam_id', String(val));
+                    }
+                  }}
+                  onSearch={handleDamSearch}
+                  placeholder="搜索并选择母鸽，或输入新鸽名"
+                  defaultOptions={damDefaultOptions}
                 />
               </Form.Item>
             </Col>

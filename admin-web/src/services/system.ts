@@ -252,6 +252,19 @@ export async function updateConfig(key: string, config_value: string): Promise<v
   await http.put(`/system/configs/${key}`, { config_value });
 }
 
+export interface MapConfig {
+  provider: string;
+  amap_key: string;
+  baidu_key: string;
+  tencent_key: string;
+}
+
+// 获取地图服务配置（服务商 + 各家 Key）
+export async function getMapConfig(): Promise<MapConfig> {
+  const data = await http.get<MapConfig>('/system/map-config');
+  return data;
+}
+
 // ==================== 数据字典 ====================
 export interface DictItem {
   id: number;

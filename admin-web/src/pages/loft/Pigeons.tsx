@@ -1,4 +1,4 @@
-import {
+﻿import {
   ProTable,
   ModalForm,
   ProFormText,
@@ -14,8 +14,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import {
   createPigeon,
   deletePigeon,
@@ -35,9 +37,11 @@ const LoftPigeons = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'loft:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [loft, setLoft] = useState<LoftItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+
 
   // 加载公棚详情(用于标题展示)
   useEffect(() => {
@@ -65,7 +69,7 @@ const LoftPigeons = () => {
         message.warning('入棚登记成功,但未找到对应基因档案(足环号未匹配)');
       }
       setModalVisible(false);
-      actionRef.current?.reload();
+      handleRefresh();
       return true;
     } catch {
       return false;
@@ -77,7 +81,7 @@ const LoftPigeons = () => {
     try {
       await outPigeon(loftId, record.id);
       message.success('出棚登记成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -88,13 +92,14 @@ const LoftPigeons = () => {
     try {
       await deletePigeon(loftId, record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<LoftPigeonItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '足环号', dataIndex: 'ring_number', width: 180, ellipsis: true },
     {
       title: '基因档案',
@@ -180,9 +185,10 @@ const LoftPigeons = () => {
       <ProTable<LoftPigeonItem>
         headerTitle={loft ? `${loft.name}(${loft.code})` : '存棚鸽只列表'}
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1100 }}
         search={{ labelWidth: 'auto' }}
         request={async (q) => {
@@ -208,14 +214,20 @@ const LoftPigeons = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
                   入棚登记
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
             : [
                 <Button key="back" icon={<ArrowLeftOutlined />} onClick={() => navigate('/loft/list')}>
                   返回列表
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 入棚登记弹窗 */}

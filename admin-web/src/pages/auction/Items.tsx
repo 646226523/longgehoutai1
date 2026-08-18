@@ -1,4 +1,4 @@
-import {
+﻿import {
   DrawerForm,
   ModalForm,
   PageContainer,
@@ -33,8 +33,10 @@ import {
 import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import {
   createAuctionBid,
   createAuctionItem,
@@ -82,6 +84,7 @@ const AuctionItems = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'auction:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const sid = sessionId ? Number(sessionId) : undefined;
 
@@ -96,6 +99,7 @@ const AuctionItems = () => {
 
   // 出价弹窗
   const [bidModalOpen, setBidModalOpen] = useState(false);
+
 
   const loadAssetOptions = (keyword?: string) => {
     if (!sid) return;
@@ -163,7 +167,7 @@ const AuctionItems = () => {
       message.success('拍品上架成功');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -172,7 +176,7 @@ const AuctionItems = () => {
     try {
       await startAuctionItem(record.id);
       message.success('拍品已开拍');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -183,7 +187,7 @@ const AuctionItems = () => {
     try {
       await passAuctionItem(record.id);
       message.success('拍品已流拍');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -194,7 +198,7 @@ const AuctionItems = () => {
     try {
       await deleteAuctionItem(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -211,7 +215,7 @@ const AuctionItems = () => {
       message.success('出价成功');
       setBidModalOpen(false);
       reloadDetail();
-      actionRef.current?.reload();
+      handleRefresh();
       return true;
     } catch {
       return false;
@@ -219,6 +223,7 @@ const AuctionItems = () => {
   };
 
   const columns: ProColumns<AuctionItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '拍品名称', dataIndex: 'name', width: 200, ellipsis: true },
     {
       title: '关联 NFT 资产',
@@ -355,9 +360,10 @@ const AuctionItems = () => {
       <ProTable<AuctionItem>
         headerTitle={`场次 #${sid} 拍品列表`}
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1400 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -381,10 +387,15 @@ const AuctionItems = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   上架拍品
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 上架/编辑抽屉 */}
@@ -393,7 +404,7 @@ const AuctionItems = () => {
         open={drawerVisible}
         onOpenChange={setDrawerVisible}
         onFinish={handleSubmit}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
+        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
         initialValues={
           editing
             ? {
@@ -464,7 +475,7 @@ const AuctionItems = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={820}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>

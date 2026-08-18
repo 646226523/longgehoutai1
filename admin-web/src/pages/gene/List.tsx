@@ -1,4 +1,4 @@
-import {
+﻿import {
   ProTable,
   type ActionType,
   type ProColumns,
@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import GeneForm from './GeneForm';
 import {
   createGeneProfile,
@@ -30,6 +32,7 @@ const GeneList = () => {
   const canEdit = hasPermission(currentUser, 'gene:edit');
   const navigate = useNavigate();
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<GeneProfile | null>(null);
@@ -72,7 +75,7 @@ const GeneList = () => {
       message.success('新增成功');
     }
 
-    actionRef.current?.reload();
+    handleRefresh();
 
     if (mode === 'confirm') {
       setDrawerVisible(false);
@@ -86,7 +89,7 @@ const GeneList = () => {
     try {
       await regenerateGeneQrcode(record.id);
       message.success('二维码已重新生成');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -96,13 +99,14 @@ const GeneList = () => {
     try {
       await deleteGeneProfile(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<GeneProfile>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '足环号', dataIndex: 'ring_number', width: 160, ellipsis: true },
     { title: '鸽名', dataIndex: 'name', width: 120, ellipsis: true, hideInSearch: true },
     {
@@ -189,9 +193,10 @@ const GeneList = () => {
       <ProTable<GeneProfile>
         headerTitle="基因档案列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1300 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -216,10 +221,17 @@ const GeneList = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增档案
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
+              ]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       <Drawer
@@ -227,7 +239,7 @@ const GeneList = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={window.innerWidth >= 1920 ? 1100 : 720}
-        destroyOnClose
+        destroyOnHidden
         maskClosable={false}
         footer={null}
         styles={{ body: { padding: 0 } }}

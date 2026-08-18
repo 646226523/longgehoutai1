@@ -77,6 +77,15 @@ export interface CompetitionItem {
   distance: number | null;
   description: string | null;
   organizer: string | null;
+  contact_phone?: string | null;
+  start_lng?: number | null;
+  start_lat?: number | null;
+  start_address?: string | null;
+  end_lng?: number | null;
+  end_lat?: number | null;
+  end_address?: string | null;
+  waypoints?: string | null;
+  route_geojson?: string | null;
   created_at: number;
   updated_at: number;
   // 详情接口附带的统计字段
@@ -106,6 +115,15 @@ export interface CompetitionCreateParams {
   distance?: number;
   description?: string;
   organizer?: string;
+  contact_phone?: string;
+  start_lng?: number;
+  start_lat?: number;
+  start_address?: string;
+  end_lng?: number;
+  end_lat?: number;
+  end_address?: string;
+  waypoints?: string;
+  route_geojson?: string;
 }
 
 export interface CompetitionUpdateParams {
@@ -117,6 +135,15 @@ export interface CompetitionUpdateParams {
   distance?: number;
   description?: string;
   organizer?: string;
+  contact_phone?: string;
+  start_lng?: number;
+  start_lat?: number;
+  start_address?: string;
+  end_lng?: number;
+  end_lat?: number;
+  end_address?: string;
+  waypoints?: string;
+  route_geojson?: string;
 }
 
 // 赛事下拉选项(精简结构)
@@ -319,4 +346,113 @@ export async function deleteResult(
   resultId: number
 ): Promise<void> {
   await http.delete(`/competition/${competitionId}/results/${resultId}`);
+}
+
+// ==================== 赛事核验(批量) ====================
+
+export const VERIFY_PROGRESS_STATUS = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  EXCEPTION: 'exception',
+} as const;
+
+export type VerifyProgressStatus =
+  (typeof VERIFY_PROGRESS_STATUS)[keyof typeof VERIFY_PROGRESS_STATUS];
+
+export interface VerificationItem {
+  id: number;
+  name: string;
+  type: string | null;
+  status: string;
+  start_time: number | null;
+  end_time: number | null;
+  location: string | null;
+  distance: number | null;
+  description: string | null;
+  organizer: string | null;
+  contact_phone?: string | null;
+  start_lng?: number | null;
+  start_lat?: number | null;
+  start_address?: string | null;
+  end_lng?: number | null;
+  end_lat?: number | null;
+  end_address?: string | null;
+  waypoints?: string | null;
+  route_geojson?: string | null;
+  created_at: number;
+  updated_at: number;
+  participant_total: number;
+  verified_count: number;
+  failed_count: number;
+  pending_count: number;
+  verify_progress: number;
+  verify_status: VerifyProgressStatus;
+}
+
+export interface VerificationListParams {
+  page?: number;
+  pageSize?: number;
+  name?: string;
+  status?: string;
+}
+
+export interface BatchVerifyCompetitionResult {
+  competition_id: number;
+  success: boolean;
+  message: string;
+  total: number;
+  passed: number;
+  failed: number;
+}
+
+export interface BatchVerifyResult {
+  competitions: BatchVerifyCompetitionResult[];
+  summary: {
+    total_competitions: number;
+    succeeded: number;
+    failed: number;
+    total_participants: number;
+    total_passed: number;
+    total_failed: number;
+  };
+}
+
+export async function getVerificationList(
+  params: VerificationListParams
+): Promise<PageResult<VerificationItem>> {
+  const data = await http.get<PageResult<VerificationItem>>(
+    '/competition/verify-list',
+    { params }
+  );
+  return data;
+}
+
+export async function batchVerifyCompetitions(
+  ids: number[]
+): Promise<BatchVerifyResult> {
+  return await http.post('/competition/batch-verify', {
+    competition_ids: ids,
+  });
+}
+
+export interface ExportReportParams {
+  race_ids: number[];
+  format: 'pdf' | 'excel' | 'csv';
+  include_detail: boolean;
+  include_exception_only: boolean;
+  include_summary: boolean;
+  file_name?: string;
+}
+
+export interface ExportReportResult {
+  file_url: string;
+  file_name: string;
+  file_size: number;
+}
+
+export async function exportVerificationReport(
+  params: ExportReportParams
+): Promise<ExportReportResult> {
+  return await http.post('/competition/verify-export', params);
 }

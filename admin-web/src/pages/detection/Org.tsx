@@ -1,4 +1,4 @@
-import {
+﻿import {
   DrawerForm,
   ProFormText,
   ProFormTextArea,
@@ -12,8 +12,10 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import {
   createDetectionOrg,
   getDetectionOrgs,
@@ -34,9 +36,11 @@ const DetectionOrg = () => {
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'detection:view');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<DetectionOrg | null>(null);
+
 
   const openCreate = () => {
     setEditing(null);
@@ -68,7 +72,7 @@ const DetectionOrg = () => {
       message.success('新增成功');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -77,7 +81,7 @@ const DetectionOrg = () => {
     try {
       const res = await toggleDetectionOrgStatus(record.id);
       message.success(res.status === 1 ? '已启用' : '已停用');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -98,6 +102,7 @@ const DetectionOrg = () => {
   };
 
   const columns: ProColumns<DetectionOrg>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '机构名称', dataIndex: 'name', width: 200, ellipsis: true },
     { title: '编码', dataIndex: 'code', width: 110, ellipsis: true, hideInSearch: true },
     { title: '联系人', dataIndex: 'contact', width: 100, hideInSearch: true, ellipsis: true },
@@ -163,9 +168,10 @@ const DetectionOrg = () => {
       <ProTable<DetectionOrg>
         headerTitle="检测机构管理"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -190,10 +196,15 @@ const DetectionOrg = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增机构
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑抽屉 */}
@@ -202,7 +213,7 @@ const DetectionOrg = () => {
         open={drawerVisible}
         onOpenChange={setDrawerVisible}
         onFinish={handleSubmit}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
+        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
         initialValues={
           editing
             ? {

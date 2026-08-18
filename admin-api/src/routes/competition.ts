@@ -1,4 +1,6 @@
 import { Router, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import db from '../db';
 import { authenticate, requirePermission } from '../middlewares/auth';
 import { auditMiddleware } from '../middlewares/audit';
@@ -10,6 +12,7 @@ import {
   STATUS_FLOW,
   STATUS_LABELS,
 } from '../modules/competition/db';
+import { ReportGenerator } from '../modules/competition/report-generator';
 
 const router = Router();
 
@@ -39,6 +42,15 @@ interface CompetitionRow {
   distance: number | null;
   description: string | null;
   organizer: string | null;
+  contact_phone: string | null;
+  start_lng: number | null;
+  start_lat: number | null;
+  start_address: string | null;
+  end_lng: number | null;
+  end_lat: number | null;
+  end_address: string | null;
+  waypoints: string | null;
+  route_geojson: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -74,6 +86,48 @@ interface ResultRow {
 // 校验赛事是否存在
 function getCompetitionById(id: number): CompetitionRow | undefined {
   return db.prepare('SELECT * FROM competitions WHERE id = ?').get(id) as CompetitionRow | undefined;
+}
+
+function normalizeRouteGeoJSON(routeGeoJSON?: string | null, waypoints?: string | null): string | null {
+  const parseWaypoints = (value?: string | null): Array<[number, number]> => {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((point) => [Number(point?.lng), Number(point?.lat)] as [number, number])
+        .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+    } catch {
+      return [];
+    }
+  };
+
+  try {
+    if (routeGeoJSON) {
+      const parsed = JSON.parse(routeGeoJSON);
+      if (parsed?.type === 'LineString' && Array.isArray(parsed.coordinates)) {
+        const coordinates = parsed.coordinates
+          .map((item: any): [number, number] => [Number(item?.[0]), Number(item?.[1])])
+          .filter((point: [number, number]) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+        return JSON.stringify({ type: 'LineString', coordinates });
+      }
+      if (parsed?.type === 'FeatureCollection') {
+        const line = parsed.features?.find((feature: any) => feature?.geometry?.type === 'LineString');
+        if (line?.geometry?.coordinates) {
+          const coordinates = line.geometry.coordinates
+            .map((item: any): [number, number] => [Number(item?.[0]), Number(item?.[1])])
+            .filter((point: [number, number]) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+          return JSON.stringify({ type: 'LineString', coordinates });
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  const coordinates = parseWaypoints(waypoints);
+  if (!coordinates.length) return routeGeoJSON ?? null;
+  return JSON.stringify({ type: 'LineString', coordinates: coordinates });
 }
 
 // 检查 gene_profiles 表是否存在(由基因模块创建)
@@ -200,6 +254,310 @@ router.get('/', requirePermission('competition:view'), (req: AuthedRequest, res:
   return ok(res, { list, total });
 });
 
+// ==================== SubTask 5.1b: 赛事核验列表与批量核验 ====================
+
+// GET /api/competition/verify-list - 赛事核验列表(带参赛鸽统计)
+// 查询参数:page、pageSize、name、status
+router.get(
+  '/verify-list',
+  requirePermission('competition:verify'),
+  (req: AuthedRequest, res: Response) => {
+    const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
+    const pageSize = Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);
+    const name = String(req.query.name ?? '').trim();
+    const status = String(req.query.status ?? '').trim();
+
+    const where: string[] = [];
+    const params: Array<string | number> = [];
+    if (name) {
+      where.push('c.name LIKE ?');
+      params.push(`%${name}%`);
+    }
+    if (status) {
+      where.push('c.status = ?');
+      params.push(status);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const baseCountSql = `SELECT COUNT(*) FROM competitions c ${whereSql}`;
+    const total = (db.prepare(baseCountSql).get(...params) as { c: number }).c;
+
+    const listSql = `
+      SELECT
+        c.*,
+        (SELECT COUNT(*) FROM competition_participants p WHERE p.competition_id = c.id) AS total,
+        (SELECT COUNT(*) FROM competition_participants p WHERE p.competition_id = c.id AND p.verify_status = ?) AS verified_count,
+        (SELECT COUNT(*) FROM competition_participants p WHERE p.competition_id = c.id AND p.verify_status = ?) AS failed_count,
+        (SELECT COUNT(*) FROM competition_participants p WHERE p.competition_id = c.id AND p.verify_status = ?) AS pending_count
+      FROM competitions c
+      ${whereSql}
+      ORDER BY c.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const rows = db
+      .prepare(listSql)
+      .all(
+        VERIFY_STATUS.PASSED,
+        VERIFY_STATUS.FAILED,
+        VERIFY_STATUS.PENDING,
+        ...params,
+        pageSize,
+        (page - 1) * pageSize
+      ) as Array<CompetitionRow & {
+        total: number;
+        verified_count: number;
+        failed_count: number;
+        pending_count: number;
+      }>;
+
+    const list = rows.map((row) => {
+      const { total, verified_count, failed_count, pending_count } = row;
+      let verify_progress = 0;
+      let verify_status: 'pending' | 'in_progress' | 'completed' | 'exception';
+
+      if (total === 0) {
+        verify_progress = 0;
+        verify_status = 'pending';
+      } else {
+        verify_progress = Math.round((verified_count / total) * 100);
+        if (pending_count === 0 && failed_count === 0) {
+          verify_status = 'completed';
+        } else if (pending_count === 0 && failed_count > 0) {
+          verify_status = 'exception';
+        } else if (verified_count === 0 && failed_count === 0) {
+          verify_status = 'pending';
+        } else {
+          verify_status = 'in_progress';
+        }
+      }
+
+      const {
+        total: _t, verified_count: _v, failed_count: _f, pending_count: _p,
+        ...competition
+      } = row;
+
+      return {
+        ...competition,
+        participant_total: total,
+        verified_count,
+        failed_count,
+        pending_count,
+        verify_progress,
+        verify_status,
+      };
+    });
+
+    return ok(res, { list, total });
+  }
+);
+
+// POST /api/competition/batch-verify - 批量核验多个赛事的所有待核验参赛鸽
+// 请求体:{ competition_ids: number[] }
+router.post(
+  '/batch-verify',
+  requirePermission('competition:verify'),
+  auditMiddleware('competition', 'batch_verify_competitions'),
+  (req: AuthedRequest, res: Response) => {
+    const { competition_ids } = req.body as { competition_ids?: number[] };
+    if (!Array.isArray(competition_ids) || competition_ids.length === 0) {
+      return fail(res, 400, '赛事 ID 列表不能为空');
+    }
+
+    const results = competition_ids.map((id) => {
+      const comp = getCompetitionById(id);
+      if (!comp) {
+        return {
+          competition_id: id,
+          success: false,
+          message: '赛事不存在',
+          total: 0,
+          passed: 0,
+          failed: 0,
+        };
+      }
+
+      const pendingRows = db
+        .prepare(
+          `SELECT id FROM competition_participants WHERE competition_id = ? AND verify_status = ?`
+        )
+        .all(id, VERIFY_STATUS.PENDING) as Array<{ id: number }>;
+
+      if (pendingRows.length === 0) {
+        return {
+          competition_id: id,
+          success: true,
+          message: '没有需要核验的参赛鸽',
+          total: 0,
+          passed: 0,
+          failed: 0,
+        };
+      }
+
+      let passed = 0;
+      let failed = 0;
+      const tx = db.transaction(() => {
+        pendingRows.forEach((row) => {
+          const result = verifyOneParticipant(row.id);
+          if (result.status === VERIFY_STATUS.PASSED) {
+            passed++;
+          } else {
+            failed++;
+          }
+        });
+      });
+      tx();
+
+      return {
+        competition_id: id,
+        success: true,
+        message: `核验完成:通过 ${passed} 只,不通过 ${failed} 只`,
+        total: pendingRows.length,
+        passed,
+        failed,
+      };
+    });
+
+    const aggregated = {
+      competitions: results,
+      summary: {
+        total_competitions: results.length,
+        succeeded: results.filter((r) => r.success).length,
+        failed: results.filter((r) => !r.success).length,
+        total_participants: results.reduce((sum, r) => sum + r.total, 0),
+        total_passed: results.reduce((sum, r) => sum + r.passed, 0),
+        total_failed: results.reduce((sum, r) => sum + r.failed, 0),
+      },
+    };
+
+    return ok(res, aggregated, '批量核验完成');
+  }
+);
+
+// POST /api/competition/verify-export - 导出核验报告
+// 请求体:{ race_ids: number[], format: 'pdf'|'excel'|'csv', include_detail?: boolean, include_exception_only?: boolean, include_summary?: boolean, file_name?: string }
+router.post(
+  '/verify-export',
+  requirePermission('competition:view'),
+  (req: AuthedRequest, res: Response) => {
+    const {
+      race_ids,
+      format,
+      include_detail = true,
+      include_exception_only = false,
+      include_summary = true,
+      file_name,
+    } = req.body as {
+      race_ids?: number[];
+      format?: 'pdf' | 'excel' | 'csv';
+      include_detail?: boolean;
+      include_exception_only?: boolean;
+      include_summary?: boolean;
+      file_name?: string;
+    };
+
+    if (!Array.isArray(race_ids)) {
+      return fail(res, 400, '赛事 ID 列表格式错误');
+    }
+    if (!format || !['pdf', 'excel', 'csv'].includes(format)) {
+      return fail(res, 400, '导出格式必须是 pdf、excel 或 csv');
+    }
+
+    // 查询赛事数据（空数组表示全部赛事）
+    let competitions: CompetitionRow[];
+    let participants: ParticipantRow[];
+
+    if (race_ids.length === 0) {
+      competitions = db.prepare('SELECT * FROM competitions ORDER BY id ASC').all() as CompetitionRow[];
+      participants = db
+        .prepare('SELECT * FROM competition_participants ORDER BY competition_id ASC, created_at ASC')
+        .all() as ParticipantRow[];
+    } else {
+      const placeholders = race_ids.map(() => '?').join(',');
+      competitions = db
+        .prepare(`SELECT * FROM competitions WHERE id IN (${placeholders})`)
+        .all(...race_ids) as CompetitionRow[];
+      participants = db
+        .prepare(
+          `SELECT * FROM competition_participants WHERE competition_id IN (${placeholders}) ORDER BY competition_id ASC, created_at ASC`
+        )
+        .all(...race_ids) as ParticipantRow[];
+    }
+
+    if (competitions.length === 0) {
+      return fail(res, 404, '未找到对应的赛事');
+    }
+
+    const generator = new ReportGenerator(
+      competitions.map((c) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        status: c.status,
+        start_time: c.start_time,
+        end_time: c.end_time,
+        location: c.location,
+        distance: c.distance,
+        organizer: c.organizer,
+        contact_phone: c.contact_phone,
+      })),
+      participants.map((p) => ({
+        id: p.id,
+        ring_number: p.ring_number,
+        owner_name: p.owner_name,
+        verify_status: p.verify_status,
+        verify_reason: p.verify_reason,
+        verified_at: p.verified_at,
+      }))
+    );
+
+    const downloadsDir = path.resolve(__dirname, '../../downloads');
+    if (!fs.existsSync(downloadsDir)) {
+      fs.mkdirSync(downloadsDir, { recursive: true });
+    }
+
+    const baseName = file_name || `verification_report_${Date.now()}`;
+
+    (async () => {
+      try {
+        const options = {
+          includeDetail: include_detail,
+          includeExceptionOnly: include_exception_only,
+          includeSummary: include_summary,
+        };
+
+        let fileBuffer: Buffer;
+        let fileExtension: string;
+
+        if (format === 'pdf') {
+          fileBuffer = await generator.generatePDF(options);
+          fileExtension = 'pdf';
+        } else if (format === 'excel') {
+          fileBuffer = await generator.generateExcel(options);
+          fileExtension = 'xlsx';
+        } else {
+          const csv = generator.generateCSV({
+            includeExceptionOnly: include_exception_only,
+          });
+          fileBuffer = Buffer.from(csv, 'utf-8');
+          fileExtension = 'csv';
+        }
+
+        const fileName = `${baseName}.${fileExtension}`;
+        const filePath = path.join(downloadsDir, fileName);
+        fs.writeFileSync(filePath, fileBuffer);
+        const fileSize = Buffer.byteLength(fileBuffer);
+        const fileUrl = `/downloads/${fileName}`;
+
+        ok(res, { file_url: fileUrl, file_name: fileName, file_size: fileSize }, '导出成功');
+      } catch (err) {
+        console.error('[EXPORT ERROR]', err);
+        fail(res, 500, '导出文件生成失败');
+      }
+    })();
+  }
+);
+
 // GET /api/competition/:id - 赛事详情
 router.get('/:id', requirePermission('competition:view'), (req: AuthedRequest, res: Response) => {
   const id = parseInt(req.params.id, 10);
@@ -237,29 +595,44 @@ router.post(
   requirePermission('competition:edit'),
   auditMiddleware('competition', 'create'),
   (req: AuthedRequest, res: Response) => {
-    const { name, type, status, start_time, end_time, location, distance, description, organizer } =
-      req.body as {
-        name?: string;
-        type?: string;
-        status?: string;
-        start_time?: number;
-        end_time?: number;
-        location?: string;
-        distance?: number;
-        description?: string;
-        organizer?: string;
-      };
+    const {
+      name, type, status, start_time, end_time, location, distance, description, organizer,
+      contact_phone, start_lng, start_lat, start_address, end_lng, end_lat, end_address,
+      waypoints, route_geojson,
+    } = req.body as {
+      name?: string;
+      type?: string;
+      status?: string;
+      start_time?: number;
+      end_time?: number;
+      location?: string;
+      distance?: number;
+      description?: string;
+      organizer?: string;
+      contact_phone?: string;
+      start_lng?: number;
+      start_lat?: number;
+      start_address?: string;
+      end_lng?: number;
+      end_lat?: number;
+      end_address?: string;
+      waypoints?: string;
+      route_geojson?: string;
+    };
 
     if (!name || !name.trim()) {
       return fail(res, 400, '赛事名称不能为空');
     }
 
     const finalStatus = status || COMPETITION_STATUS.DRAFT;
+    const normalizedRouteGeoJSON = normalizeRouteGeoJSON(route_geojson, waypoints);
     const result = db
       .prepare(
         `INSERT INTO competitions
-         (name, type, status, start_time, end_time, location, distance, description, organizer)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (name, type, status, start_time, end_time, location, distance, description, organizer,
+          contact_phone, start_lng, start_lat, start_address, end_lng, end_lat, end_address,
+          waypoints, route_geojson)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         name.trim(),
@@ -270,7 +643,16 @@ router.post(
         location ?? null,
         distance ?? null,
         description ?? null,
-        organizer ?? null
+        organizer ?? null,
+        contact_phone ?? null,
+        start_lng ?? null,
+        start_lat ?? null,
+        start_address ?? null,
+        end_lng ?? null,
+        end_lat ?? null,
+        end_address ?? null,
+        waypoints ?? null,
+        normalizedRouteGeoJSON
       );
     return ok(res, { id: result.lastInsertRowid as number }, '新增成功');
   }
@@ -294,21 +676,37 @@ router.put(
     if (comp.status === COMPETITION_STATUS.ARCHIVED) {
       return fail(res, 400, '已归档赛事不允许编辑');
     }
-    const { name, type, start_time, end_time, location, distance, description, organizer } =
-      req.body as {
-        name?: string;
-        type?: string;
-        start_time?: number;
-        end_time?: number;
-        location?: string;
-        distance?: number;
-        description?: string;
-        organizer?: string;
-      };
+    const {
+      name, type, start_time, end_time, location, distance, description, organizer,
+      contact_phone, start_lng, start_lat, start_address, end_lng, end_lat, end_address,
+      waypoints, route_geojson,
+    } = req.body as {
+      name?: string;
+      type?: string;
+      start_time?: number;
+      end_time?: number;
+      location?: string;
+      distance?: number;
+      description?: string;
+      organizer?: string;
+      contact_phone?: string;
+      start_lng?: number;
+      start_lat?: number;
+      start_address?: string;
+      end_lng?: number;
+      end_lat?: number;
+      end_address?: string;
+      waypoints?: string;
+      route_geojson?: string;
+    };
+    const normalizedRouteGeoJSON = normalizeRouteGeoJSON(route_geojson, waypoints);
 
     db.prepare(
       `UPDATE competitions
-       SET name = ?, type = ?, start_time = ?, end_time = ?, location = ?, distance = ?, description = ?, organizer = ?, updated_at = ?
+       SET name = ?, type = ?, start_time = ?, end_time = ?, location = ?, distance = ?,
+           description = ?, organizer = ?, contact_phone = ?, start_lng = ?, start_lat = ?,
+           start_address = ?, end_lng = ?, end_lat = ?, end_address = ?, waypoints = ?,
+           route_geojson = ?, updated_at = ?
        WHERE id = ?`
     ).run(
       name?.trim() ?? comp.name,
@@ -319,6 +717,15 @@ router.put(
       distance ?? comp.distance,
       description ?? comp.description,
       organizer ?? comp.organizer,
+      contact_phone ?? comp.contact_phone,
+      start_lng ?? comp.start_lng,
+      start_lat ?? comp.start_lat,
+      start_address ?? comp.start_address,
+      end_lng ?? comp.end_lng,
+      end_lat ?? comp.end_lat,
+      end_address ?? comp.end_address,
+      waypoints ?? comp.waypoints,
+      normalizedRouteGeoJSON,
       Date.now(),
       id
     );

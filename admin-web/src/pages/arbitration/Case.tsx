@@ -1,4 +1,4 @@
-import {
+﻿import {
   DrawerForm,
   ModalForm,
   ProFormDigit,
@@ -32,8 +32,10 @@ import {
 } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import {
   acceptArbitrationCase,
   archiveArbitrationCase,
@@ -132,6 +134,7 @@ const ArbitrationCase = () => {
   const canView = hasPermission(currentUser, 'arbitration:view');
   const canJudge = hasPermission(currentUser, 'arbitration:judge');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<ArbitrationCase | null>(null);
@@ -146,6 +149,7 @@ const ArbitrationCase = () => {
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   // 裁决弹窗
   const [awardModalOpen, setAwardModalOpen] = useState(false);
+
 
   const loadDealOptions = () => {
     if (!dealOptions.length) {
@@ -210,7 +214,7 @@ const ArbitrationCase = () => {
       message.success('案件登记成功');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -219,7 +223,7 @@ const ArbitrationCase = () => {
     try {
       await acceptArbitrationCase(record.id);
       message.success('案件已受理立案');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -230,7 +234,7 @@ const ArbitrationCase = () => {
     try {
       await startHearingArbitrationCase(record.id);
       message.success('案件已进入审理');
-      actionRef.current?.reload();
+      handleRefresh();
       if (detail?.id === record.id) reloadDetail();
     } catch {
       // 拦截器已提示错误
@@ -242,7 +246,7 @@ const ArbitrationCase = () => {
     try {
       await archiveArbitrationCase(record.id);
       message.success('案件已归档');
-      actionRef.current?.reload();
+      handleRefresh();
       if (detail?.id === record.id) reloadDetail();
     } catch {
       // 拦截器已提示错误
@@ -254,7 +258,7 @@ const ArbitrationCase = () => {
     try {
       await deleteArbitrationCase(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -274,7 +278,7 @@ const ArbitrationCase = () => {
       message.success('证据已新增');
       setEvidenceModalOpen(false);
       reloadDetail();
-      actionRef.current?.reload();
+      handleRefresh();
       return true;
     } catch {
       return false;
@@ -303,7 +307,7 @@ const ArbitrationCase = () => {
       message.success('裁决已作出');
       setAwardModalOpen(false);
       reloadDetail();
-      actionRef.current?.reload();
+      handleRefresh();
       return true;
     } catch {
       return false;
@@ -323,6 +327,7 @@ const ArbitrationCase = () => {
   };
 
   const columns: ProColumns<ArbitrationCase>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '案件号', dataIndex: 'case_no', width: 170, ellipsis: true },
     {
       title: '纠纷类型',
@@ -485,9 +490,10 @@ const ArbitrationCase = () => {
       <ProTable<ArbitrationCase>
         headerTitle="仲裁案件列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1500 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -512,10 +518,15 @@ const ArbitrationCase = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   登记案件
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑抽屉 */}
@@ -524,7 +535,7 @@ const ArbitrationCase = () => {
         open={drawerVisible}
         onOpenChange={setDrawerVisible}
         onFinish={handleSubmit}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
+        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
         initialValues={
           editing
             ? {
@@ -587,7 +598,7 @@ const ArbitrationCase = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={920}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>

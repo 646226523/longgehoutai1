@@ -163,9 +163,20 @@ function initSchema(): void {
   ensureColumn('audit_logs', 'request_body', 'TEXT');
   ensureColumn('audit_logs', 'response_body', 'TEXT');
   ensureColumn('audit_logs', 'duration_ms', 'INTEGER');
+  ensureColumn('lofts', 'description', 'TEXT');
+  ensureColumn('lofts', 'status', 'INTEGER DEFAULT 1');
+  ensureColumn('competitions', 'loft_id', 'INTEGER');
+}
+
+function tableExists(table: string): boolean {
+  const result = _db!
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
+    .get(table) as { name: string } | undefined;
+  return !!result;
 }
 
 function ensureColumn(table: string, column: string, type: string): void {
+  if (!tableExists(table)) return;
   const cols = _db!
     .prepare(`PRAGMA table_info(${table})`)
     .all() as Array<{ name: string }>;
@@ -202,6 +213,7 @@ function initSeedData(): void {
     ['competition:edit', '赛事编辑', 'competition', 'button', '创建/编辑赛事'],
     ['competition:verify', '赛事核验', 'competition', 'button', '参赛鸽资格核验'],
     ['loft:view', '公棚查看', 'loft', 'menu', '查看公棚列表'],
+    ['loft:create', '公棚创建', 'loft', 'button', '手动创建公棚'],
     ['loft:edit', '公棚编辑', 'loft', 'button', '编辑公棚信息'],
     ['loft:audit', '公棚入驻审核', 'loft', 'button', '审核公棚入驻申请'],
     ['detection:view', '检测预约查看', 'detection', 'menu', '查看预约订单'],
@@ -266,6 +278,10 @@ function initSeedData(): void {
     ['session_timeout', '30', '会话超时', 'security', '会话空闲超时时间(分钟)', 4],
     ['admin_page_size', '10', '默认分页大小', 'general', '列表默认每页条数', 3],
     ['upload_max_size', '10', '上传文件大小上限', 'general', '单文件上传大小上限(MB)', 4],
+    ['map_provider', 'none', '地图服务商', 'map', '地图服务商：amap(高德)/baidu(百度)/tencent(腾讯)/none(内置SVG)', 1],
+    ['map_amap_key', '', '高德地图 Key', 'map', '高德开放平台申请的 Web 端(JS API) Key', 2],
+    ['map_baidu_key', '', '百度地图 Key', 'map', '百度地图开放平台申请的浏览器端 AK', 3],
+    ['map_tencent_key', '', '腾讯地图 Key', 'map', '腾讯位置服务申请的 JS API Key', 4],
   ];
   configs.forEach((c) => insertConfig.run(...c));
 
@@ -292,6 +308,11 @@ function initSeedData(): void {
     ['audit_status', '审核状态', 'rejected', '已拒绝', 3, 1, ''],
   ];
   dicts.forEach((d) => insertDict.run(...d));
+
+  try {
+    db.prepare(`INSERT OR IGNORE INTO permissions (code, name, module, type, description) VALUES (?, ?, ?, ?, ?)`)
+      .run('loft:create', '公棚创建', 'loft', 'button', '手动创建公棚');
+  } catch (_e) { /* ignore */ }
 }
 
 export async function initDatabase(): Promise<void> {

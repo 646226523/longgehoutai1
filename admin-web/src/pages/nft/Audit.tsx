@@ -37,6 +37,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   approveNftAudit,
   batchApproveNftAudit,
@@ -122,6 +124,7 @@ const NftAudit = () => {
 
   const assetActionRef = useRef<ActionType>();
   const taskActionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(assetActionRef, { messageApi: message });
 
   const [stats, setStats] = useState<NftAuditStats>({
     today_approved: 0,
@@ -182,7 +185,7 @@ const NftAudit = () => {
     }
   ) {
     await Promise.all([refreshBadgeCounts(), refreshStats(true)]);
-    if (opts.reloadAssetTable) assetActionRef.current?.reload();
+    if (opts.reloadAssetTable) handleRefresh();
     if (opts.reloadTaskTable) taskActionRef.current?.reload();
   }
 
@@ -761,9 +764,10 @@ const NftAudit = () => {
       key={`asset-${activeTab}`}
       headerTitle={activeTab === 'pending' ? '待审核资产' : '已驳回资产'}
       actionRef={assetActionRef}
+      loading={tableLoading}
       rowKey="id"
       columns={assetColumns}
-      options={{ density: false }}
+      options={{ density: false, reload: false }}
       scroll={{ x: 1200 }}
       search={{ labelWidth: 'auto' }}
       rowSelection={
@@ -805,6 +809,7 @@ const NftAudit = () => {
               >
                 批量驳回 ({selectedRowKeys.length})
               </Button>,
+              <RefreshButton key="refresh" actionRef={assetActionRef as any} />,
             ]
           : activeTab === 'rejected'
           ? [
@@ -822,8 +827,11 @@ const NftAudit = () => {
                   一键复审 ({selectedRowKeys.length})
                 </Button>
               </Popconfirm>,
+              <RefreshButton key="refresh" actionRef={assetActionRef as any} />,
             ]
-          : []
+          : [
+              <RefreshButton key="refresh" actionRef={assetActionRef as any} />,
+            ]
       }
       request={async (params) => {
         const { current, pageSize, name, status, owner_name } = params;
@@ -840,7 +848,11 @@ const NftAudit = () => {
           return { data: [], success: false, total: 0 };
         }
       }}
-      pagination={{ pageSize: 10, showSizeChanger: true }}
+      pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
     />
   );
 
@@ -851,7 +863,7 @@ const NftAudit = () => {
       actionRef={taskActionRef}
       rowKey="id"
       columns={taskColumns}
-      options={{ density: false }}
+      options={{ density: false, reload: false }}
       scroll={{ x: 1800 }}
       search={{ labelWidth: 'auto' }}
       request={async (params) => {
@@ -879,7 +891,11 @@ const NftAudit = () => {
           刷新
         </Button>,
       ]}
-      pagination={{ pageSize: 10, showSizeChanger: true }}
+      pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
     />
   );
 
@@ -994,7 +1010,7 @@ const NftAudit = () => {
         placement="right"
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
-        destroyOnClose
+        destroyOnHidden
         maskClosable={false}
         extra={
           <Button onClick={() => setPreviewOpen(false)}>关闭</Button>

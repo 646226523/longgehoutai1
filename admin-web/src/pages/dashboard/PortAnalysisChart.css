@@ -4,9 +4,9 @@
   --pac-legend-f: 13px;
   --pac-kpi-row-h: 44px;
   --pac-body-gap: 20px;
-  --pac-hover-bg: rgba(59, 130, 246, 0.06);
-  --pac-border: #e5e7eb;
-  --pac-total-color: #111827;
+  --pac-hover-bg: rgba(0, 212, 255, 0.08);
+  --pac-border: #e6f4ff;
+  --pac-total-color: #00d4ff;
   --pac-pct-color: #8c8c8c;
 }
 
@@ -39,6 +39,7 @@
   font-size: var(--pac-kpi-f);
   font-weight: 700;
   color: var(--pac-total-color);
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
 }
 
 .PAC-totalUnit {
@@ -54,11 +55,13 @@
 }
 
 .PAC-up {
-  color: #10b981;
+  color: #00d4ff;
+  font-weight: 500;
 }
 
 .PAC-down {
-  color: #ef4444;
+  color: #ff4d4f;
+  font-weight: 500;
 }
 
 .PAC-dash {
@@ -91,12 +94,13 @@
   padding: 4px 6px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: all 0.2s ease;
   height: 28px;
 }
 
 .PAC-legendRow.is-hover {
   background: var(--pac-hover-bg);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
 }
 
 .PAC-swatch {
@@ -121,7 +125,7 @@
   min-width: 60px;
   text-align: right;
   font-weight: 600;
-  color: #374151;
+  color: #1f1f1f;
   font-size: var(--pac-legend-f);
 }
 
@@ -160,8 +164,9 @@
 
 .PAC-leadText {
   font-size: 12px;
-  fill: #666;
+  fill: #1f1f1f;
   pointer-events: none;
+  font-weight: 500;
 }
 
 .PAC-innerText {
@@ -171,8 +176,6 @@
   font-weight: 600;
 }
 
-/* ===== 三档分辨率 CSS 变量覆盖 ===== */
-/* 2K (≥ 2560px) */
 @media (min-width: 2560px) {
   :root {
     --pac-minH: 280px;
@@ -183,12 +186,10 @@
   .PAC-legendRow { height: 28px; }
 }
 
-/* 1080P 默认（1920~2559）：保持 :root 原值不覆盖 */
 @media (min-width: 1920px) and (max-width: 2559px) {
   .PAC-legendRow { height: 28px; }
 }
 
-/* Compact (< 1920，比如 1600×900 常见商务笔记本) */
 @media (max-width: 1919px) {
   :root {
     --pac-minH: 232px;

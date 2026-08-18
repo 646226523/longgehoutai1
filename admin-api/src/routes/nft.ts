@@ -80,6 +80,7 @@ const STATUS_LABEL: Record<string, string> = {
   minting: '上链中',
   minted: '已上链',
   failed: '上链失败',
+  rejected: '已驳回',
 };
 
 // ==================== 资产列表与详情 ====================
@@ -716,14 +717,183 @@ nftRouter.post(
       return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可审核`);
     }
 
-    // 驳回后回到草稿状态(允许修改后重新提交)
+    // 驳回后标记为 rejected 状态，供"已驳回"Tab 查询
     db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(
-      NFT_STATUS.DRAFT,
+      NFT_STATUS.REJECTED,
       Date.now(),
       id
     );
 
-    return ok(res, null, '已驳回,资产回到草稿状态');
+    return ok(res, null, '已驳回');
+  }
+);
+
+// GET /api/nft/audit/stats - 今日审核统计
+nftRouter.get('/audit/stats', requirePermission('nft:audit'), (_req: AuthedRequest, res: Response) => {
+  const now = Date.now();
+  const startOfDay = now - (now % 86400000);
+
+  const todayApproved = (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM nft_assets
+         WHERE status IN (?, ?) AND updated_at >= ?`
+      )
+      .get(NFT_STATUS.MINTING, NFT_STATUS.MINTED, startOfDay) as { c: number }
+  ).c;
+
+  const todayMintSuccess = (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM nft_assets
+         WHERE status = ? AND updated_at >= ?`
+      )
+      .get(NFT_STATUS.MINTED, startOfDay) as { c: number }
+  ).c;
+
+  const todayMintFailed = (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM nft_assets
+         WHERE status = ? AND updated_at >= ?`
+      )
+      .get(NFT_STATUS.FAILED, startOfDay) as { c: number }
+  ).c;
+
+  const avgRow = db
+    .prepare(
+      `SELECT AVG(finished_at - started_at) AS avg_sec FROM nft_mint_tasks
+       WHERE status = ? AND finished_at >= ? AND started_at IS NOT NULL AND finished_at IS NOT NULL`
+    )
+    .get(MINT_TASK_STATUS.SUCCESS, startOfDay) as { avg_sec: number | null } | undefined;
+
+  const avgDuration = avgRow?.avg_sec ? Math.round(avgRow.avg_sec) : 0;
+
+  return ok(res, {
+    today_approved: todayApproved,
+    today_mint_success: todayMintSuccess,
+    today_mint_failed: todayMintFailed,
+    avg_duration_sec: avgDuration,
+  });
+});
+
+// POST /api/nft/audit/batch-approve - 批量审核通过
+nftRouter.post(
+  '/audit/batch-approve',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'batch_approve_mint'),
+  (req: AuthedRequest, res: Response) => {
+    const body = req.body as { ids?: number[] };
+    const ids = Array.isArray(body.ids) ? body.ids.filter((id) => Number.isFinite(Number(id))) : [];
+    if (!ids.length) return fail(res, 400, '请选择要审核的资产');
+
+    let success = 0;
+    let failed = 0;
+
+    for (const id of ids) {
+      const target = db
+        .prepare('SELECT id, status FROM nft_assets WHERE id = ?')
+        .get(id) as { id: number; status: string } | undefined;
+
+      if (!target || target.status !== NFT_STATUS.PENDING) {
+        failed++;
+        continue;
+      }
+
+      try {
+        const tx = db.transaction(() => {
+          db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(
+            NFT_STATUS.MINTING,
+            Date.now(),
+            id
+          );
+          const result = db
+            .prepare(
+              `INSERT INTO nft_mint_tasks (nft_asset_id, status, retry_count) VALUES (?, 'pending', 0)`
+            )
+            .run(id);
+          return result.lastInsertRowid as number;
+        });
+        const taskId = tx();
+        simulateMint(id, taskId);
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return ok(res, { total: ids.length, success, failed }, `批量审核完成:成功${success}条,失败${failed}条`);
+  }
+);
+
+// POST /api/nft/audit/batch-reject - 批量审核驳回
+nftRouter.post(
+  '/audit/batch-reject',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'batch_reject_mint'),
+  (req: AuthedRequest, res: Response) => {
+    const body = req.body as { ids?: number[]; reject_reason?: string };
+    const ids = Array.isArray(body.ids) ? body.ids.filter((id) => Number.isFinite(Number(id))) : [];
+    const reason = String(body.reject_reason ?? '').trim();
+
+    if (!ids.length) return fail(res, 400, '请选择要驳回的资产');
+    if (!reason) return fail(res, 400, '请填写驳回理由');
+
+    let success = 0;
+    let failed = 0;
+
+    for (const id of ids) {
+      const target = db
+        .prepare('SELECT id, status FROM nft_assets WHERE id = ?')
+        .get(id) as { id: number; status: string } | undefined;
+
+      if (!target || target.status !== NFT_STATUS.PENDING) {
+        failed++;
+        continue;
+      }
+
+      try {
+        db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(
+          NFT_STATUS.REJECTED,
+          Date.now(),
+          id
+        );
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return ok(res, { total: ids.length, success, failed }, `批量驳回完成:成功${success}条,失败${failed}条`);
+  }
+);
+
+// POST /api/nft/assets/:id/resubmit - 重新提交审核
+nftRouter.post(
+  '/assets/:id/resubmit',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'resubmit_audit'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的资产 ID');
+
+    const target = db.prepare('SELECT id, status FROM nft_assets WHERE id = ?').get(id) as
+      | { id: number; status: string }
+      | undefined;
+    if (!target) return fail(res, 404, 'NFT 资产不存在');
+
+    const resubmittableStatus: string[] = [NFT_STATUS.DRAFT, NFT_STATUS.FAILED, NFT_STATUS.REJECTED];
+    if (!resubmittableStatus.includes(target.status)) {
+      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可重新提交`);
+    }
+
+    db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(
+      NFT_STATUS.PENDING,
+      Date.now(),
+      id
+    );
+
+    return ok(res, null, '已重新提交审核');
   }
 );
 

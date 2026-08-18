@@ -1,4 +1,4 @@
-import {
+﻿import {
   ModalForm,
   PageContainer,
   ProFormDigit,
@@ -14,6 +14,8 @@ import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
+import RefreshButton from '../../components/RefreshButton';
 import { hasPermission } from '../../access';
 import {
   createDict,
@@ -31,6 +33,7 @@ const SystemDict = () => {
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:config:manage');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [types, setTypes] = useState<DictTypeItem[]>([]);
   const [typesLoading, setTypesLoading] = useState(false);
@@ -66,7 +69,7 @@ const SystemDict = () => {
   // 选中类型变化时刷新右侧表格
   useEffect(() => {
     if (selectedType) {
-      actionRef.current?.reload();
+      handleRefresh();
     }
   }, [selectedType]);
 
@@ -96,7 +99,7 @@ const SystemDict = () => {
     setModalVisible(false);
     // 类型可能新增,刷新类型列表
     loadTypes();
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -106,13 +109,14 @@ const SystemDict = () => {
       await deleteDict(record.id);
       message.success('删除成功');
       loadTypes();
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<DictItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '编码', dataIndex: 'item_code', width: 140, ellipsis: true, render: (val) => <code>{String(val)}</code> },
     { title: '名称', dataIndex: 'item_name', width: 140, ellipsis: true },
     {
@@ -239,9 +243,10 @@ const SystemDict = () => {
           <ProTable<DictItem>
             headerTitle={selectedType ? `字典项(${selectedType})` : '字典项'}
             actionRef={actionRef}
+            loading={tableLoading}
             rowKey="id"
             columns={columns}
-            options={{ density: false }}
+            options={{ density: false, reload: false }}
             scroll={{ x: 1100 }}
             search={{ labelWidth: 'auto' }}
             request={async (params) => {
@@ -271,10 +276,15 @@ const SystemDict = () => {
                     >
                       新增字典项
                     </Button>,
+                    <RefreshButton key="refresh" actionRef={actionRef as any} />,
                   ]
-                : []
+                : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
             }
-            pagination={{ pageSize: 10, showSizeChanger: true }}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: [10, 20, 50, 100],
+              defaultPageSize: 10,
+            }}
           />
         </div>
       </div>

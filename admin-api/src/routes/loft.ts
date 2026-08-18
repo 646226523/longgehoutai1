@@ -11,6 +11,7 @@ import db from '../db';
 import { authenticate, requirePermission } from '../middlewares/auth';
 import { auditMiddleware } from '../middlewares/audit';
 import type { AuthedRequest, ApiResponse } from '../types';
+import type { Database } from '../sqlite-compat';
 
 const loftRouter = Router();
 
@@ -25,6 +26,17 @@ function fail(res: Response, status: number, message: string): Response {
   const body: ApiResponse = { code: status, message, data: null };
   return res.status(status).json(body);
 }
+
+function ensureColumn(db: Database, table: string, column: string, def: string) {
+  const cols = (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map(c => c.name);
+  if (!cols.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+  }
+}
+
+try { ensureColumn(db, 'lofts', 'description', 'TEXT'); } catch (_e) { /* schema migration handled in initSchema */ }
+try { ensureColumn(db, 'lofts', 'status', 'INTEGER DEFAULT 1'); } catch (_e) { /* schema migration handled in initSchema */ }
+try { ensureColumn(db, 'competitions', 'loft_id', 'INTEGER'); } catch (_e) { /* schema migration handled in initSchema */ }
 
 // 所有接口均需登录鉴权
 loftRouter.use(authenticate);
@@ -228,6 +240,54 @@ loftRouter.post(
 
 // ==================== SubTask 6.2: 公棚信息管理 ====================
 
+// POST /api/loft/lofts - 后台手动创建公棚(直接生效,无需审核)
+loftRouter.post(
+  '/lofts',
+  requirePermission('loft:create'),
+  auditMiddleware('loft', 'create_loft'),
+  (req: AuthedRequest, res: Response) => {
+    const body = req.body as {
+      name?: string;
+      applicant_name?: string;
+      phone?: string;
+      address?: string;
+      capacity?: number;
+      location?: string;
+      description?: string;
+      status?: number;
+    };
+    if (!body.name || !body.name.trim()) {
+      return fail(res, 400, '公棚名称不能为空');
+    }
+
+    const code = genUniqueLoftCode();
+    const now = Date.now();
+    const status = body.status ?? 1;
+
+    const result = db
+      .prepare(
+        `INSERT INTO lofts
+         (name, code, applicant_name, phone, address, capacity, location, description, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        body.name.trim(),
+        code,
+        body.applicant_name ?? null,
+        body.phone ?? null,
+        body.address ?? null,
+        body.capacity ?? null,
+        body.location ?? null,
+        body.description ?? null,
+        status,
+        now,
+        now
+      );
+
+    return ok(res, { id: result.lastInsertRowid as number, code }, '创建成功');
+  }
+);
+
 // GET /api/loft/lofts - 公棚分页列表(支持名称/状态筛选)
 loftRouter.get('/lofts', requirePermission('loft:view'), (req: AuthedRequest, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
@@ -288,7 +348,7 @@ loftRouter.get('/lofts/:id', requirePermission('loft:view'), (req: AuthedRequest
   }
   const row = db
     .prepare(
-      `SELECT id, name, code, applicant_name, phone, address, capacity, location, status,
+      `SELECT id, name, code, applicant_name, phone, address, capacity, location, description, status,
               created_at, updated_at
        FROM lofts WHERE id = ?`
     )
@@ -320,10 +380,12 @@ loftRouter.put(
       address?: string;
       capacity?: number;
       location?: string;
+      description?: string;
+      status?: number;
     };
     db.prepare(
       `UPDATE lofts
-       SET name = ?, applicant_name = ?, phone = ?, address = ?, capacity = ?, location = ?, updated_at = ?
+       SET name = ?, applicant_name = ?, phone = ?, address = ?, capacity = ?, location = ?, description = ?, status = ?, updated_at = ?
        WHERE id = ?`
     ).run(
       body.name ?? '',
@@ -332,6 +394,8 @@ loftRouter.put(
       body.address ?? null,
       body.capacity ?? null,
       body.location ?? null,
+      body.description ?? null,
+      body.status ?? 1,
       Date.now(),
       id
     );
@@ -359,6 +423,30 @@ loftRouter.patch(
     }
     db.prepare('UPDATE lofts SET status = ?, updated_at = ? WHERE id = ?').run(status, Date.now(), id);
     return ok(res, null, status === 1 ? '已设为营业中' : '已设为停业');
+  }
+);
+
+// GET /api/loft/lofts/:id/competitions - 获取公棚关联的赛事列表
+loftRouter.get(
+  '/lofts/:id/competitions',
+  requirePermission('loft:view'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return fail(res, 400, '无效的公棚 ID');
+    }
+    const loft = db.prepare('SELECT id FROM lofts WHERE id = ?').get(id);
+    if (!loft) {
+      return fail(res, 404, '公棚不存在');
+    }
+    const list = db
+      .prepare(
+        `SELECT id, name, start_time AS date_from, end_time AS date_to, status
+         FROM competitions WHERE loft_id = ?
+         ORDER BY start_time DESC`
+      )
+      .all(id);
+    return ok(res, { list });
   }
 );
 

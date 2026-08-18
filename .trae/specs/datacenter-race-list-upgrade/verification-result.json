@@ -1,0 +1,177 @@
+{
+  "login": {
+    "visited_login": true,
+    "logged_in": true
+  },
+  "tab_switch": {
+    "tab_clicked": true,
+    "tab_found": true
+  },
+  "verification": {
+    "no_ant_table": {
+      "check": "不存在 ant-table 表格",
+      "ant_table_count": 0,
+      "table_count": 0,
+      "thead_count": 0,
+      "tbody_count": 0,
+      "pass": true,
+      "detail": "ant-table=0, table.ant-table=0, thead=0, tbody=0"
+    },
+    "card_structure": {
+      "check": "存在多个 div 卡片结构（带渐变背景）",
+      "card_count": 13,
+      "pass": true,
+      "detail": "检测到 13 个渐变背景卡片（预期 >= 3）",
+      "sample_cards": [
+        {
+          "text": "赛鸽基因溯源平台 - 数据中控系统运行正常2026-08-17 18:34:03",
+          "height": 49,
+          "width": 1593,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: linear-gradient(90deg, rgba(0, 212, 255, 0.082) 0%, transparent 50%, rgba(255, 204, 0, 0.082) 100%); "
+        },
+        {
+          "text": "在线公棚数942个环比上升 5.2%在线率73%在棚 942 · 暂停 234 · 已关闭 110",
+          "height": 199,
+          "width": 204,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); border-radius: 6px; padding: 10px 12px; position: relative; overflow: hidden;"
+        },
+        {
+          "text": "鸽子总数38,526羽环比上升 12.3%同比去年85%",
+          "height": 199,
+          "width": 204,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); border-radius: 6px; padding: 10px 12px; position: relative; overflow: hidden;"
+        },
+        {
+          "text": "进行中赛事7项环比上升 0%",
+          "height": 182,
+          "width": 204,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); border-radius: 6px; padding: 10px 12px; position: relative; overflow: hidden;"
+        },
+        {
+          "text": "今日活跃用户1,247人环比上升 6.8%日活目标65%",
+          "height": 182,
+          "width": 204,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); border-radius: 6px; padding: 10px 12px; position: relative; overflow: hidden;"
+        },
+        {
+          "text": "2026 春季千公里国家赛进行中78%总 2380 羽已归巢 1856线路: 北京→上海详情飞线",
+          "height": 123,
+          "width": 290,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "display: flex; flex-direction: column; padding: 10px 12px; border-radius: 6px; background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); margin-"
+        },
+        {
+          "text": "华东地区 500 公里联赛即将结束92%总 2326 羽已归巢 2140线路: 杭州→南京详情飞线",
+          "height": 123,
+          "width": 290,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "display: flex; flex-direction: column; padding: 10px 12px; border-radius: 6px; background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); margin-"
+        },
+        {
+          "text": "华北 300 公里幼鸽赛进行中45%总 1512 羽已归巢 680线路: 天津→北京详情飞线",
+          "height": 123,
+          "width": 290,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "display: flex; flex-direction: column; padding: 10px 12px; border-radius: 6px; background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); margin-"
+        },
+        {
+          "text": "西南高原挑战赛进行中60%总 1534 羽已归巢 920线路: 昆明→成都详情飞线",
+          "height": 123,
+          "width": 290,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "display: flex; flex-direction: column; padding: 10px 12px; border-radius: 6px; background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); margin-"
+        },
+        {
+          "text": "东北长途 700 公里经典赛进行中30%总 1400 羽已归巢 420线路: 哈尔滨→沈阳详情飞线",
+          "height": 123,
+          "width": 290,
+          "hasGradient": true,
+          "hasBorder": true,
+          "style": "display: flex; flex-direction: column; padding: 10px 12px; border-radius: 6px; background: linear-gradient(135deg, rgb(26, 35, 50) 0%, rgb(21, 29, 45) 100%); border: 1px solid rgb(42, 58, 90); margin-"
+        }
+      ]
+    },
+    "progress_components": {
+      "check": "存在 Progress 组件渲染的进度条",
+      "progress_count": 13,
+      "bar_count": 13,
+      "pass": true,
+      "detail": "检测到 13 个 Progress 组件（预期 >= 3）"
+    },
+    "core_info": {
+      "check": "展示赛事核心信息",
+      "race_names_found": [
+        "2026 春季千公里国家赛",
+        "华东地区 500 公里联赛",
+        "华北 300 公里幼鸽赛",
+        "西南高原挑战赛",
+        "东北长途 700 公里经典赛",
+        "华南 400 公里精英赛",
+        "西北 600 公里挑战赛"
+      ],
+      "has_race_name": true,
+      "has_status_tag": true,
+      "status_tags": [
+        "进行中",
+        "即将结束",
+        "进行中",
+        "进行中",
+        "进行中",
+        "即将结束",
+        "进行中"
+      ],
+      "has_progress": true,
+      "has_route": true,
+      "has_detail_button": true,
+      "has_flyline_button": true,
+      "pass": true,
+      "detail": "名称=True(['2026 春季千公里国家赛', '华东地区 500 公里联赛', '华北 300 公里幼鸽赛']), 状态=True(['进行中', '即将结束', '进行中', '进行中', '进行中']), 进度=True(count=7), 线路=True, 详情按钮=True(n=7), 飞线按钮=True(n=7)"
+    },
+    "right_panel_structure": {
+      "check": "右侧面板结构正确",
+      "panel_found": true,
+      "panel_rect": {
+        "x": 1557,
+        "y": 161,
+        "width": 294,
+        "height": 919
+      },
+      "has_tabs": true,
+      "active_tab": "赛事实时",
+      "tab_texts": [
+        "热门拍卖",
+        "赛事实时"
+      ],
+      "pass": true,
+      "detail": "面板存在=True, Tabs=['热门拍卖', '赛事实时'], 激活=赛事实时"
+    }
+  },
+  "summary": {
+    "pass_count": 5,
+    "total_count": 5,
+    "pass_rate": "5/5",
+    "overall_pass": true,
+    "screenshot_path": "P:\\龙鸽项目\\longgehoutai\\.trae\\specs\\datacenter-race-list-upgrade\\screenshot.png",
+    "checkpoints": {
+      "no_ant_table": "[PASS] 不存在 ant-table 表格 | ant-table=0, table.ant-table=0, thead=0, tbody=0",
+      "card_structure": "[PASS] 存在多个 div 卡片结构（带渐变背景） | 检测到 13 个渐变背景卡片（预期 >= 3）",
+      "progress_components": "[PASS] 存在 Progress 组件渲染的进度条 | 检测到 13 个 Progress 组件（预期 >= 3）",
+      "core_info": "[PASS] 展示赛事核心信息 | 名称=True(['2026 春季千公里国家赛', '华东地区 500 公里联赛', '华北 300 公里幼鸽赛']), 状态=True(['进行中', '即将结束', '进行中', '进行中', '进行中']), 进度=True(count=7), 线路=True, 详情按钮=True(n=7), 飞线按钮=True(n=7)",
+      "right_panel_structure": "[PASS] 右侧面板结构正确 | 面板存在=True, Tabs=['热门拍卖', '赛事实时'], 激活=赛事实时"
+    }
+  }
+}

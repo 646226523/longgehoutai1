@@ -1,4 +1,4 @@
-import {
+﻿import {
   ProFormText,
   ProFormSelect,
   ProFormSwitch,
@@ -12,6 +12,8 @@ import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   createNews,
   deleteNews,
@@ -38,10 +40,12 @@ const ContentNews = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'content:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
   const [form] = Form.useForm();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<NewsItem | null>(null);
+
   // 正文 HTML 内容(Input.TextArea 受控,便于切换预览)
   const [contentHtml, setContentHtml] = useState<string>('');
   // 详情预览
@@ -122,7 +126,7 @@ const ContentNews = () => {
         message.success('新增成功');
       }
       setDrawerVisible(false);
-      actionRef.current?.reload();
+      handleRefresh();
       return true;
     } catch {
       return false;
@@ -134,7 +138,7 @@ const ContentNews = () => {
     try {
       await publishNews(record.id);
       message.success('发布成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -145,7 +149,7 @@ const ContentNews = () => {
     try {
       await offlineNews(record.id);
       message.success('已下架');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -156,7 +160,7 @@ const ContentNews = () => {
     try {
       await toggleNewsTop(record.id, record.is_top === 1 ? 0 : 1);
       message.success(record.is_top === 1 ? '已取消置顶' : '已置顶');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -167,13 +171,14 @@ const ContentNews = () => {
     try {
       await deleteNews(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<NewsItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     {
       title: '封面',
       dataIndex: 'cover_url',
@@ -283,9 +288,10 @@ const ContentNews = () => {
       <ProTable<NewsItem>
         headerTitle="资讯列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1280 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -309,10 +315,17 @@ const ContentNews = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增资讯
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
+              ]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑抽屉 */}
@@ -321,7 +334,7 @@ const ContentNews = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={760}
-        destroyOnClose
+        destroyOnHidden
         extra={
           <Space>
             <Button onClick={() => setDrawerVisible(false)}>取消</Button>
@@ -399,7 +412,7 @@ const ContentNews = () => {
         open={!!previewRecord}
         onClose={() => setPreviewRecord(null)}
         width={760}
-        destroyOnClose
+        destroyOnHidden
       >
         {previewRecord && (
           <div>

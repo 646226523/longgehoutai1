@@ -1,4 +1,4 @@
-// 用户与会员体系 - 会员等级与权益配置
+﻿// 用户与会员体系 - 会员等级与权益配置
 // 功能:等级 ProTable(新增/编辑/删除/调整排序)、每行可进入权益配置(抽屉内 ProTable)、
 //      成长值重算按钮(按各等级 min_growth 重新匹配所有用户 member_level_id)
 import {
@@ -31,6 +31,8 @@ import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   createMemberBenefit,
   createMemberLevel,
@@ -66,6 +68,7 @@ const MemberLevel = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'member:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   // 等级新增/编辑弹窗
   const [levelModal, setLevelModal] = useState<{
@@ -112,7 +115,7 @@ const MemberLevel = () => {
       message.success('新增成功');
     }
     setLevelModal({ visible: false, record: null });
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -121,7 +124,7 @@ const MemberLevel = () => {
     try {
       await updateMemberLevelSort(record.id, record.sort + delta);
       message.success('排序已更新');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -132,7 +135,7 @@ const MemberLevel = () => {
     try {
       await deleteMemberLevel(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -143,7 +146,7 @@ const MemberLevel = () => {
     try {
       const res = await recomputeUserLevels();
       message.success(`已重算 ${res.affected} 个用户的会员等级`);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -169,7 +172,7 @@ const MemberLevel = () => {
     setBenefitModal({ visible: false, record: null });
     benefitActionRef.current?.reload();
     // 同步刷新等级表(权益数量变化)
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -179,7 +182,7 @@ const MemberLevel = () => {
       await deleteMemberBenefit(record.id);
       message.success('权益已删除');
       benefitActionRef.current?.reload();
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -418,9 +421,10 @@ const MemberLevel = () => {
       <ProTable<MemberLevelItem>
         headerTitle="会员等级配置"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={levelColumns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1400 }}
         search={false}
         request={async (params) => {
@@ -452,8 +456,11 @@ const MemberLevel = () => {
                 >
                   新增等级
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
+              ]
         }
       />
 
@@ -535,14 +542,14 @@ const MemberLevel = () => {
         width={960}
         open={benefitDrawer.visible}
         onClose={() => setBenefitDrawer({ visible: false, level: null })}
-        destroyOnClose
+        destroyOnHidden
       >
         <ProTable<MemberBenefitItem>
           headerTitle={`${benefitDrawer.level?.name ?? ''} 权益列表`}
           actionRef={benefitActionRef}
           rowKey="id"
           columns={benefitColumns}
-          options={{ density: false }}
+          options={{ density: false, reload: false }}
           scroll={{ x: 900 }}
           search={false}
           request={async () => {

@@ -1,0 +1,19 @@
+{
+  "login_success": true,
+  "verify_list": {
+    "page_loaded": true,
+    "has_statistics_card": false,
+    "has_progress_bars": true,
+    "has_status_tags": true,
+    "has_batch_verify_button": true,
+    "has_search_filter": true
+  },
+  "batch_verify": "no_data",
+  "verify_detail": "error: Locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'input[placeholder*=\"足环号\" or placeholder*=\"扫码\"]' is not a valid selector.\n    at query (<anonymous>:5599:41)\n    at <anonymous>:5609:7\n    at SelectorEvaluatorImpl._cached (<anonymous>:5386:20)\n    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5596:17)\n    at SelectorEvaluatorImpl._querySimple (<anonymous>:5476:19)\n    at <anonymous>:5424:29\n    at SelectorEvaluatorImpl._cached (<anonymous>:5386:20)\n    at SelectorEvaluatorImpl.query (<anonymous>:5417:19)\n    at Object.query (<anonymous>:5631:44)\n    at <anonymous>:5589:21",
+  "simulated_scan": "not_tested",
+  "console": {
+    "errors_count": 0,
+    "warnings_count": 4,
+    "errors": []
+  }
+}

@@ -1,10 +1,21 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, Button, Input, Space, Spin, Table, Tabs, Tag, type TableProps } from 'antd';
+import { App, Button, Input, Select, Space, Spin, Table, Tabs, Tag, type TableProps } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import { getConfigs, updateConfig, type ConfigItem } from '../../services/system';
+
+// 地图服务商可选值
+const MAP_PROVIDER_OPTIONS = [
+  { label: '内置 SVG 地图（未启用）', value: 'none' },
+  { label: '高德地图', value: 'amap' },
+  { label: '百度地图', value: 'baidu' },
+  { label: '腾讯地图', value: 'tencent' },
+];
+
+// 分组中文名映射(未命中的分组保持英文原样)
+const GROUP_LABEL: Record<string, string> = { map: '地图配置' };
 
 // 系统配置:按分组 Tab 展示,行内编辑值
 const SystemConfig = () => {
@@ -83,16 +94,27 @@ const SystemConfig = () => {
       title: '配置值',
       dataIndex: 'config_value',
       width: 280,
-      render: (_, record) => (
-        <Input
-          value={editingValues[record.config_key] ?? record.config_value ?? ''}
-          onChange={(e) =>
-            setEditingValues((prev) => ({ ...prev, [record.config_key]: e.target.value }))
-          }
-          disabled={!canManage}
-          placeholder="请输入配置值"
-        />
-      ),
+      render: (_, record) =>
+        record.config_key === 'map_provider' ? (
+          <Select
+            value={editingValues[record.config_key] ?? record.config_value ?? 'none'}
+            options={MAP_PROVIDER_OPTIONS}
+            onChange={(value) =>
+              setEditingValues((prev) => ({ ...prev, [record.config_key]: value }))
+            }
+            disabled={!canManage}
+            style={{ width: 220 }}
+          />
+        ) : (
+          <Input
+            value={editingValues[record.config_key] ?? record.config_value ?? ''}
+            onChange={(e) =>
+              setEditingValues((prev) => ({ ...prev, [record.config_key]: e.target.value }))
+            }
+            disabled={!canManage}
+            placeholder="请输入配置值"
+          />
+        ),
     },
     { title: '说明', dataIndex: 'description', ellipsis: true, render: (val) => (val ? String(val) : '-') },
     {
@@ -142,7 +164,7 @@ const SystemConfig = () => {
             key: g.group,
             label: (
               <Space size={4}>
-                <span>{g.group}</span>
+                <span>{GROUP_LABEL[g.group] ?? g.group}</span>
                 <Tag style={{ marginRight: 0 }}>{g.items.length}</Tag>
               </Space>
             ),

@@ -1,0 +1,84 @@
+{
+  "login": {
+    "url": "http://127.0.0.1:3014/login",
+    "title": "赛鸽基因溯源平台 - 后台管理系统",
+    "has_brand": true,
+    "has_username_input": true,
+    "has_password_input": true
+  },
+  "competition": {
+    "login_state": {
+      "visited_login": true,
+      "logged_in": true,
+      "final_url": "http://127.0.0.1:3014/"
+    },
+    "url": "http://127.0.0.1:3014/competition/list",
+    "list_visible": true,
+    "create_button_visible": true,
+    "map_card_visible": true,
+    "map_base_visible": true,
+    "guide_alert_visible": true,
+    "real_map_rendered": false,
+    "has_map_config_text": true
+  },
+  "system_config": {
+    "url": "http://127.0.0.1:3014/system/config",
+    "tab_visible": true,
+    "keys_present": {
+      "map_provider": true,
+      "map_amap_key": true,
+      "map_baidu_key": true,
+      "map_tencent_key": true
+    },
+    "names_present": {
+      "地图服务商": true,
+      "高德地图 Key": true,
+      "百度地图 Key": true,
+      "腾讯地图 Key": true
+    },
+    "has_config_page": true
+  },
+  "map_config_api": {
+    "ok": true,
+    "status": 200,
+    "present": {
+      "provider": true,
+      "amap_key": true,
+      "baidu_key": true,
+      "tencent_key": true
+    },
+    "data": {
+      "provider": "none",
+      "amap_key": "",
+      "baidu_key": "",
+      "tencent_key": ""
+    }
+  },
+  "console": {
+    "antd_warning_count": 0,
+    "other_error_count": 0,
+    "sample_warnings": [
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      }
+    ],
+    "sample_errors": []
+  }
+}

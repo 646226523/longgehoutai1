@@ -43,6 +43,11 @@ interface MenuItem extends MenuDataItem {
 
 const menuData: MenuItem[] = [
   {
+    path: '/datacenter',
+    name: '中控数据中台',
+    icon: <ControlOutlined />,
+  },
+  {
     path: '/',
     name: '工作台',
     icon: <DashboardOutlined />,

@@ -80,8 +80,8 @@ export interface GeneProfileCreateParams {
   gene_sequence?: string;
   photo_url?: string;
   status?: number;
-  sire_id?: number | null;
-  dam_id?: number | null;
+  sire_id?: number | string | null;
+  dam_id?: number | string | null;
 }
 
 export interface GeneProfileUpdateParams extends GeneProfileCreateParams {}
@@ -284,8 +284,11 @@ export async function searchOwners(keyword?: string): Promise<OwnerOption[]> {
   return await http.get<OwnerOption[]>('/gene/owners', { params: keyword ? { keyword } : {} });
 }
 
-export async function searchGeneProfiles(keyword?: string): Promise<GeneProfileOption[]> {
-  return await http.get<GeneProfileOption[]>('/gene/profiles/search', { params: keyword ? { keyword } : {} });
+export async function searchGeneProfiles(keyword?: string, gender?: string): Promise<GeneProfileOption[]> {
+  const params: Record<string, string> = {};
+  if (keyword) params.keyword = keyword;
+  if (gender) params.gender = gender;
+  return await http.get<GeneProfileOption[]>('/gene/profiles/search', { params });
 }
 
 export async function uploadImage(file: File): Promise<{ url: string }> {

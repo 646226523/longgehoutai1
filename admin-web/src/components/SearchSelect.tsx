@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Select } from 'antd';
 
 interface SearchSelectOption {
@@ -8,8 +8,8 @@ interface SearchSelectOption {
 }
 
 interface SearchSelectProps {
-  value?: string | number;
-  onChange?: (value: string | number | undefined, option?: SearchSelectOption) => void;
+  value?: string | number | null;
+  onChange?: (value: string | number | null | undefined, option?: SearchSelectOption) => void;
   onSearch: (keyword: string) => Promise<SearchSelectOption[]>;
   placeholder?: string;
   optionLabel?: (option: SearchSelectOption) => React.ReactNode;
@@ -17,6 +17,9 @@ interface SearchSelectProps {
   allowClear?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  mode?: 'tags';
+  onFocus?: () => void;
+  defaultOptions?: SearchSelectOption[];
 }
 
 const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -29,20 +32,36 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
   allowClear = true,
   className,
   style,
+  mode,
+  onFocus,
+  defaultOptions,
 }) => {
-  const [options, setOptions] = useState<SearchSelectOption[]>([]);
+  const isTagsMode = mode === 'tags';
+  const [options, setOptions] = useState<SearchSelectOption[]>(defaultOptions ?? []);
   const [loading, setLoading] = useState(false);
-  const [selectedValue, setSelectedValue] = useState<string | number | undefined>(value);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
   onSearchRef.current = onSearch;
+  const loadedRef = useRef(false);
+
+  const selectedValue = value ?? undefined;
+
+  useEffect(() => {
+    if (defaultOptions && defaultOptions.length) {
+      setOptions((prev) => {
+        const merged = [...defaultOptions];
+        for (const opt of prev) {
+          if (!merged.some((m) => String(m.value) === String(opt.value))) {
+            merged.push(opt);
+          }
+        }
+        return merged;
+      });
+    }
+  }, [defaultOptions]);
 
   const handleSearch = useCallback((keyword: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!keyword.trim()) {
-      setOptions([]);
-      return;
-    }
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
@@ -56,27 +75,81 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
     }, 300);
   }, []);
 
+  const handleFocus = useCallback(() => {
+    onFocus?.();
+    if (!loadedRef.current) {
+      loadedRef.current = true;
+      handleSearch('');
+    }
+  }, [handleSearch, onFocus]);
+
+  const useRichDropdown = Boolean(optionLabel);
+
+  const selectOptions = options.map((o) => ({
+    value: String(o.value),
+    label: optionLabel ? optionLabel(o) : o.label,
+    selectedLabel: o.label,
+  }));
+
   const handleChange = useCallback(
-    (val: string | number | undefined) => {
-      setSelectedValue(val);
-      if (val === undefined) {
-        onChange?.(undefined, undefined);
-        return;
+    (val: unknown) => {
+      if (isTagsMode) {
+        const arr = val as Array<{ value: string; label: React.ReactNode }>;
+        if (!arr || arr.length === 0) {
+          onChange?.(undefined, undefined);
+          return;
+        }
+        const item = arr[0];
+        if (item.value === item.label) {
+          onChange?.(item.value);
+        } else {
+          const option = selectOptions.find((o) => o.value === item.value);
+          if (option) {
+            const original = options.find((o) => String(o.value) === item.value);
+            onChange?.(original ? original.value : item.value, original);
+          } else {
+            onChange?.(item.value);
+          }
+        }
+      } else {
+        const v = val as string | number | undefined;
+        if (v === undefined || v === null) {
+          onChange?.(undefined, undefined);
+          return;
+        }
+        const option = options.find((o) => o.value === v);
+        if (option) {
+          onChange?.(v, option);
+        } else {
+          onChange?.(v);
+        }
       }
-      const option = options.find((o) => o.value === val);
-      onChange?.(val, option);
     },
-    [onChange, options]
+    [isTagsMode, onChange, options, selectOptions]
   );
 
-  // 当传了自定义的 optionLabel（富样式/多行展示），选中态用简洁 selectedLabel，避免已选容器内容重叠溢出
-  const useRichDropdown = Boolean(optionLabel);
+  const selectValue = isTagsMode
+    ? selectedValue !== undefined && selectedValue !== null
+      ? (() => {
+          const strVal = String(selectedValue);
+          const matched = selectOptions.find((o) => o.value === strVal);
+          return [
+            matched
+              ? { value: matched.value, label: matched.selectedLabel }
+              : { value: strVal, label: strVal },
+          ];
+        })()
+      : []
+    : (selectedValue as string | number | undefined);
+
   return (
     <Select
       showSearch
       filterOption={false}
       placeholder={placeholder}
-      value={selectedValue}
+      mode={isTagsMode ? 'tags' : undefined}
+      labelInValue={isTagsMode}
+      value={selectValue as any}
       onChange={handleChange}
       onSearch={handleSearch}
       loading={loading}
@@ -84,17 +157,12 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
       allowClear={allowClear}
       className={className}
       style={style}
+      onFocus={handleFocus}
       notFoundContent={loading ? '加载中...' : '无数据'}
       optionFilterProp="label"
       optionLabelProp={useRichDropdown ? 'selectedLabel' : 'label'}
-      options={options.map((o) => {
-        const rich = optionLabel ? optionLabel(o) : o.label;
-        return {
-          value: o.value,
-          label: rich, // 下拉项展示（可能为多行富样式）
-          selectedLabel: o.label, // 选中态展示（一定是简洁单行文本）
-        };
-      })}
+      options={selectOptions}
+      maxTagCount="responsive"
     />
   );
 };

@@ -1,4 +1,4 @@
-import {
+﻿import {
   DrawerForm,
   ProFormDateTimePicker,
   ProFormText,
@@ -28,8 +28,10 @@ import {
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
 import {
   createAuctionSession,
   deleteAuctionSession,
@@ -74,6 +76,7 @@ const AuctionSession = () => {
   const canEdit = hasPermission(currentUser, 'auction:edit');
   const canDeal = hasPermission(currentUser, 'auction:deal');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
   const navigate = useNavigate();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -83,6 +86,7 @@ const AuctionSession = () => {
   const [detailVisible, setDetailVisible] = useState(false);
   const [detail, setDetail] = useState<AuctionSession | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
 
   const openCreate = () => {
     setEditing(null);
@@ -128,7 +132,7 @@ const AuctionSession = () => {
       message.success('场次创建成功');
     }
     setDrawerVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -137,7 +141,7 @@ const AuctionSession = () => {
     try {
       await transitionAuctionSession(record.id, next);
       message.success(`场次已${STATUS_LABEL[next] ?? next}`);
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -148,13 +152,14 @@ const AuctionSession = () => {
     try {
       await deleteAuctionSession(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<AuctionSession>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '场次名称', dataIndex: 'name', width: 220, ellipsis: true },
     {
       title: '状态',
@@ -295,9 +300,10 @@ const AuctionSession = () => {
       <ProTable<AuctionSession>
         headerTitle="拍卖场次列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1500 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -320,10 +326,15 @@ const AuctionSession = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增场次
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑抽屉 */}
@@ -332,7 +343,7 @@ const AuctionSession = () => {
         open={drawerVisible}
         onOpenChange={setDrawerVisible}
         onFinish={handleSubmit}
-        drawerProps={{ destroyOnClose: true, maskClosable: false, width: 560 }}
+        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
         initialValues={
           editing
             ? {
@@ -382,7 +393,7 @@ const AuctionSession = () => {
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
         width={720}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>加载中...</div>

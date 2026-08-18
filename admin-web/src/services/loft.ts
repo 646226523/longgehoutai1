@@ -83,6 +83,7 @@ export interface LoftItem {
   capacity: number | null;
   location: string | null;
   status: number;
+  description?: string;
   created_at: number;
   updated_at: number;
   pigeon_total: number;
@@ -96,6 +97,17 @@ export interface LoftListParams {
   status?: number | string;
 }
 
+export interface LoftCreateParams {
+  name: string;
+  applicant_name?: string;
+  phone?: string;
+  address?: string;
+  capacity?: number;
+  location?: string;
+  description?: string;
+  status?: number;
+}
+
 export interface LoftUpdateParams {
   name?: string;
   applicant_name?: string;
@@ -103,6 +115,8 @@ export interface LoftUpdateParams {
   address?: string;
   capacity?: number;
   location?: string;
+  description?: string;
+  status?: number;
 }
 
 // 公棚分页列表
@@ -115,6 +129,11 @@ export async function getLoftList(params: LoftListParams): Promise<PageResult<Lo
 export async function getLoftDetail(id: number): Promise<LoftItem> {
   const data = await http.get<LoftItem>(`/loft/lofts/${id}`);
   return data;
+}
+
+// 后台手动创建公棚
+export async function createLoft(data: LoftCreateParams): Promise<{ id: number; code: string }> {
+  return await http.post('/loft/lofts', data);
 }
 
 // 编辑公棚
@@ -187,4 +206,18 @@ export async function outPigeon(loftId: number, id: number, out_time?: number): 
 // 删除存棚鸽只
 export async function deletePigeon(loftId: number, id: number): Promise<void> {
   await http.delete(`/loft/lofts/${loftId}/pigeons/${id}`);
+}
+
+// ==================== 公棚关联赛事 ====================
+
+export interface LoftCompetitionItem {
+  id: number;
+  name: string;
+  date_from: string | null;
+  date_to: string | null;
+  status: string | number;
+}
+
+export async function getLoftCompetitions(loftId: number): Promise<LoftCompetitionItem[]> {
+  return await http.get<LoftCompetitionItem[]>(`/loft/lofts/${loftId}/competitions`);
 }

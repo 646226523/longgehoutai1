@@ -1,4 +1,4 @@
-import {
+﻿import {
   ModalForm,
   ProFormText,
   ProFormDigit,
@@ -14,6 +14,8 @@ import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
+import RefreshButton from '../../components/RefreshButton';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   createBanner,
   deleteBanner,
@@ -44,6 +46,7 @@ const ContentBanner = () => {
   const currentUser = useCurrentUser();
   const canEdit = hasPermission(currentUser, 'content:edit');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<BannerItem | null>(null);
@@ -86,7 +89,7 @@ const ContentBanner = () => {
       message.success('新增成功');
     }
     setModalVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -95,7 +98,7 @@ const ContentBanner = () => {
     try {
       await updateBannerStatus(record.id, checked ? 1 : 0);
       message.success(checked ? '已上架' : '已下架');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -107,7 +110,7 @@ const ContentBanner = () => {
     try {
       await updateBannerSort(record.id, value);
       message.success('排序已更新');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -118,13 +121,14 @@ const ContentBanner = () => {
     try {
       await deleteBanner(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
   };
 
   const columns: ProColumns<BannerItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     {
       title: '缩略图',
       dataIndex: 'image_url',
@@ -243,9 +247,10 @@ const ContentBanner = () => {
       <ProTable<BannerItem>
         headerTitle="Banner 列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1280 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -269,10 +274,17 @@ const ContentBanner = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增 Banner
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
+              ]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑弹窗 */}

@@ -1,0 +1,89 @@
+{
+  "results": {
+    "map_ready": true,
+    "case_1_empty_all": {
+      "has_modal": true,
+      "modal_title": "提交失败，请完善以下信息",
+      "has_name_missing": true,
+      "has_start_missing": true,
+      "has_end_missing": true
+    },
+    "case_2_no_start": {
+      "has_modal": true,
+      "has_start_missing": true,
+      "has_end_missing": true,
+      "no_name_warning": true
+    },
+    "case_3_no_end": {
+      "has_modal": true,
+      "has_end_missing": true,
+      "no_start_warning": true
+    },
+    "case_4_same_points": {
+      "has_modal": true,
+      "has_same_point_warning": true
+    },
+    "case_5_override_distance_zero": {
+      "has_modal": true,
+      "has_distance_warning": true
+    },
+    "case_6_all_valid": {
+      "popup_shown": false,
+      "url": "http://127.0.0.1:3014/competition/list",
+      "form_closed": true,
+      "table_visible": true
+    },
+    "case_7_out_of_china": {
+      "has_modal": true,
+      "has_start_out_of_china": true
+    }
+  },
+  "console": {
+    "warnings": [
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      },
+      {
+        "type": "error",
+        "text": "Warning: [antd: InputNumber] `addonAfter` is deprecated. Please use `Space.Compact` instead."
+      },
+      {
+        "type": "error",
+        "text": "Warning: [antd: message] Static function can not consume context like dynamic theme. Please use 'App' component instead."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      }
+    ],
+    "errors": [
+      {
+        "type": "error",
+        "text": "Warning: [antd: InputNumber] `addonAfter` is deprecated. Please use `Space.Compact` instead."
+      },
+      {
+        "type": "error",
+        "text": "Warning: [antd: message] Static function can not consume context like dynamic theme. Please use 'App' component instead."
+      }
+    ],
+    "warning_count": 8,
+    "error_count": 2
+  }
+}

@@ -1,11 +1,13 @@
 import { Spin, App as AntdApp } from 'antd';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
-import { getCurrentUser } from './services/auth';
+import DataCenter from './pages/datacenter/index';
+import { getCurrentUser, USER_INFO_KEY } from './services/auth';
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './services/request';
 import type { CurrentUser } from './access';
 import { CurrentUserContext } from './app-context';
 import { setAppInstance } from './utils/antd-app-instance';
@@ -17,7 +19,8 @@ import GeneDetail from './pages/gene/Detail';
 import NftList from './pages/nft/List';
 import NftAudit from './pages/nft/Audit';
 import CompetitionList from './pages/competition/List';
-import CompetitionVerify from './pages/competition/Verify';
+import VerifyList from './pages/competition/Verify';
+import VerifyDetail from './pages/competition/VerifyDetail';
 import CompetitionResult from './pages/competition/Result';
 import LoftList from './pages/loft/List';
 import LoftAudit from './pages/loft/Audit';
@@ -44,35 +47,84 @@ import SystemDict from './pages/system/Dict';
 // 受保护路由包装:无 Token 跳登录,有 Token 自动加载用户信息
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const token = localStorage.getItem('admin_access_token');
+  const [token] = useState<string | null>(() => localStorage.getItem(ACCESS_TOKEN_KEY));
   const [loading, setLoading] = useState<boolean>(!!token);
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [networkError, setNetworkError] = useState<boolean>(false);
+
+  const loadUser = useCallback(() => {
+    if (!token) return;
+    setLoading(true);
+    setNetworkError(false);
+    getCurrentUser()
+      .then((u) => {
+        setUser(u);
+      })
+      .catch((err: unknown) => {
+        const axiosErr = err as { response?: { status?: number }; code?: string };
+        if (axiosErr.response?.status === 401) {
+          localStorage.removeItem(ACCESS_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          localStorage.removeItem(USER_INFO_KEY);
+          window.location.replace('/login');
+        } else if (axiosErr.code && ['ERR_ABORTED'].includes(axiosErr.code)) {
+          // 浏览器导航/组件卸载导致的请求中断,静默忽略
+          return;
+        } else {
+          setNetworkError(true);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [token]);
 
   useEffect(() => {
     if (!token) {
       setLoading(false);
       return;
     }
-    // 启动时若有 Token,自动获取用户信息
-    getCurrentUser()
-      .then((u) => setUser(u))
-      .catch(() => {
-        // Token 失效,清除本地存储
-        localStorage.removeItem('admin_access_token');
-        localStorage.removeItem('admin_refresh_token');
-      })
-      .finally(() => setLoading(false));
-  }, [token]);
+    const cached = localStorage.getItem(USER_INFO_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setUser({
+          id: parsed.id,
+          username: parsed.username,
+          nickname: parsed.nickname,
+          avatar: parsed.avatar,
+          roles: parsed.roles || [],
+          permissions: parsed.permissions || [],
+        });
+      } catch {
+        // ignore cache parse errors
+      }
+    }
+    loadUser();
+  }, [token, loadUser]);
 
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (networkError) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%', background: '#f0f2f5' }}>
+        <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <h2 style={{ margin: '0 0 8px', color: '#333' }}>后端服务连接失败</h2>
+          <p style={{ color: '#666', margin: '0 0 24px' }}>请检查后端服务是否启动,点击重试按钮重新加载</p>
+          <button onClick={loadUser} style={{ padding: '8px 24px', background: '#1677ff', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}>
+            重试
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%' }}>
-        <Spin size="large" tip="加载中...">
-          <div style={{ display: 'inline-block', width: 200, height: 200 }} />
+        <Spin size="large">
+          <div style={{ display: 'none' }} />
         </Spin>
       </div>
     );
@@ -98,6 +150,8 @@ function Bootstrap() {
           </RequireAuth>
         }
       >
+        {/* 中控数据中台 */}
+        <Route path="datacenter" element={<DataCenter />} />
         <Route index element={<Dashboard />} />
 
         {/* 基因信息管理 */}
@@ -111,8 +165,8 @@ function Bootstrap() {
 
         {/* 赛事管理 */}
         <Route path="competition/list" element={<CompetitionList />} />
-        <Route path="competition/verify" element={<CompetitionVerify />} />
-        <Route path="competition/verify/:id" element={<CompetitionVerify />} />
+        <Route path="competition/verify" element={<VerifyList />} />
+        <Route path="competition/verify/:id" element={<VerifyDetail />} />
         <Route path="competition/result/:id" element={<CompetitionResult />} />
 
         {/* 公棚管理 */}

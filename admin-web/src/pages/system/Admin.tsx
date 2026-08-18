@@ -1,9 +1,11 @@
-import { ModalForm, ProFormText, ProFormSelect, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+﻿import { ModalForm, ProFormText, ProFormSelect, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Popconfirm, Space, Switch, Tag, Modal, Select } from 'antd';
 import { PlusOutlined, KeyOutlined, TeamOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
+import { useTableRefresh } from '../../hooks/useTableRefresh';
+import RefreshButton from '../../components/RefreshButton';
 import { hasPermission } from '../../access';
 import {
   assignAdminRoles,
@@ -24,6 +26,7 @@ const SystemAdmin = () => {
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:admin:manage');
   const actionRef = useRef<ActionType>();
+  const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<AdminItem | null>(null);
@@ -94,7 +97,7 @@ const SystemAdmin = () => {
       message.success('新增成功');
     }
     setModalVisible(false);
-    actionRef.current?.reload();
+    handleRefresh();
     return true;
   };
 
@@ -103,7 +106,7 @@ const SystemAdmin = () => {
     try {
       await updateAdminStatus(record.id, checked ? 1 : 0);
       message.success(checked ? '已启用' : '已禁用');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -114,7 +117,7 @@ const SystemAdmin = () => {
     try {
       await deleteAdmin(record.id);
       message.success('删除成功');
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -127,7 +130,7 @@ const SystemAdmin = () => {
       await assignAdminRoles(roleModal.record.id, roleModal.selected);
       message.success('角色分配成功');
       setRoleModal({ visible: false, record: null, selected: [] });
-      actionRef.current?.reload();
+      handleRefresh();
     } catch {
       // 拦截器已提示错误
     }
@@ -142,6 +145,7 @@ const SystemAdmin = () => {
   };
 
   const columns: ProColumns<AdminItem>[] = [
+    { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '用户名', dataIndex: 'username', width: 120, ellipsis: true },
     { title: '姓名', dataIndex: 'nickname', width: 100, ellipsis: true },
     {
@@ -242,9 +246,10 @@ const SystemAdmin = () => {
       <ProTable<AdminItem>
         headerTitle="管理员列表"
         actionRef={actionRef}
+        loading={tableLoading}
         rowKey="id"
         columns={columns}
-        options={{ density: false }}
+        options={{ density: false, reload: false }}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
@@ -267,10 +272,15 @@ const SystemAdmin = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   新增管理员
                 </Button>,
+                <RefreshButton key="refresh" actionRef={actionRef as any} />,
               ]
-            : []
+            : [<RefreshButton key="refresh" actionRef={actionRef as any} />]
         }
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50, 100],
+          defaultPageSize: 10,
+        }}
       />
 
       {/* 新增/编辑弹窗 */}
@@ -337,7 +347,7 @@ const SystemAdmin = () => {
         open={roleModal.visible}
         onOk={handleAssignRoles}
         onCancel={() => setRoleModal({ visible: false, record: null, selected: [] })}
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ marginBottom: 8, color: '#888' }}>
           当前账号:{roleModal.record?.username}({roleModal.record?.nickname})

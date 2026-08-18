@@ -1,0 +1,6 @@
+- [x] Checkpoint 1: 后端 /api/gene/dicts 接口已实现并返回正确数据结构 (code=0, data包含colors, eye_colors, genders, statuses, breeds, bloodlines)
+- [x] Checkpoint 2: 前端新增档案弹窗点击后正常打开，无错误提示 (后端API正常返回，前端有fallback支持)
+- [x] Checkpoint 3: 品种和血统字段可正常输入（自由输入 + 历史选项下拉）
+- [x] Checkpoint 4: 构建验证通过（npm run build 无错误）
+- [x] Checkpoint 5: API测试 GET /api/gene/dicts 返回 200 和正确的数据结构 (验证通过)
+- [x] Checkpoint 6: 前端 breeds/bloodlines 字段在 dicts 失败时仍可正常输入 (使用 ?? fallback 空数组)

@@ -21,6 +21,35 @@ function fail(res: Response, status: number, message: string): Response {
 // 所有接口均需登录鉴权
 router.use(authenticate);
 
+// ==================== 地图配置 ====================
+
+// GET /api/system/map-config - 地图配置(仅需登录,供赛事专员等角色读取以渲染真实地图)
+router.get('/map-config', (_req: AuthedRequest, res: Response) => {
+  const rows = db
+    .prepare(
+      `SELECT config_key, config_value FROM system_config
+       WHERE config_key IN ('map_provider', 'map_amap_key', 'map_baidu_key', 'map_tencent_key')`
+    )
+    .all() as Array<{ config_key: string; config_value: string | null }>;
+
+  const values: Record<string, string> = {
+    map_provider: '',
+    map_amap_key: '',
+    map_baidu_key: '',
+    map_tencent_key: '',
+  };
+  rows.forEach((r) => {
+    values[r.config_key] = r.config_value ?? '';
+  });
+
+  return ok(res, {
+    provider: values.map_provider,
+    amap_key: values.map_amap_key,
+    baidu_key: values.map_baidu_key,
+    tencent_key: values.map_tencent_key,
+  });
+});
+
 // ==================== 系统配置 ====================
 
 // GET /api/system/configs - 配置列表(按分组返回)

@@ -25,13 +25,6 @@ const iconMap = {
   user: <TeamOutlined />,
 };
 
-const iconColorMap = {
-  gene: '#1677ff',
-  nft: '#52c41a',
-  race: '#faad14',
-  user: '#eb2f96',
-};
-
 const MetricCard = ({ data, onClick }: MetricCardProps) => {
   const navigate = useNavigate();
   const isPositive = data.trend >= 0;
@@ -52,11 +45,22 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
       onClick={handleClick}
       style={{
         height: '100%',
-        borderRadius: 8,
+        borderRadius: 12,
         transition: 'all 0.3s ease',
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #fefce8 100%)',
+        border: '1px solid #e6f4ff',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       }}
       styles={{
         body: { padding: 20 },
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 6px 24px rgba(0,212,255,0.12)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)';
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
@@ -65,13 +69,14 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
             width: 40,
             height: 40,
             borderRadius: 8,
-            background: iconColorMap[data.iconType] + '15',
-            color: iconColorMap[data.iconType],
+            background: 'linear-gradient(135deg, #00d4ff20 0%, #ffcc0020 100%)',
+            color: '#00d4ff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 20,
             marginRight: 12,
+            boxShadow: '0 2px 8px rgba(0,212,255,0.1)',
           }}
         >
           {iconMap[data.iconType]}
@@ -83,7 +88,14 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
 
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'baseline' }}>
-          <span style={{ fontSize: 32, fontWeight: 600, color: '#262626' }}>
+          <span
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: '#00d4ff',
+              textShadow: '0 0 20px rgba(0,212,255,0.15)',
+            }}
+          >
             {data.value.toLocaleString()}
           </span>
           <Text type="secondary" style={{ marginLeft: 4, fontSize: 14 }}>
@@ -99,7 +111,7 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
             <span
               style={{
                 marginLeft: 4,
-                color: isTrendZero ? '#8c8c8c' : isPositive ? '#52c41a' : '#ff4d4f',
+                color: isTrendZero ? '#8c8c8c' : isPositive ? '#00d4ff' : '#ff4d4f',
                 fontWeight: 500,
               }}
             >
@@ -112,7 +124,7 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
             <span
               style={{
                 marginLeft: 4,
-                color: isWeeklyPositive ? '#52c41a' : '#ff4d4f',
+                color: isWeeklyPositive ? '#00d4ff' : '#ff4d4f',
                 fontWeight: 500,
               }}
             >
@@ -127,7 +139,14 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
       <div style={{ marginBottom: 12 }}>
         <Tag
           color={data.healthColor}
-          style={{ margin: 0, borderRadius: 4 }}
+          style={{
+            margin: 0,
+            borderRadius: 4,
+            fontSize: 12,
+            background: data.healthColor === '#faad14' ? '#fffbe6' : undefined,
+            color: data.healthColor === '#faad14' ? '#d48806' : undefined,
+            border: data.healthColor === '#faad14' ? '1px solid #ffcc00' : undefined,
+          }}
           bordered={false}
         >
           {data.healthLabel}
@@ -137,9 +156,10 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
       <div style={{ marginBottom: 8 }}>
         <Progress
           percent={data.progressPercent}
-          strokeColor={data.healthColor}
+          strokeColor="#00d4ff"
           showInfo={false}
           size="small"
+          style={{ height: 6 }}
         />
         <div
           style={{
@@ -161,23 +181,24 @@ const MetricCard = ({ data, onClick }: MetricCardProps) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           paddingTop: 12,
-          borderTop: '1px dashed #f0f0f0',
+          borderTop: '1px solid transparent',
+          borderImage: 'linear-gradient(90deg, transparent, #e6f4ff, transparent) 1',
         }}
       >
         <Space size={16}>
           <span style={{ fontSize: 12, color: '#8c8c8c' }}>
             今日新增:
-            <span style={{ color: '#262626', fontWeight: 500 }}> {data.todayNew}</span>
+            <span style={{ color: '#1f1f1f', fontWeight: 500 }}> {data.todayNew}</span>
           </span>
           <span style={{ fontSize: 12, color: '#8c8c8c' }}>
             本周累计:
-            <span style={{ color: '#262626', fontWeight: 500 }}> {data.weekTotal}</span>
+            <span style={{ color: '#1f1f1f', fontWeight: 500 }}> {data.weekTotal}</span>
           </span>
         </Space>
         <span
           style={{
             fontSize: 12,
-            color: iconColorMap[data.iconType],
+            color: '#00d4ff',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
