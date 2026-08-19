@@ -9,6 +9,7 @@ export interface DetectionOrg {
   contact: string | null;
   phone: string | null;
   address: string | null;
+  location: string | null;
   qualification: string | null;
   projects: string;
   status: number;
@@ -36,6 +37,7 @@ export interface DetectionOrgCreateParams {
   contact?: string;
   phone?: string;
   address?: string;
+  location?: string;
   qualification?: string;
   projects?: string;
   status?: number;

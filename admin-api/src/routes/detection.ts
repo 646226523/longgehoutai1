@@ -33,6 +33,7 @@ interface DetectionOrgRow {
   contact: string | null;
   phone: string | null;
   address: string | null;
+  location: string | null;
   qualification: string | null;
   projects: string;
   status: number;
@@ -114,7 +115,7 @@ detectionRouter.get(
 
     const rows = db
       .prepare(
-        `SELECT id, name, code, contact, phone, address, qualification, projects, status,
+        `SELECT id, name, code, contact, phone, address, location, qualification, projects, status,
                 created_at, updated_at
          FROM detection_orgs
          ${whereSql}
@@ -150,7 +151,7 @@ detectionRouter.get(
     if (!Number.isFinite(id)) return fail(res, 400, '无效的机构 ID');
     const row = db
       .prepare(
-        `SELECT id, name, code, contact, phone, address, qualification, projects, status,
+        `SELECT id, name, code, contact, phone, address, location, qualification, projects, status,
                 created_at, updated_at FROM detection_orgs WHERE id = ?`
       )
       .get(id) as DetectionOrgRow | undefined;
@@ -171,6 +172,7 @@ detectionRouter.post(
       contact?: string;
       phone?: string;
       address?: string;
+      location?: string;
       qualification?: string;
       projects?: string;
       status?: number;
@@ -184,8 +186,8 @@ detectionRouter.post(
     }
     const result = db
       .prepare(
-        `INSERT INTO detection_orgs (name, code, contact, phone, address, qualification, projects, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO detection_orgs (name, code, contact, phone, address, location, qualification, projects, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         name,
@@ -193,6 +195,7 @@ detectionRouter.post(
         body.contact ?? null,
         body.phone ?? null,
         body.address ?? null,
+        body.location ?? null,
         body.qualification ?? null,
         body.projects ?? '',
         body.status ?? 1
@@ -220,6 +223,7 @@ detectionRouter.put(
       contact?: string;
       phone?: string;
       address?: string;
+      location?: string;
       qualification?: string;
       projects?: string;
       status?: number;
@@ -233,7 +237,7 @@ detectionRouter.put(
     }
     db.prepare(
       `UPDATE detection_orgs
-       SET name = ?, code = ?, contact = ?, phone = ?, address = ?, qualification = ?,
+       SET name = ?, code = ?, contact = ?, phone = ?, address = ?, location = ?, qualification = ?,
            projects = ?, status = ?, updated_at = ?
        WHERE id = ?`
     ).run(
@@ -242,6 +246,7 @@ detectionRouter.put(
       body.contact ?? null,
       body.phone ?? null,
       body.address ?? null,
+      body.location ?? null,
       body.qualification ?? null,
       body.projects ?? '',
       body.status ?? 1,

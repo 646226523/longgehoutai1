@@ -574,7 +574,7 @@ const DetectionOrder = () => {
           destroyOnHidden: true,
           maskClosable: false,
           width: 'min(92vw, 960px)',
-          bodyStyle: { padding: 0 },
+          styles: { body: { padding: 0 } },
         }}
         initialValues={
           editing
@@ -1141,7 +1141,7 @@ const DetectionOrder = () => {
                 </Space>
               }
               style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #ffd666', background: '#fffbe6' }}
-              bodyStyle={{ padding: 16 }}
+              styles={{ body: { padding: 16 } }}
             >
               {/* 预约信息汇总 */}
               <div

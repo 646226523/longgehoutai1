@@ -43,6 +43,7 @@ export function initDetectionDb(db: Database): void {
       contact TEXT,                               -- 联系人
       phone TEXT,                                 -- 联系电话
       address TEXT,                               -- 机构地址
+      location TEXT,                              -- 经纬度(JSON: {"lng":x,"lat":y,"address":"..."})
       qualification TEXT,                         -- 资质信息
       projects TEXT NOT NULL DEFAULT '',          -- 可检项目(逗号分隔)
       status INTEGER NOT NULL DEFAULT 1,          -- 1 合作中 0 停用
@@ -89,21 +90,36 @@ export function initDetectionDb(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_detection_reports_gene ON detection_reports(gene_profile_id);
   `);
 
+  // ============ 迁移:为 detection_orgs 添加 location 列 ============
+  try {
+    const colCheck = db
+      .prepare("SELECT COUNT(*) AS c FROM pragma_table_info('detection_orgs') WHERE name='location'")
+      .get() as { c: number };
+    if (colCheck.c === 0) {
+      db.exec('ALTER TABLE detection_orgs ADD COLUMN location TEXT');
+      // eslint-disable-next-line no-console
+      console.log('[DB] detection_orgs 表已添加 location 列');
+    }
+  } catch {
+    // 忽略迁移错误(可能表不存在等)
+  }
+
   // ============ 初始示例数据(仅首次建库时写入)============
   const orgCount = (db.prepare('SELECT COUNT(*) AS c FROM detection_orgs').get() as { c: number }).c;
   if (orgCount > 0) return;
 
   const insertOrg = db.prepare(
-    `INSERT INTO detection_orgs (name, code, contact, phone, address, qualification, projects, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO detection_orgs (name, code, contact, phone, address, location, qualification, projects, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
-  const orgs: Array<[string, string, string, string, string, string, string, number]> = [
+  const orgs: Array<[string, string, string, string, string, string | null, string, string, number]> = [
     [
       '中国信鸽基因检测中心',
       'CGG-001',
       '王博士',
       '010-88880001',
       '北京市朝阳区科技园 8 号',
+      '{"lng":116.481,"lat":39.992,"address":"北京市朝阳区科技园8号"}',
       'CMA 检测资质认证 / ISO 17025',
       'DNA 检测,性别鉴定,疾病检测',
       1,
@@ -114,6 +130,7 @@ export function initDetectionDb(db: Database): void {
       '李工程师',
       '0755-66660002',
       '深圳市盐田区基因产业园',
+      '{"lng":114.238,"lat":22.553,"address":"深圳市盐田区基因产业园"}',
       'CNAS 认可实验室',
       'DNA 检测,疾病检测',
       1,
@@ -124,6 +141,7 @@ export function initDetectionDb(db: Database): void {
       '张主任',
       '021-55550003',
       '上海市浦东新区张江高科',
+      '{"lng":121.597,"lat":31.214,"address":"上海市浦东新区张江高科"}',
       'CMA 认证',
       '性别鉴定,疾病检测',
       0,

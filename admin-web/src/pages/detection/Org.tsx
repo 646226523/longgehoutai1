@@ -40,6 +40,7 @@ import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import RefreshButton from '../../components/RefreshButton';
+import LoftMapPicker from '../../components/LoftMapPicker';
 import { http } from '../../services/request';
 import {
   createDetectionOrg,
@@ -75,12 +76,27 @@ interface OrgFormData {
   contact: string;
   phone: string;
   address: string;
-  longitude?: number;
+  location?: string; // JSON: {"lng":x,"lat":y,"address":"..."}
+  longitude?: number; // 从 location 解析,用于显示
   latitude?: number;
   qualification: string;
   qualification_files: string[];
   projects: string[];
   status: number;
+}
+
+// 解析 location JSON
+function parseLocation(locationStr?: string): { lng: number; lat: number; address: string } | null {
+  if (!locationStr) return null;
+  try {
+    const parsed = JSON.parse(locationStr);
+    if (typeof parsed.lng === 'number' && typeof parsed.lat === 'number') {
+      return { lng: parsed.lng, lat: parsed.lat, address: parsed.address || '' };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 // 检测机构管理:列表 + 新增/编辑 + 状态切换
@@ -101,6 +117,7 @@ const DetectionOrg = () => {
     contact: '',
     phone: '',
     address: '',
+    location: undefined,
     longitude: undefined,
     latitude: undefined,
     qualification: '',
@@ -108,6 +125,9 @@ const DetectionOrg = () => {
     projects: [],
     status: 1,
   });
+
+  // 地图选点（内联模式，实时同步）
+  const [mapLocation, setMapLocation] = useState<{ lng: number; lat: number; address: string } | null>(null);
 
   // 检测项目库
   const [itemTypes, setItemTypes] = useState<DetectionItemType[]>([]);
@@ -143,6 +163,7 @@ const DetectionOrg = () => {
       contact: '',
       phone: '',
       address: '',
+      location: undefined,
       longitude: undefined,
       latitude: undefined,
       qualification: '',
@@ -152,6 +173,7 @@ const DetectionOrg = () => {
     });
     setFileList([]);
     setProjectSearch('');
+    setMapLocation(null);
     setDrawerVisible(true);
   };
 
@@ -173,19 +195,28 @@ const DetectionOrg = () => {
         // 如果不是JSON，则当作纯文本备注
       }
     }
+    // 解析已有的位置信息
+    const loc = parseLocation(record.location ?? undefined);
     setFormData({
       name: record.name,
       code: record.code,
       contact: record.contact ?? '',
       phone: record.phone ?? '',
       address: record.address ?? '',
-      longitude: undefined,
-      latitude: undefined,
+      location: record.location ?? undefined,
+      longitude: loc?.lng,
+      latitude: loc?.lat,
       qualification: '',
       qualification_files: qualificationFiles,
       projects,
       status: record.status,
     });
+    // 同步地图选点状态
+    if (loc) {
+      setMapLocation({ lng: loc.lng, lat: loc.lat, address: loc.address });
+    } else {
+      setMapLocation(null);
+    }
     // 构建文件列表用于上传组件
     setFileList(
       qualificationFiles.map((url, idx) => ({
@@ -364,6 +395,7 @@ const DetectionOrg = () => {
       contact: formData.contact.trim(),
       phone: formData.phone.trim(),
       address: formData.address.trim() || undefined,
+      location: formData.location || undefined,
       qualification:
         formData.qualification_files.length > 0
           ? JSON.stringify(formData.qualification_files)
@@ -534,7 +566,7 @@ const DetectionOrg = () => {
             </Button>
           </Space>
         }
-        bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column' }}
+        styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column' } }}
       >
         <div
           style={{
@@ -585,19 +617,20 @@ const DetectionOrg = () => {
                     tooltip="系统自动生成,格式:LAB-YYYY-MMDD-XXX"
                     style={{ marginBottom: 12 }}
                   >
-                    <Input
-                      value={formData.code}
-                      onChange={(e) => updateField('code', e.target.value)}
-                      placeholder="系统自动生成"
-                      addonAfter={
-                        <a
-                          onClick={() => updateField('code', generateOrgCode())}
-                          style={{ cursor: 'pointer', fontSize: 12 }}
-                        >
-                          重新生成
-                        </a>
-                      }
-                    />
+                    <Space.Compact style={{ width: '100%' }}>
+                      <Input
+                        value={formData.code}
+                        onChange={(e) => updateField('code', e.target.value)}
+                        placeholder="系统自动生成"
+                        style={{ flex: 1 }}
+                      />
+                      <Button
+                        onClick={() => updateField('code', generateOrgCode())}
+                        style={{ fontSize: 12 }}
+                      >
+                        重新生成
+                      </Button>
+                    </Space.Compact>
                   </Form.Item>
                 </Col>
               </Row>
@@ -668,52 +701,140 @@ const DetectionOrg = () => {
               </Form.Item>
             </Card>
 
-            {/* ③ 位置信息 */}
+            {/* ③ 位置信息 - 内联地图选点 */}
             <Card
               size="small"
               title={
                 <Space>
                   <Tag color="green" style={{ borderRadius: 10 }}>③</Tag>
                   <span style={{ fontWeight: 600 }}>位置信息</span>
+                  <span style={{ color: '#999', fontSize: 12, fontWeight: 400 }}>
+                    在地图上点击选点，或通过地址搜索定位
+                  </span>
                 </Space>
               }
               style={{ marginBottom: 16, borderRadius: 8 }}
               styles={{ body: { padding: 16 } }}
             >
-              <Form.Item label="机构地址" required style={{ marginBottom: 8 }}>
-                <Row gutter={8}>
-                  <Col flex={1}>
-                    <Input
-                      placeholder="请输入机构详细地址"
-                      value={formData.address}
-                      onChange={(e) => updateField('address', e.target.value)}
-                      allowClear
-                    />
-                  </Col>
-                  <Col>
-                    <Button
-                      icon={<span>📍</span>}
-                      onClick={() => {
-                        message.info('地图选点功能开发中');
-                      }}
-                    >
-                      地图选点
-                    </Button>
-                  </Col>
-                </Row>
+              {/* 地址输入 + 搜索联动 */}
+              <Form.Item label="机构地址" required style={{ marginBottom: 12 }}>
+                <Input
+                  placeholder="请输入机构详细地址,或在下方地图上点击选点"
+                  value={formData.address}
+                  onChange={(e) => {
+                    const newAddr = e.target.value;
+                    updateField('address', newAddr);
+                    // 地址手动清空时,同步清除地图选点
+                    if (!newAddr && formData.longitude !== undefined) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        longitude: undefined,
+                        latitude: undefined,
+                        location: undefined,
+                      }));
+                      setMapLocation(null);
+                    }
+                  }}
+                  allowClear
+                  style={{ marginBottom: 8 }}
+                />
               </Form.Item>
-              {(formData.longitude !== undefined || formData.latitude !== undefined) && (
+
+              {/* 内联地图选点 */}
+              <div
+                style={{
+                  border: '1px solid #e8e8e8',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  background: '#fafafa',
+                }}
+              >
+                <LoftMapPicker
+                  lng={formData.longitude ?? null}
+                  lat={formData.latitude ?? null}
+                  address={formData.address || undefined}
+                  height={340}
+                  onChange={(data) => {
+                    setMapLocation(data);
+                    // 实时同步到表单数据
+                    const locationJson = JSON.stringify({
+                      lng: Number(data.lng.toFixed(6)),
+                      lat: Number(data.lat.toFixed(6)),
+                      address: data.address,
+                    });
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: locationJson,
+                      longitude: data.lng,
+                      latitude: data.lat,
+                      address: data.address || prev.address,
+                    }));
+                  }}
+                />
+              </div>
+
+              {/* 选点状态指示 */}
+              {mapLocation ? (
                 <div
                   style={{
-                    padding: '6px 12px',
+                    marginTop: 12,
+                    padding: '8px 12px',
                     background: '#f6ffed',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     border: '1px solid #b7eb8f',
-                    fontSize: 12,
+                    fontSize: 13,
                     color: '#389e0d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
                   }}
                 >
-                  经度: {formData.longitude?.toFixed(6)} | 纬度: {formData.latitude?.toFixed(6)}
+                  <span style={{ fontWeight: 500 }}>✓ 位置已选定</span>
+                  <Tag color="blue" style={{ margin: 0 }}>
+                    经度: {mapLocation.lng.toFixed(6)}
+                  </Tag>
+                  <Tag color="blue" style={{ margin: 0 }}>
+                    纬度: {mapLocation.lat.toFixed(6)}
+                  </Tag>
+                  {mapLocation.address && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      📍 {mapLocation.address}
+                    </Text>
+                  )}
+                  <Button
+                    type="link"
+                    size="small"
+                    danger
+                    style={{ marginLeft: 'auto' }}
+                    onClick={() => {
+                      setMapLocation(null);
+                      setFormData((prev) => ({
+                        ...prev,
+                        longitude: undefined,
+                        latitude: undefined,
+                        location: undefined,
+                      }));
+                      message.info('已清除位置选点');
+                    }}
+                  >
+                    清除选点
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '8px 12px',
+                    background: '#fffbe6',
+                    borderRadius: 6,
+                    border: '1px dashed #ffe58f',
+                    fontSize: 12,
+                    color: '#874d00',
+                    textAlign: 'center',
+                  }}
+                >
+                  💡 在上方地图中点击以选定机构位置,或使用地图搜索功能定位地址
                 </div>
               )}
             </Card>
@@ -981,14 +1102,33 @@ const DetectionOrg = () => {
                 </div>
               </div>
 
-              {/* 地址 */}
+              {/* 地址 + 位置 */}
               <div style={{ marginBottom: 12 }}>
                 <Text type="secondary" style={{ fontSize: 11 }}>
                   机构地址
                 </Text>
-                <div style={{ fontSize: 13, color: '#333', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 13, color: '#333', lineHeight: 1.4, marginBottom: 4 }}>
                   {formData.address || '—'}
                 </div>
+                {mapLocation && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: '#52c41a',
+                      display: 'flex',
+                      gap: 6,
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Tag color="green" style={{ margin: 0 }}>
+                      📍 已定位
+                    </Tag>
+                    <span style={{ color: '#888' }}>
+                      {mapLocation.lng.toFixed(4)}, {mapLocation.lat.toFixed(4)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* 资质文件 */}
@@ -1091,7 +1231,7 @@ const DetectionOrg = () => {
                 <li>机构编码由系统自动生成,可手动修改</li>
                 <li>可检项目支持多选,从项目库中选择或新建</li>
                 <li>资质文件支持 PDF/JPG/PNG 格式</li>
-                <li>地址填写后点击"地图选点"可精确定位</li>
+                <li>在地图上点击选点可自动填充地址和经纬度</li>
               </ul>
             </div>
           </div>
@@ -1131,6 +1271,7 @@ const DetectionOrg = () => {
           添加后可在"服务能力"板块勾选此项目
         </Text>
       </Modal>
+
     </>
   );
 };

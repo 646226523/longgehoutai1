@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Button, Input, Spin, Tag, message } from 'antd';
+import { Alert, App, Button, Input, Spin, Tag } from 'antd';
 import { EnvironmentOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { getMapConfig, type MapConfig } from '../services/system';
 import { gcj02ToWgs84, wgs84ToGcj02 } from '../utils/coordinate-transform';
@@ -105,7 +105,9 @@ function fromVendorCoords(provider: MapProvider, vendorPos: any): Point {
     const res = gcj02ToWgs84(lng, lat);
     return { lng: res.lng, lat: res.lat };
   }
-  return { lng, lat };
+  // tencent also uses GCJ-02 coordinate system
+  const res = gcj02ToWgs84(lng, lat);
+  return { lng: res.lng, lat: res.lat };
 }
 
 const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
@@ -115,10 +117,12 @@ const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
   onChange,
   height = 360,
 }) => {
+  const { message } = App.useApp();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const geocoderRef = useRef<any>(null);
+  const searchRef = useRef<any>(null);
   const locatorRef = useRef<any>(null);
 
   const [mapConfig, setMapConfig] = useState<MapConfig | null>(null);
@@ -235,16 +239,36 @@ const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
         geocoderRef.current = new TMap.service.Geocoder();
       } catch {}
 
+      try {
+        searchRef.current = new TMap.service.Search();
+      } catch {}
+
       if (initLng && initLat) {
-        const marker = new TMap.Marker({ id: 'center', position: center });
-        map.addMarker(marker);
-        markerRef.current = marker;
+        try {
+          // TMap GL JS v1.exp 使用 MultiMarker
+          if (typeof TMap.MultiMarker === 'function') {
+            const multiMarker = new TMap.MultiMarker({
+              map: map,
+              geometries: [{ id: 'center', position: center }],
+            });
+            markerRef.current = multiMarker;
+          }
+        } catch {}
       }
 
       map.on('click', (e: any) => {
-        const lat = e.latLng.getLat();
-        const lng = e.latLng.getLng();
-        placeMarker('tencent', { lng, lat });
+        // TMap GL JS v1.exp 的点击事件 latLng 可能是对象或 LatLng 实例
+        const pos = fromVendorCoords('tencent', e.latLng);
+        if (pos.lng && pos.lat) {
+          placeMarker('tencent', pos);
+        }
+      });
+
+      // 拖拽地图后更新坐标显示
+      map.on('moveend', () => {
+        const c = map.getCenter();
+        const pos = fromVendorCoords('tencent', c);
+        setMarkerPos({ lng: pos.lng, lat: pos.lat });
       });
     }
   }, [provider, apiKey, initLng, initLat]);
@@ -277,14 +301,28 @@ const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
         reverseGeocode('baidu', pos);
       } else if (prov === 'tencent') {
         const TMap = (window as any).TMap;
-        const vendorPos = toVendorCoords('tencent', pos);
-        if (markerRef.current) {
-          mapInstance.current.removeMarker(markerRef.current);
+        const g = wgs84ToGcj02(pos.lng, pos.lat);
+        const vendorPos = typeof TMap.LatLng === 'function'
+          ? new TMap.LatLng(g.lat, g.lng)
+          : { lat: g.lat, lng: g.lng };
+
+        // TMap GL JS v1.exp 使用 MultiMarker
+        try {
+          if (markerRef.current) {
+            if (typeof markerRef.current.setGeometries === 'function') {
+              markerRef.current.setGeometries([{ id: 'center', position: vendorPos }]);
+            }
+          } else if (typeof TMap.MultiMarker === 'function') {
+            const multiMarker = new TMap.MultiMarker({
+              map: mapInstance.current,
+              geometries: [{ id: 'center', position: vendorPos }],
+            });
+            markerRef.current = multiMarker;
+          }
+          mapInstance.current.setCenter(vendorPos);
+        } catch (err) {
+          console.error('[LoftMapPicker] TMap marker/center failed:', err);
         }
-        const marker = new TMap.Marker({ id: 'center', position: vendorPos });
-        mapInstance.current.addMarker(marker);
-        markerRef.current = marker;
-        mapInstance.current.setCenter(vendorPos);
         reverseGeocode('tencent', pos);
       }
     },
@@ -325,20 +363,12 @@ const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
           new (window as any).BMapGL.ControlPoint(),
         );
       } else if (prov === 'tencent' && geocoderRef.current) {
-        const vendorPos = toVendorCoords('tencent', pos);
-        geocoderRef.current.getAddress(
-          new (window as any).TMap.LatLng(vendorPos.lat, vendorPos.lng),
-          (status: string, result: any) => {
-            if (status === 'complete' && result && result.address) {
-              const addr = result.address;
-              setAddress(addr);
-              onChange({ lng: pos.lng, lat: pos.lat, address: addr });
-            } else {
-              setAddress(`${pos.lng.toFixed(6)}, ${pos.lat.toFixed(6)}`);
-              onChange({ lng: pos.lng, lat: pos.lat, address: '' });
-            }
-          },
-        );
+        // TMap GL JS v1.exp 的 Geocoder.getAddress 内部类型检查有问题
+        // 跳过 reverseGeocode，直接用坐标作为地址占位
+        // 搜索场景会在 handleSearch 中使用搜索结果的真实地址
+        const addr = `${pos.lng.toFixed(6)}, ${pos.lat.toFixed(6)}`;
+        setAddress(addr);
+        onChange({ lng: pos.lng, lat: pos.lat, address: addr });
       } else if (prov === 'tencent') {
         setAddress(`${pos.lng.toFixed(6)}, ${pos.lat.toFixed(6)}`);
         onChange({ lng: pos.lng, lat: pos.lat, address: '' });
@@ -366,26 +396,35 @@ const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
       });
   }, [configLoading, provider, apiKey, initMap]);
 
-  const handleSearch = () => {
-    if (!searchInput.trim()) return;
+  const handleSearch = useCallback(() => {
+    const trimmed = searchInput.trim();
+    if (!trimmed) {
+      message.warning('请输入搜索地址');
+      return;
+    }
+
     if (provider === 'amap') {
-      const AMap = (window as any).AMap;
-      const geocoder = new AMap.Geocoder({ city: '全国' });
-      geocoder.getLocation(searchInput, (status: string, result: any) => {
+      if (!geocoderRef.current) {
+        message.warning('地理编码服务未就绪，请稍后重试');
+        return;
+      }
+      geocoderRef.current.getLocation(trimmed, (status: string, result: any) => {
         if (status === 'complete' && result.geocodes && result.geocodes.length > 0) {
           const g = result.geocodes[0];
-          const lng = g.location.lng;
-          const lat = g.location.lat;
-          placeMarker('amap', { lng, lat });
+          // 高德搜索返回 GCJ-02 坐标，需转为 WGS-84 再传给 placeMarker
+          const wgs = gcj02ToWgs84(g.location.lng, g.location.lat);
+          placeMarker('amap', wgs);
         } else {
           message.warning('未找到该地址');
         }
       });
     } else if (provider === 'baidu') {
-      const BMapGL = (window as any).BMapGL;
-      const geo = new BMapGL.Geocoder();
-      geo.getPoint(
-        searchInput,
+      if (!geocoderRef.current) {
+        message.warning('地理编码服务未就绪，请稍后重试');
+        return;
+      }
+      geocoderRef.current.getPoint(
+        trimmed,
         (point: any) => {
           if (point) {
             const pos = fromVendorCoords('baidu', point);
@@ -397,21 +436,44 @@ const LoftMapPicker: React.FC<LoftMapPickerProps> = ({
         '全国',
       );
     } else if (provider === 'tencent') {
-      if (!geocoderRef.current) {
-        message.warning('地理编码器未就绪，请稍后重试');
+      if (!searchRef.current) {
+        message.warning('搜索服务未就绪，请稍后重试');
         return;
       }
-      geocoderRef.current.geocoder(searchInput, (status: string, result: any) => {
-        if (status === 'complete' && result && result.location) {
-          const lng = result.location.lng;
-          const lat = result.location.lat;
-          placeMarker('tencent', { lng, lat });
-        } else {
-          message.warning('未找到该地址');
-        }
-      });
+      searchRef.current
+        .searchRegion({
+          keyword: trimmed,
+          autoExtend: true,
+        })
+        .then((result: any) => {
+          // 兼容不同的响应结构
+          const pois = result?.data || result?.detail?.pois || [];
+          if (pois.length > 0) {
+            const first = pois[0];
+            const lng = first.location?.lng ?? first.lng;
+            const lat = first.location?.lat ?? first.lat;
+            if (lng != null && lat != null) {
+              // 腾讯搜索返回 GCJ-02 坐标，需转为 WGS-84 再传给 placeMarker
+              const wgs = gcj02ToWgs84(lng, lat);
+              // 直接使用搜索返回的地址，避免有问题的 reverseGeocode
+              const addr = first.address || first.title || '';
+              setAddress(addr);
+              placeMarker('tencent', wgs);
+              // 直接触发 onChange 带搜索结果的地址
+              onChange({ lng: wgs.lng, lat: wgs.lat, address: addr });
+            } else {
+              message.warning('搜索结果坐标解析失败');
+            }
+          } else {
+            message.warning('未找到该地址');
+          }
+        })
+        .catch((err: any) => {
+          console.error('[TMap Search] error:', err);
+          message.warning('搜索失败，请重试');
+        });
     }
-  };
+  }, [searchInput, provider, message, placeMarker]);
 
   const handleLocate = () => {
     if (!mapInstance.current || !provider) return;
