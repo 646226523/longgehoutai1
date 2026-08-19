@@ -1,4 +1,4 @@
-﻿import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Card, Checkbox, Col, Input, Modal, Popconfirm, Progress, Row, Segmented, Space, Statistic, Tag } from 'antd';
 import {
   CheckCircleOutlined,
@@ -69,7 +69,7 @@ const VerifyList = () => {
   const fetchStats = async () => {
     try {
       const res = await getVerificationList({ page: 1, pageSize: 9999 });
-      const all = res.list;
+      const all = res?.list ?? [];
       setStats({
         total: all.reduce((s, x) => s + (x.participant_total || 0), 0),
         verified: all.reduce((s, x) => s + (x.verified_count || 0), 0),

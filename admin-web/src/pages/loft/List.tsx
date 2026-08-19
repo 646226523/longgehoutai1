@@ -1,4 +1,4 @@
-﻿import {
+import {
   ModalForm,
   PageContainer,
   ProFormDigit,
@@ -83,7 +83,7 @@ const LoftList = () => {
     setCompetitionLoading(true);
     try {
       const list = await getLoftCompetitions(record.id);
-      setCompetitions(list);
+      setCompetitions(list ?? []);
     } catch {
       setCompetitions([]);
     } finally {

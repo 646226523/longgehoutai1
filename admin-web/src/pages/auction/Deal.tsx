@@ -1,4 +1,4 @@
-﻿import {
+import {
   ProTable,
   type ActionType,
   type ProColumns,
@@ -84,7 +84,7 @@ const AuctionDeal = () => {
   const loadSessionOptions = () => {
     if (!sessionOptions.length) {
       getAuctionSessions({ page: 1, pageSize: 100 })
-        .then((res) => setSessionOptions(res.list))
+        .then((res) => setSessionOptions(res?.list ?? []))
         .catch(() => {
           // 拦截器已提示错误
         });

@@ -1091,6 +1091,7 @@ const getProvinceMapOption = (provinceName: string, mode: MapMode = 'trails', ge
 const DataCenter = () => {
   const [currentTime, setCurrentTime] = useState(dayjs());
   const [mapReady, setMapReady] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [flightData, setFlightData] = useState<FlightData[]>(generateFlightData());
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const chartDomRef = useRef<HTMLDivElement | null>(null);
@@ -1494,9 +1495,27 @@ const DataCenter = () => {
   }, []);
 
   const handleRefresh = useCallback(() => {
+    if (refreshing) return;
+    setRefreshing(true);
     setFlightData(generateFlightData());
     setCurrentTime(dayjs());
-  }, []);
+    // Also update auctions and races data
+    setAuctions((prev) =>
+      prev.map((a) => ({
+        ...a,
+        currentPrice: Math.max(a.currentPrice + Math.floor(Math.random() * 200), a.startingBid),
+        bidCount: a.bidCount + Math.floor(Math.random() * 5),
+      }))
+    );
+    setRaces((prev) =>
+      prev.map((r) => ({
+        ...r,
+        progress: Math.min(100, r.progress + Math.floor(Math.random() * 8)),
+        returnedCount: r.returnedCount + Math.floor(Math.random() * 3),
+      }))
+    );
+    setTimeout(() => setRefreshing(false), 600);
+  }, [refreshing]);
 
   const handleRaceDetail = useCallback((race: RaceItem) => {
     setSelectedRace(race);
@@ -2067,7 +2086,7 @@ const DataCenter = () => {
           <div style={{ color: COLORS.textPrimary, fontSize: 13, fontFamily: 'monospace' }}>{currentTime.format('YYYY-MM-DD HH:mm:ss')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Tooltip title="刷新数据">
-              <Button size="small" icon={<ReloadOutlined />} onClick={handleRefresh} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />
+              <Button size="small" icon={<ReloadOutlined spin={refreshing} />} loading={refreshing} onClick={handleRefresh} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />
             </Tooltip>
             <Tooltip title={isFullscreen ? '退出全屏' : '全屏显示'}>
               <Button size="small" icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} onClick={handleToggleFullscreen} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />

@@ -1,4 +1,4 @@
-﻿import {
+import {
   ProTable,
   ModalForm,
   ProFormSelect,
@@ -73,7 +73,7 @@ const CompetitionResult = () => {
   // 加载已核验通过的参赛鸽(供成绩录入选择)
   const loadParticipantOptions = (compId: number) => {
     getParticipantList(compId, { verifyStatus: 'passed', pageSize: 9999 })
-      .then((res) => setParticipantOptions(res.list))
+      .then((res) => setParticipantOptions(res?.list ?? []))
       .catch(() => {
         // 拦截器已提示错误
       });

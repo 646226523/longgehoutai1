@@ -141,6 +141,34 @@ export function mockApiPlugin() {
         }));
       });
 
+      // POST /api/upload - 文件上传接口
+      server.middlewares.use('/api/upload', (req, res, next) => {
+        if (req.method !== 'POST') { next(); return; }
+
+        // 收集请求体以获取原始文件名
+        const chunks = [];
+        req.on('data', (chunk) => chunks.push(chunk));
+        req.on('end', () => {
+          try {
+            const bodyStr = Buffer.concat(chunks).toString('latin1');
+            // 从 multipart/form-data 中提取原始文件名
+            const match = bodyStr.match(/filename="([^"]+)"/);
+            const originalName = match ? match[1] : 'upload.jpg';
+            // 提取文件扩展名
+            const dotIdx = originalName.lastIndexOf('.');
+            const ext = dotIdx >= 0 ? originalName.slice(dotIdx).toLowerCase() : '.jpg';
+
+            const mockUrl = `/uploads/mock_${Date.now()}${ext}`;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ code: 0, message: 'success', data: { url: mockUrl } }));
+          } catch {
+            const mockUrl = `/uploads/mock_${Date.now()}.jpg`;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ code: 0, message: 'success', data: { url: mockUrl } }));
+          }
+        });
+      });
+
       // Catch-all for other /api routes
       server.middlewares.use('/api', (req, res, next) => {
         const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard');

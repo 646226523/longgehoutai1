@@ -1,4 +1,4 @@
-﻿// 用户与会员体系 - 用户管理
+// 用户与会员体系 - 用户管理
 // 功能:ProTable 分页列表(用户名/手机/状态/认证状态筛选)、编辑、封禁/解封、
 //      实名认证审核(通过/驳回)、鸽主认证审核、详情抽屉(展示认证材料占位)
 import {
@@ -86,7 +86,7 @@ const UserList = () => {
   const ensureLevelOptions = () => {
     if (levelOptions.length) return;
     getMemberLevels()
-      .then((res) => setLevelOptions(res.list))
+      .then((res) => setLevelOptions(res?.list ?? []))
       .catch(() => {
         // 拦截器已提示错误
       });

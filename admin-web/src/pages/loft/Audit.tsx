@@ -210,7 +210,11 @@ const LoftAudit = () => {
           getApplicationList({ page: 1, pageSize: 1, status: 'rejected' }),
         ]);
         if (mounted) {
-          setStatusCounts({ pending: p.total, approved: a.total, rejected: r.total });
+          setStatusCounts({
+            pending: p?.total ?? 0,
+            approved: a?.total ?? 0,
+            rejected: r?.total ?? 0,
+          });
         }
       } catch {}
     })();
@@ -579,8 +583,8 @@ const LoftAudit = () => {
               status: activeTab,
               keyword: keyword as string | undefined,
             });
-            setStatusCounts(prev => ({ ...prev, [activeTab]: res.total }));
-            return { data: res.list, success: true, total: res.total };
+            setStatusCounts(prev => ({ ...prev, [activeTab]: res?.total ?? 0 }));
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

@@ -33,7 +33,7 @@ import {
   QuestionCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
@@ -125,6 +125,21 @@ const NftAudit = () => {
   const assetActionRef = useRef<ActionType>();
   const taskActionRef = useRef<ActionType>();
   const { tableLoading, handleRefresh } = useTableRefresh(assetActionRef, { messageApi: message });
+  const { handleRefresh: handleTaskRefresh } = useTableRefresh(taskActionRef, { messageApi: message, showToast: false });
+
+  const safeReloadTask = useCallback(async () => {
+    for (let i = 0; i < 3; i++) {
+      if (taskActionRef.current) {
+        try {
+          await taskActionRef.current.reload();
+        } catch {
+          /* silent */
+        }
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }, []);
 
   const [stats, setStats] = useState<NftAuditStats>({
     today_approved: 0,
@@ -149,7 +164,9 @@ const NftAudit = () => {
     setStatsLoading(true);
     try {
       const r = await getNftAuditStats();
-      setStats(r);
+      if (r) {
+        setStats(r);
+      }
     } catch {
       // 拦截器已提示
     } finally {
@@ -170,8 +187,8 @@ const NftAudit = () => {
     results.forEach((r, i) => {
       const key = statusKeys[i];
       if (r.status === 'fulfilled') {
-        const page = r.value as { total?: number | null };
-        setters[i](page.total ?? 0);
+        const page = r.value as { total?: number | null } | null;
+        setters[i](page?.total ?? 0);
       } else {
         console.warn(`refreshBadgeCounts: ${key} failed`, r.reason);
       }
@@ -186,7 +203,7 @@ const NftAudit = () => {
   ) {
     await Promise.all([refreshBadgeCounts(), refreshStats(true)]);
     if (opts.reloadAssetTable) handleRefresh();
-    if (opts.reloadTaskTable) taskActionRef.current?.reload();
+    if (opts.reloadTaskTable) handleTaskRefresh();
   }
 
   useEffect(() => {
@@ -196,9 +213,9 @@ const NftAudit = () => {
 
   useEffect(() => {
     if (activeTab !== 'minting') return;
-    const timerId = setInterval(() => taskActionRef.current?.reload(), 2000);
+    const timerId = setInterval(() => { safeReloadTask(); }, 2000);
     return () => clearInterval(timerId);
-  }, [activeTab]);
+  }, [activeTab, safeReloadTask]);
 
   useEffect(() => {
     if (activeTab !== 'minting' && activeTab !== 'completed') return;
@@ -217,9 +234,9 @@ const NftAudit = () => {
 
   useEffect(() => {
     if (activeTab !== 'completed') return;
-    const id = setInterval(() => taskActionRef.current?.reload(), 5000);
+    const id = setInterval(() => { safeReloadTask(); }, 5000);
     return () => clearInterval(id);
-  }, [activeTab]);
+  }, [activeTab, safeReloadTask]);
 
   const handleApprove = async (record: NftAsset) => {
     try {
@@ -843,7 +860,7 @@ const NftAudit = () => {
             status: (status as string | undefined) ?? activeTab,
             owner_name: owner_name as string | undefined,
           });
-          return { data: res.list, success: true, total: res.total };
+          return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
         } catch {
           return { data: [], success: false, total: 0 };
         }
@@ -877,19 +894,13 @@ const NftAudit = () => {
             status: (status as string | undefined) ?? taskStatus,
             nft_asset_id: nft_asset_id ? Number(nft_asset_id) : undefined,
           });
-          return { data: res.list, success: true, total: res.total };
+          return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
         } catch {
           return { data: [], success: false, total: 0 };
         }
       }}
       toolBarRender={() => [
-        <Button
-          key="refresh"
-          icon={<ReloadOutlined />}
-          onClick={() => taskActionRef.current?.reload()}
-        >
-          刷新
-        </Button>,
+        <RefreshButton key="refresh" actionRef={taskActionRef as any} />,
       ]}
       pagination={{
           showSizeChanger: true,
