@@ -15,7 +15,7 @@ const MAP_PROVIDER_OPTIONS = [
 ];
 
 // 分组中文名映射(未命中的分组保持英文原样)
-const GROUP_LABEL: Record<string, string> = { map: '地图配置' };
+const GROUP_LABEL: Record<string, string> = { map: '地图配置', upload: '上传配置', business: '业务配置' };
 
 // 系统配置:按分组 Tab 展示,行内编辑值
 const SystemConfig = () => {
@@ -34,12 +34,15 @@ const SystemConfig = () => {
     setLoading(true);
     try {
       const res = await getConfigs();
-      setGroups(res.groups);
-      if (res.groups.length && !activeGroup) {
-        setActiveGroup(res.groups[0].group);
+      // 空值防御: res 为 null/undefined 或 groups 非数组时使用默认值
+      const safeGroups = Array.isArray(res?.groups) ? res!.groups : [];
+      setGroups(safeGroups);
+      if (safeGroups.length > 0 && !activeGroup) {
+        setActiveGroup(safeGroups[0].group);
       }
     } catch {
       // 拦截器已提示错误
+      setGroups([]);
     } finally {
       setLoading(false);
     }

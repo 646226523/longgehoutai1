@@ -1,4 +1,4 @@
-﻿import {
+import {
   ModalForm,
   PageContainer,
   ProFormDigit,
@@ -47,8 +47,9 @@ const SystemDict = () => {
     setTypesLoading(true);
     try {
       const res = await getDictTypes();
-      setTypes(res);
-      return res;
+      const list = Array.isArray(res) ? res : [];
+      setTypes(list);
+      return list;
     } catch {
       // 拦截器已提示错误
       return [];
@@ -60,8 +61,9 @@ const SystemDict = () => {
   // 首次挂载:加载类型并选中第一个
   useEffect(() => {
     loadTypes().then((res) => {
-      if (res.length) {
-        setSelectedType(res[0].dict_type);
+      const list = Array.isArray(res) ? res : [];
+      if (list.length) {
+        setSelectedType(list[0].dict_type);
       }
     });
   }, [loadTypes]);
@@ -257,7 +259,7 @@ const SystemDict = () => {
                   dict_type: selectedType || undefined,
                   keyword: params.keyword as string | undefined,
                 });
-                return { data: res.list, success: true, total: res.total };
+                return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
               } catch {
                 return { data: [], success: false, total: 0 };
               }

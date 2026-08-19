@@ -20,6 +20,80 @@ const MOCK_USER = {
   permissions: ['*'],
 };
 
+// 生成模拟审计日志数据
+function generateMockAuditLogs() {
+  const modules = ['user', 'gene', 'auction', 'nft', 'competition', 'loft', 'system', 'detection'];
+  const actions = ['create', 'update', 'delete', 'login', 'approve', 'reject', 'export'];
+  const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+  const statusCodes = [200, 201, 400, 403, 404, 500];
+  const operators = ['admin', 'zhangsan', 'lisi', 'wangwu'];
+  const now = Date.now();
+  const logs = [];
+
+  for (let i = 0; i < 35; i++) {
+    const method = methods[Math.floor(Math.random() * methods.length)];
+    const statusCode = statusCodes[Math.floor(Math.random() * statusCodes.length)];
+    const module = modules[Math.floor(Math.random() * modules.length)];
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    const operator = operators[Math.floor(Math.random() * operators.length)];
+    const duration = Math.floor(Math.random() * 500) + 10;
+
+    logs.push({
+      id: i + 1,
+      admin_user_id: Math.floor(Math.random() * 5) + 1,
+      admin_username: operator,
+      module,
+      action,
+      method,
+      path: `/api/${module}/${action}`,
+      params: JSON.stringify({ id: i + 1, keyword: `test_${i}` }),
+      request_body: method !== 'GET' ? JSON.stringify({ name: `item_${i}`, status: 1 }) : null,
+      response_body: JSON.stringify({ code: 0, data: { id: i + 1 } }),
+      duration_ms: duration,
+      ip: `192.168.1.${Math.floor(Math.random() * 255) + 1}`,
+      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+      status_code: statusCode,
+      created_at: now - i * 3600000,
+    });
+  }
+  return logs;
+}
+
+// 生成模拟字典类型数据
+const MOCK_DICT_TYPES = [
+  { dict_type: 'competition_type', type_name: '赛事类型', item_count: 6 },
+  { dict_type: 'pigeon_gender', type_name: '鸽子性别', item_count: 3 },
+  { dict_type: 'nft_status', type_name: 'NFT状态', item_count: 5 },
+  { dict_type: 'audit_status', type_name: '审核状态', item_count: 4 },
+  { dict_type: 'loft_status', type_name: '公棚状态', item_count: 3 },
+  { dict_type: 'user_level', type_name: '用户等级', item_count: 5 },
+  { dict_type: 'agent_status', type_name: '代理状态', item_count: 3 },
+];
+
+// 生成模拟字典项数据
+function buildMockDictItems() {
+  const items = [];
+  let id = 1;
+  const now = Date.now();
+  MOCK_DICT_TYPES.forEach((t) => {
+    for (let i = 0; i < t.item_count; i++) {
+      items.push({
+        id: id++,
+        dict_type: t.dict_type,
+        type_name: t.type_name,
+        item_code: `${t.dict_type}_${i + 1}`,
+        item_name: `${t.type_name}项${i + 1}`,
+        sort_order: i,
+        status: i % 3 === 0 ? 1 : 0,
+        remark: i % 3 === 0 ? '启用中' : '',
+        created_at: now - id * 86400000,
+        updated_at: now - id * 3600000,
+      });
+    }
+  });
+  return items;
+}
+
 export function mockApiPlugin() {
   return {
     name: 'mock-api',
@@ -169,13 +243,197 @@ export function mockApiPlugin() {
         });
       });
 
-      // Catch-all for other /api routes
-      server.middlewares.use('/api', (req, res, next) => {
-        const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard');
-        if (skip) { next(); return; }
+      // GET /api/system/audit-logs/modules - 审计模块下拉
+      server.middlewares.use('/api/system/audit-logs/modules', (req, res, next) => {
+        if (req.method !== 'GET') { next(); return; }
+        const modules = ['user', 'gene', 'auction', 'nft', 'competition', 'loft', 'system', 'detection'];
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: 'mock', data: null }));
+        res.end(JSON.stringify({ code: 0, message: 'success', data: modules }));
       });
+
+      // GET /api/system/audit-logs - 审计日志分页列表
+      server.middlewares.use('/api/system/audit-logs', (req, res, next) => {
+        if (req.method !== 'GET') { next(); return; }
+        const url = new URL(req.url, 'http://localhost');
+        const page = parseInt(url.searchParams.get('page') || '1', 10);
+        const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+        const operator = url.searchParams.get('operator') || '';
+        const moduleFilter = url.searchParams.get('module') || '';
+
+        const allLogs = generateMockAuditLogs();
+        let filtered = allLogs;
+        if (operator) filtered = filtered.filter(l => l.admin_username?.includes(operator));
+        if (moduleFilter) filtered = filtered.filter(l => l.module === moduleFilter);
+
+        const total = filtered.length;
+        const start = (page - 1) * pageSize;
+        const list = filtered.slice(start, start + pageSize);
+
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
+      });
+
+      // GET /api/system/dictionaries/types - 字典类型列表
+      server.middlewares.use('/api/system/dictionaries/types', (req, res, next) => {
+        if (req.method !== 'GET') { next(); return; }
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_DICT_TYPES }));
+      });
+
+      // GET /api/system/dictionaries - 字典项分页列表
+      server.middlewares.use('/api/system/dictionaries', (req, res, next) => {
+        if (req.method !== 'GET') { next(); return; }
+        const url = new URL(req.url, 'http://localhost');
+        const page = parseInt(url.searchParams.get('page') || '1', 10);
+        const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+        const dictType = url.searchParams.get('dict_type') || '';
+        const keyword = url.searchParams.get('keyword') || '';
+
+        const allItems = buildMockDictItems();
+        let filtered = allItems;
+        if (dictType) filtered = filtered.filter(i => i.dict_type === dictType);
+        if (keyword) filtered = filtered.filter(i =>
+          i.item_code?.includes(keyword) || i.item_name?.includes(keyword)
+        );
+
+        const total = filtered.length;
+        const start = (page - 1) * pageSize;
+        const list = filtered.slice(start, start + pageSize);
+
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
+      });
+
+      // 系统配置 Mock 数据
+const MOCK_SYSTEM_CONFIGS = {
+  groups: [
+    {
+      group: 'map',
+      items: [
+        { id: 1, config_key: 'map_provider', config_value: 'amap', name: '地图服务商', config_group: 'map', description: '选择使用的地图服务提供商', sort_order: 1, created_at: Date.now(), updated_at: Date.now() },
+        { id: 2, config_key: 'amap_key', config_value: '', name: '高德地图 Key', config_group: 'map', description: '高德地图 JS API Key', sort_order: 2, created_at: Date.now(), updated_at: Date.now() },
+        { id: 3, config_key: 'baidu_key', config_value: '', name: '百度地图 Key', config_group: 'map', description: '百度地图 AK', sort_order: 3, created_at: Date.now(), updated_at: Date.now() },
+        { id: 4, config_key: 'tencent_key', config_value: '', name: '腾讯地图 Key', config_group: 'map', description: '腾讯地图 Key', sort_order: 4, created_at: Date.now(), updated_at: Date.now() },
+      ],
+    },
+    {
+      group: 'upload',
+      items: [
+        { id: 5, config_key: 'upload_max_size', config_value: '10', name: '上传文件最大尺寸(MB)', config_group: 'upload', description: '单个文件最大上传限制', sort_order: 1, created_at: Date.now(), updated_at: Date.now() },
+        { id: 6, config_key: 'upload_allowed_ext', config_value: 'pdf,jpg,jpeg,png,doc,docx', name: '允许上传的文件类型', config_group: 'upload', description: '逗号分隔的文件扩展名', sort_order: 2, created_at: Date.now(), updated_at: Date.now() },
+      ],
+    },
+    {
+      group: 'business',
+      items: [
+        { id: 7, config_key: 'site_name', config_value: '龙鸽赛鸽管理系统', name: '站点名称', config_group: 'business', description: '显示在浏览器标题和侧边栏', sort_order: 1, created_at: Date.now(), updated_at: Date.now() },
+        { id: 8, config_key: 'registration_enabled', config_value: 'true', name: '允许用户注册', config_group: 'business', description: '是否开启前台用户自助注册', sort_order: 2, created_at: Date.now(), updated_at: Date.now() },
+        { id: 9, config_key: 'maintenance_mode', config_value: 'false', name: '维护模式', config_group: 'business', description: '开启后前台仅对管理员可见', sort_order: 3, created_at: Date.now(), updated_at: Date.now() },
+      ],
+    },
+  ],
+  list: [],
+};
+// 填充 list 字段
+MOCK_SYSTEM_CONFIGS.list = MOCK_SYSTEM_CONFIGS.groups.flatMap((g) => g.items);
+
+// GET /api/system/configs - 系统配置(按分组)
+// PUT /api/system/configs/:key - 更新单个配置值
+server.middlewares.use('/api/system/configs', (req, res, next) => {
+  // Express 会剥离匹配的路径前缀:
+  // 请求 /api/system/configs           → req.url = '/'        → pathParts = []
+  // 请求 /api/system/configs/map_provider → req.url = '/map_provider' → pathParts = ['map_provider']
+  const rawUrl = req.url || '/';
+  const urlPath = rawUrl.split('?')[0];
+  const pathParts = urlPath.split('/').filter(Boolean);
+  const key = pathParts.length > 0 ? decodeURIComponent(pathParts[0]) : '';
+
+  // PUT 请求: 更新单个配置 (URL 带 key)
+  if (req.method === 'PUT') {
+    if (!key) {
+      res.statusCode = 400;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 400, message: '缺少配置键', data: null }));
+      return;
+    }
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body || '{}');
+        const config_value = parsed.config_value;
+        let found = false;
+        for (const g of MOCK_SYSTEM_CONFIGS.groups) {
+          for (const item of g.items) {
+            if (item.config_key === key) {
+              item.config_value = config_value ?? '';
+              item.updated_at = Date.now();
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
+        if (!found) {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ code: 404, message: '配置键不存在', data: null }));
+          return;
+        }
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
+      } catch {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+      }
+    });
+    return;
+  }
+
+  // GET 请求: 返回配置列表 (URL 无 key)
+  if (req.method === 'GET') {
+    // req.url 已被剥离前缀，查询参数仍在
+    const queryString = rawUrl.includes('?') ? rawUrl.split('?')[1] : '';
+    const params = new URLSearchParams(queryString);
+    const groupFilter = params.get('group') || '';
+    let data = MOCK_SYSTEM_CONFIGS;
+    if (groupFilter) {
+      const filtered = MOCK_SYSTEM_CONFIGS.groups.filter((g) => g.group === groupFilter);
+      data = { groups: filtered, list: filtered.flatMap((g) => g.items) };
+    }
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ code: 0, message: 'success', data }));
+    return;
+  }
+
+  // 其他方法放行
+  next();
+});
+
+// GET /api/system/map-config - 地图配置
+server.middlewares.use('/api/system/map-config', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const mapGroup = MOCK_SYSTEM_CONFIGS.groups.find((g) => g.group === 'map');
+  const items = mapGroup?.items || [];
+  const getVal = (key) => items.find((i) => i.config_key === key)?.config_value ?? '';
+  const data = {
+    provider: getVal('map_provider'),
+    amap_key: getVal('amap_key'),
+    baidu_key: getVal('baidu_key'),
+    tencent_key: getVal('tencent_key'),
+  };
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data }));
+});
+
+// Catch-all for other /api routes
+server.middlewares.use('/api', (req, res, next) => {
+  const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard') || req.url?.startsWith('/api/system/audit-logs') || req.url?.startsWith('/api/system/dictionaries') || req.url?.startsWith('/api/system/configs');
+  if (skip) { next(); return; }
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'mock', data: null }));
+});
     },
   };
 }

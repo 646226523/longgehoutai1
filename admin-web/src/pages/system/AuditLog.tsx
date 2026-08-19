@@ -53,7 +53,7 @@ const SystemAuditLog = () => {
   useEffect(() => {
     if (!canView) return;
     getAuditModules()
-      .then(setModules)
+      .then((data) => setModules(Array.isArray(data) ? data : []))
       .catch(() => {
         // 拦截器已提示错误
       });
@@ -62,7 +62,7 @@ const SystemAuditLog = () => {
   // 模块下拉枚举
   const moduleValueEnum = useMemo(
     () =>
-      modules.reduce<Record<string, { text: string }>>((acc, m) => {
+      (Array.isArray(modules) ? modules : []).reduce<Record<string, { text: string }>>((acc, m) => {
         acc[m] = { text: m };
         return acc;
       }, {}),
@@ -169,7 +169,7 @@ const SystemAuditLog = () => {
               startTime: params.startTime as number | undefined,
               endTime: params.endTime as number | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }
