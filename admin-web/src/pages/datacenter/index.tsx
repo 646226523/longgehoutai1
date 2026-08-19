@@ -26,6 +26,7 @@ import {
   ShareAltOutlined,
   DownloadOutlined,
   RocketOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import pigeonPhoto0 from './pigeon-photo-0.jpg';
@@ -1110,10 +1111,17 @@ const DataCenter = () => {
   const [trackedPigeonId, setTrackedPigeonId] = useState<string | null>(null);
   const [pigeonDetailOpen, setPigeonDetailOpen] = useState(false);
   const [selectedPigeon, setSelectedPigeon] = useState<FlightData | null>(null);
+  const [auctionDetailOpen, setAuctionDetailOpen] = useState(false);
+  const [selectedAuction, setSelectedAuction] = useState<AuctionItem | null>(null);
+  const [auctionPigeonDetailOpen, setAuctionPigeonDetailOpen] = useState(false);
+  const [selectedAuctionPigeonIdx, setSelectedAuctionPigeonIdx] = useState<number>(0);
 
   const [auctions, setAuctions] = useState<AuctionItem[]>(() => [...mockAuctions]);
   const [races, setRaces] = useState<RaceItem[]>(() => [...mockRaces]);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const scrollPausedRef = useRef(false);
+  const scrollSpeedRef = useRef(1);
+  const [speedRampKey, setSpeedRampKey] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -1151,9 +1159,28 @@ const DataCenter = () => {
 
   useEffect(() => {
     const scrollTimer = setInterval(() => {
-      setScrollOffset((prev) => prev + 1);
+      if (scrollPausedRef.current) return;
+      setScrollOffset((prev) => prev + scrollSpeedRef.current);
     }, 50);
     return () => clearInterval(scrollTimer);
+  }, []);
+
+  useEffect(() => {
+    if (scrollSpeedRef.current === 1) return;
+    const speedTimer = setInterval(() => {
+      scrollSpeedRef.current = Math.min(1, scrollSpeedRef.current + 0.04);
+    }, 20);
+    return () => clearInterval(speedTimer);
+  }, [speedRampKey]);
+
+  const handleScrollPause = useCallback(() => {
+    scrollPausedRef.current = true;
+  }, []);
+
+  const handleScrollResume = useCallback(() => {
+    scrollPausedRef.current = false;
+    scrollSpeedRef.current = 0.05;
+    setSpeedRampKey((k) => k + 1);
   }, []);
 
   const provinceFromPosition = useMemo(() => {
@@ -1660,6 +1687,52 @@ const DataCenter = () => {
     setPigeonDetailOpen(true);
   }, []);
 
+  const handleAuctionClick = useCallback((auction: AuctionItem) => {
+    setSelectedAuction(auction);
+    setAuctionDetailOpen(true);
+  }, []);
+
+  const handleTerminateAuction = useCallback(() => {
+    if (!selectedAuction) return;
+    const itemName = selectedAuction.name;
+    Modal.confirm({
+      title: '终止拍卖确认',
+      content: (
+        <div style={{ padding: '12px 0' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 14 }}>
+            确定要终止鸽子 <strong style={{ color: COLORS.accentGold }}>{itemName}</strong> 的拍卖吗？
+          </p>
+          <p style={{ margin: 0, fontSize: 12, color: COLORS.textSecondary }}>
+            终止后该鸽子将从竞价中移除，拍卖状态变为已结束，此操作不可撤销。
+          </p>
+        </div>
+      ),
+      okText: '确认终止',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      centered: true,
+      onOk: () => {
+        setAuctions((prev) =>
+          prev.map((a) =>
+            a.id === selectedAuction.id ? { ...a, status: 'ended' as const } : a
+          )
+        );
+        setSelectedAuction((prev) => (prev ? { ...prev, status: 'ended' as const } : null));
+        setAuctionDetailOpen(false);
+        Modal.success({
+          title: '拍卖已终止',
+          content: `鸽子「${itemName}」的拍卖已成功终止。`,
+          centered: true,
+        });
+      },
+    });
+  }, [selectedAuction]);
+
+  const handleAuctionPigeonClick = useCallback((idx: number) => {
+    setSelectedAuctionPigeonIdx(idx);
+    setAuctionPigeonDetailOpen(true);
+  }, []);
+
   const handleToggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -1678,31 +1751,55 @@ const DataCenter = () => {
     const displayList = [...filtered, ...filtered];
     return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+      <div onMouseEnter={handleScrollPause} onMouseLeave={handleScrollResume} style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         <div
           style={{
             transform: `translateY(${offset}px)`,
             transition: 'transform 0.05s linear',
           }}
         >
-          {displayList.map((item, idx) => (
-            <div key={`${item.id}-${idx}`} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: 6, background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, #151d2d 100%)`, border: `1px solid ${COLORS.border}`, gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 20 }}>{item.image}</span>
-              <span style={{ flex: 1, color: COLORS.textPrimary, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-              <span style={{ color: COLORS.accentGold, fontWeight: 600, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>¥{item.currentPrice.toLocaleString()}</span>
+          {displayList.map((item, idx) => {
+            const isEnded = item.status === 'ended';
+            const isUpcoming = item.status === 'upcoming';
+            return (
+            <div key={`${item.id}-${idx}`} onClick={() => handleAuctionClick(item)} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: 6, background: `linear-gradient(135deg, ${COLORS.bgCard} 0%, #151d2d 100%)`, border: `1px solid ${COLORS.border}`, gap: 8, marginBottom: 6, cursor: 'pointer', transition: 'all 0.2s', opacity: isEnded ? 0.6 : 1 }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = isEnded ? COLORS.border : COLORS.accentCyan; e.currentTarget.style.boxShadow = isEnded ? 'none' : `0 0 12px ${COLORS.accentCyan}30`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              <img
+                src={pigeonPhotos[item.id % pigeonPhotos.length]}
+                alt="鸽子"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  objectFit: 'cover',
+                  border: `1.5px solid ${isEnded ? '#8c8c8c' : COLORS.accentGold + '60'}`,
+                  flexShrink: 0,
+                  boxShadow: isEnded ? 'none' : `0 0 8px ${COLORS.accentGold}20`,
+                  filter: isEnded ? 'grayscale(0.5)' : 'none',
+                }}
+              />
+              <span style={{ flex: 1, color: isEnded ? COLORS.textSecondary : COLORS.textPrimary, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+              <span style={{ color: isEnded ? '#8c8c8c' : COLORS.accentGold, fontWeight: 600, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>¥{item.currentPrice.toLocaleString()}</span>
               <span style={{ color: COLORS.accentCyan, fontSize: 12, marginLeft: 6, fontVariantNumeric: 'tabular-nums' }}>{item.bidCount}出价</span>
-              {item.status === 'bidding' && (
+              {isEnded ? (
+                <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(140, 140, 140, 0.2)', color: '#8c8c8c', border: '1px solid rgba(140, 140, 140, 0.3)', flexShrink: 0 }}>已结束</span>
+              ) : isUpcoming ? (
+                <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(250, 173, 20, 0.15)', color: '#faad14', border: '1px solid rgba(250, 173, 20, 0.3)', flexShrink: 0 }}>即将开始</span>
+              ) : (
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff4d4f', boxShadow: '0 0 6px #ff4d4f', flexShrink: 0 }} />
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 20, background: `linear-gradient(180deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 20, background: `linear-gradient(0deg, ${COLORS.bgPrimary}, transparent)`, pointerEvents: 'none' }} />
       </div>
     </div>
   );
-  }, [selectedProvince, auctions, scrollOffset]);
+  }, [selectedProvince, auctions, scrollOffset, handleAuctionClick, handleScrollPause, handleScrollResume]);
 
   const renderRaceList = useCallback(() => {
     const filtered = selectedProvince
@@ -1720,7 +1817,7 @@ const DataCenter = () => {
           <Button type="link" size="small" onClick={handleBackToNational} style={{ padding: '0 4px', fontSize: 11, height: 'auto' }}>清除</Button>
         </div>
       )}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+      <div onMouseEnter={handleScrollPause} onMouseLeave={handleScrollResume} style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         {filtered.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textSecondary, fontSize: 12 }}>
             <TrophyOutlined style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }} />
@@ -1776,7 +1873,7 @@ const DataCenter = () => {
       </div>
     </div>
   );
-  }, [selectedProvince, handleBackToNational, races, scrollOffset, highlightedRaceId]);
+  }, [selectedProvince, handleBackToNational, races, scrollOffset, highlightedRaceId, handleScrollPause, handleScrollResume]);
 
   const renderFlightData = useCallback(() => {
     const source = selectedProvince ? filteredFlightData : flightData;
@@ -1816,7 +1913,7 @@ const DataCenter = () => {
           <span style={{ textAlign: 'center' }}>预计归巢</span>
           <span style={{ textAlign: 'center' }}>操作</span>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        <div onMouseEnter={handleScrollPause} onMouseLeave={handleScrollResume} style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
           {sorted.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textSecondary, fontSize: 12 }}>
               <CloudOutlined style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }} />
@@ -1878,7 +1975,7 @@ const DataCenter = () => {
         </div>
       </div>
     );
-  }, [flightData, filteredFlightData, flightFilter, flightExpanded, selectedProvince, trackedPigeonId, handlePigeonTrack, handlePigeonView, scrollOffset]);
+  }, [flightData, filteredFlightData, flightFilter, flightExpanded, selectedProvince, trackedPigeonId, handlePigeonTrack, handlePigeonView, scrollOffset, handleScrollPause, handleScrollResume]);
 
   const provinceDetail = useMemo<ProvinceDetailData | null>(() => {
     if (!selectedProvince) return null;
@@ -2136,7 +2233,7 @@ const DataCenter = () => {
         footer={null}
         width={780}
         centered
-        destroyOnClose
+        destroyOnHidden
         styles={{
           mask: { background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)' },
           content: { background: 'transparent', boxShadow: 'none', padding: 0 },
@@ -2580,7 +2677,7 @@ const DataCenter = () => {
         footer={null}
         width={680}
         centered
-        destroyOnClose
+        destroyOnHidden
         styles={{
           mask: { background: 'rgba(0, 0, 0, 0.75)' },
           content: { background: 'transparent', boxShadow: 'none', padding: 0 },
@@ -2825,6 +2922,706 @@ const DataCenter = () => {
                 >
                   在地图上追踪
                 </Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
+      {/* Auction Detail Modal */}
+      <Modal
+        open={auctionDetailOpen}
+        onCancel={() => setAuctionDetailOpen(false)}
+        footer={null}
+        width={820}
+        centered
+        destroyOnHidden
+        styles={{
+          mask: { background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)' },
+          content: { background: 'transparent', boxShadow: 'none', padding: 0 },
+          body: { padding: 0 },
+        }}
+        closable={false}
+      >
+        {selectedAuction && (() => {
+          const a = selectedAuction;
+          const statusConfig: Record<string, { color: string; label: string; bg: string }> = {
+            bidding: { color: '#ff4d4f', label: '竞价中', bg: 'rgba(255, 77, 79, 0.15)' },
+            upcoming: { color: '#faad14', label: '即将开始', bg: 'rgba(250, 173, 20, 0.15)' },
+            ended: { color: '#8c8c8c', label: '已结束', bg: 'rgba(140, 140, 140, 0.15)' },
+          };
+          const sc = statusConfig[a.status];
+          const increment = Math.max(500, Math.round(a.startingBid * 0.02));
+          const progressToMax = Math.min(100, Math.round(((a.currentPrice - a.startingBid) / (a.startingBid * 3)) * 100));
+
+          const mockBids = Array.from({ length: 8 }, (_, i) => ({
+            bidder: `买家-${String.fromCharCode(65 + (a.id % 26))}${100 - i}`,
+            price: a.currentPrice - i * increment,
+            time: `${String(Math.max(0, 23 - i)).padStart(2, '0')}:${String((59 - i * 3 + 60) % 60).padStart(2, '0')}`,
+            isHighest: i === 0,
+          }));
+
+          return (
+            <div style={{
+              background: COLORS.bgCard,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 12,
+              overflow: 'hidden',
+              boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${COLORS.accentCyan}15`,
+            }}>
+              {/* Hero Section */}
+              <div style={{
+                position: 'relative',
+                padding: '24px 28px',
+                background: `linear-gradient(135deg, ${COLORS.bgPrimary} 0%, #151d2d 50%, ${COLORS.bgCard} 100%)`,
+                borderBottom: `1px solid ${COLORS.border}`,
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: -40,
+                  right: -40,
+                  width: 160,
+                  height: 160,
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${COLORS.accentGold}20, transparent 70%)`,
+                  pointerEvents: 'none',
+                }} />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="关闭"
+                  onClick={() => setAuctionDetailOpen(false)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setAuctionDetailOpen(false); }}
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    background: `${COLORS.bgPrimary}60`,
+                    border: `1px solid ${COLORS.border}`,
+                    color: COLORS.textSecondary,
+                    transition: 'all 0.2s',
+                    zIndex: 10,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 77, 79, 0.15)';
+                    e.currentTarget.style.borderColor = '#ff4d4f';
+                    e.currentTarget.style.color = '#ff4d4f';
+                    e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 77, 79, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `${COLORS.bgPrimary}60`;
+                    e.currentTarget.style.borderColor = COLORS.border;
+                    e.currentTarget.style.color = COLORS.textSecondary;
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M12 4L4 12M4 4L12 12"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', gap: 20 }}>
+                  <img
+                    src={pigeonPhotos[a.id % pigeonPhotos.length]}
+                    alt={a.name}
+                    style={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: 12,
+                      objectFit: 'cover',
+                      border: `2px solid ${COLORS.accentGold}60`,
+                      flexShrink: 0,
+                      boxShadow: `0 0 24px ${COLORS.accentGold}30`,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <Tag color={a.status === 'bidding' ? 'red' : a.status === 'upcoming' ? 'orange' : 'default'} style={{ margin: 0, fontSize: 12, padding: '0 8px', lineHeight: '20px' }}>
+                        {sc.label}
+                      </Tag>
+                      {a.province && (
+                        <Tag color="cyan" style={{ margin: 0, fontSize: 11 }}>{a.province}</Tag>
+                      )}
+                      <span style={{ fontSize: 11, color: COLORS.textSecondary, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <FireOutlined style={{ color: COLORS.accentGold }} />
+                        热度 {a.heat}/5
+                      </span>
+                    </div>
+                    <h2 style={{ margin: 0, color: COLORS.textPrimary, fontSize: 20, fontWeight: 700, lineHeight: 1.3, marginBottom: 12 }}>
+                      {a.name}
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                      <span style={{ fontSize: 36, fontWeight: 800, color: COLORS.accentGold, fontVariantNumeric: 'tabular-nums', textShadow: `0 0 20px ${COLORS.accentGold}60`, lineHeight: 1 }}>
+                        ¥{a.currentPrice.toLocaleString()}
+                      </span>
+                      <span style={{ fontSize: 12, color: COLORS.textSecondary }}>
+                        当前价 · 起拍 ¥{a.startingBid.toLocaleString()}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <Progress
+                        percent={progressToMax}
+                        strokeColor={{ '0%': COLORS.accentCyan, '100%': COLORS.accentGold }}
+                        showInfo={false}
+                        size="small"
+                        trailColor={COLORS.bgPrimary}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Metrics */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, borderBottom: `1px solid ${COLORS.border}` }}>
+                {[
+                  { label: '起拍价', value: `¥${a.startingBid.toLocaleString()}`, icon: <RiseOutlined />, color: COLORS.accentCyan },
+                  { label: '保证金', value: `¥${a.deposit.toLocaleString()}`, icon: <SafetyCertificateOutlined />, color: COLORS.accentGold },
+                  { label: '出价次数', value: `${a.bidCount} 次`, icon: <FundOutlined />, color: '#ff7a45' },
+                  { label: '当前领先', value: a.topBidder, icon: <TrophyOutlined />, color: '#52c41a' },
+                ].map((m, i) => (
+                  <div key={i} style={{
+                    padding: '14px 16px',
+                    background: i % 2 === 0 ? `${COLORS.bgPrimary}40` : 'transparent',
+                    borderRight: i < 3 ? `1px solid ${COLORS.border}` : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: COLORS.textSecondary }}>
+                      <span style={{ color: m.color, fontSize: 13 }}>{m.icon}</span>
+                      {m.label}
+                    </div>
+                    <span style={{ color: COLORS.textPrimary, fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                      {m.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Main Content: Left (Info + Bids) + Right (Pigeon) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 0 }}>
+                <div style={{ padding: '18px 24px', borderRight: `1px solid ${COLORS.border}` }}>
+                  {/* Auction Info */}
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <div style={{ width: 3, height: 14, background: COLORS.accentCyan, borderRadius: 2 }} />
+                      <span style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: 600 }}>拍卖信息</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
+                      {([
+                        { icon: <ApartmentOutlined />, label: '主办方', value: a.seller },
+                        { icon: <EnvironmentOutlined />, label: '所在地区', value: a.province ?? '-' },
+                        { icon: <ClockCircleOutlined />, label: '开始时间', value: dayjs(a.startTime).format('YYYY-MM-DD HH:mm') },
+                        { icon: <ClockCircleOutlined />, label: '结束时间', value: dayjs(a.endTime).format('YYYY-MM-DD HH:mm') },
+                        { icon: <SyncOutlined />, label: '剩余时间', value: a.status === 'ended' ? '已结束' : `${a.remainingDays ?? '-'} 天` },
+                        { icon: <StockOutlined />, label: '加价幅度', value: `¥${increment.toLocaleString()}` },
+                      ] as const).map((row, ri) => (
+                        <div key={ri} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                          <span style={{ color: COLORS.accentCyan, fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{row.icon}</span>
+                          <span style={{ color: COLORS.textSecondary, flexShrink: 0 }}>{row.label}</span>
+                          <span style={{ color: COLORS.textPrimary, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bid History */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 3, height: 14, background: COLORS.accentGold, borderRadius: 2 }} />
+                        <span style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: 600 }}>出价记录</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: COLORS.textSecondary }}>共 {a.bidCount} 次出价</span>
+                    </div>
+                    <div style={{ background: `${COLORS.bgPrimary}60`, borderRadius: 6, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '8px 12px', background: `${COLORS.accentCyan}10`, borderBottom: `1px solid ${COLORS.border}`, fontSize: 10, color: COLORS.accentCyan, fontWeight: 600 }}>
+                        <span>竞拍者</span>
+                        <span style={{ textAlign: 'right' }}>出价</span>
+                        <span style={{ textAlign: 'right' }}>时间</span>
+                      </div>
+                      {mockBids.map((b, i) => (
+                        <div key={i} style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr 1fr',
+                          gap: 8,
+                          padding: '7px 12px',
+                          borderBottom: i < mockBids.length - 1 ? `1px solid ${COLORS.border}30` : 'none',
+                          fontSize: 11,
+                          alignItems: 'center',
+                          background: b.isHighest ? `${COLORS.accentGold}10` : 'transparent',
+                        }}>
+                          <span style={{
+                            color: b.isHighest ? COLORS.accentGold : COLORS.textPrimary,
+                            fontWeight: b.isHighest ? 700 : 400,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}>
+                            {b.isHighest && <span style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.accentGold, boxShadow: `0 0 6px ${COLORS.accentGold}` }} />}
+                            {b.bidder}
+                          </span>
+                          <span style={{ color: b.isHighest ? COLORS.accentGold : COLORS.textSecondary, textAlign: 'right', fontWeight: b.isHighest ? 600 : 400, fontVariantNumeric: 'tabular-nums' }}>
+                            ¥{b.price.toLocaleString()}
+                          </span>
+                          <span style={{ textAlign: 'right', color: COLORS.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{b.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Pigeon Showcase */}
+                <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 3, height: 14, background: COLORS.accentGold, borderRadius: 2 }} />
+                    <span style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: 600 }}>拍卖鸽品</span>
+                  </div>
+                  {[0, 1, 2].map((i) => {
+                    const ring = `2026-${String(a.id).padStart(3, '0')}-${800 + i}`;
+                    const breed = ['雨点', '灰', '花', '绛', '白', '黑'][(a.id + i) % 6];
+                    const gender = ['雄', '雌'][i % 2];
+                    const age = `${i + 1}岁`;
+                    const photoSrc = pigeonPhotos[(a.id + i) % pigeonPhotos.length];
+                    return (
+                    <div
+                      key={i}
+                      onClick={() => handleAuctionPigeonClick(i)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleAuctionPigeonClick(i); }}
+                      style={{
+                        background: `linear-gradient(135deg, ${COLORS.bgPrimary} 0%, ${COLORS.bgCard} 100%)`,
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 8,
+                        padding: 10,
+                        display: 'flex',
+                        gap: 10,
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        outline: 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = COLORS.accentGold;
+                        e.currentTarget.style.boxShadow = `0 0 12px ${COLORS.accentGold}30`;
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = COLORS.border;
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <img
+                        src={photoSrc}
+                        alt="鸽子"
+                        style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 8,
+                          objectFit: 'cover',
+                          border: `2px solid ${COLORS.accentGold}40`,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, color: COLORS.textPrimary, fontWeight: 600, marginBottom: 2 }}>
+                          {a.name.split(' ')[0]} 精品 #{i + 1}
+                        </div>
+                        <div style={{ fontSize: 10, color: COLORS.textSecondary, marginBottom: 2 }}>
+                          足环: {ring}
+                        </div>
+                        <div style={{ fontSize: 10, color: COLORS.accentCyan }}>
+                          {breed} · {gender} · {age}
+                        </div>
+                      </div>
+                      <div style={{ color: COLORS.accentGold, fontSize: 10, display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                        详情
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                    );
+                  })}
+
+                  <div style={{
+                    background: `${COLORS.accentGold}10`,
+                    border: `1px solid ${COLORS.accentGold}30`,
+                    borderRadius: 8,
+                    padding: 10,
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 4 }}>预估成交价</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.accentGold, fontVariantNumeric: 'tabular-nums' }}>
+                      ¥{(a.currentPrice * 1.1).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div style={{
+                padding: '16px 24px',
+                background: `${COLORS.bgPrimary}80`,
+                borderTop: `1px solid ${COLORS.border}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <Button
+                  icon={<DownloadOutlined />}
+                  style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }}
+                >
+                  关注拍卖
+                </Button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {a.status === 'bidding' ? (
+                    <>
+                      <Button
+                        icon={<StopOutlined />}
+                        danger
+                        size="large"
+                        onClick={handleTerminateAuction}
+                        style={{
+                          background: 'transparent',
+                          borderColor: '#ff4d4f',
+                          color: '#ff4d4f',
+                          fontWeight: 600,
+                          height: 38,
+                          padding: '0 20px',
+                        }}
+                      >
+                        终止拍卖
+                      </Button>
+                      <Button
+                        type="primary"
+                        size="large"
+                        style={{
+                          background: `linear-gradient(135deg, ${COLORS.accentGold}, #fa8c16)`,
+                          borderColor: COLORS.accentGold,
+                          color: COLORS.bgPrimary,
+                          fontWeight: 700,
+                          height: 38,
+                          padding: '0 28px',
+                          boxShadow: `0 4px 16px ${COLORS.accentGold}40`,
+                        }}
+                      >
+                        立即出价 ¥{(a.currentPrice + increment).toLocaleString()}
+                      </Button>
+                    </>
+                  ) : a.status === 'upcoming' ? (
+                    <Button
+                      type="primary"
+                      size="large"
+                      disabled
+                      style={{
+                        background: `${COLORS.bgPrimary}60`,
+                        borderColor: COLORS.border,
+                        color: COLORS.textSecondary,
+                        fontWeight: 600,
+                        height: 38,
+                        padding: '0 28px',
+                      }}
+                    >
+                      即将开始
+                    </Button>
+                  ) : (
+                    <Button
+                      size="large"
+                      disabled
+                      style={{
+                        background: `${COLORS.bgPrimary}60`,
+                        borderColor: COLORS.border,
+                        color: COLORS.textSecondary,
+                        fontWeight: 600,
+                        height: 38,
+                        padding: '0 28px',
+                      }}
+                    >
+                      拍卖已结束
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
+      {/* Auction Pigeon Detail Modal */}
+      <Modal
+        open={auctionPigeonDetailOpen}
+        onCancel={() => setAuctionPigeonDetailOpen(false)}
+        footer={null}
+        width={640}
+        centered
+        destroyOnHidden
+        closable={false}
+        styles={{
+          mask: { background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)' },
+          content: { background: 'transparent', boxShadow: 'none', padding: 0 },
+          body: { padding: 0 },
+        }}
+      >
+        {selectedAuction && (() => {
+          const a = selectedAuction;
+          const i = selectedAuctionPigeonIdx;
+          const ring = `2026-${String(a.id).padStart(3, '0')}-${800 + i}`;
+          const breed = ['雨点', '灰', '花', '绛', '白', '黑'][(a.id + i) % 6];
+          const gender = ['雄', '雌'][i % 2];
+          const age = `${i + 1}岁`;
+          const photoSrc = pigeonPhotos[(a.id + i) % pigeonPhotos.length];
+          const pigeonName = `${a.name.split(' ')[0]} 精品 #${i + 1}`;
+          const price = a.currentPrice + i * Math.max(500, Math.round(a.startingBid * 0.02));
+          const estimatedPrice = Math.round(price * 1.1);
+          const increment = Math.max(500, Math.round(a.startingBid * 0.02));
+          const isBidding = a.status === 'bidding';
+
+          return (
+            <div style={{
+              background: `linear-gradient(165deg, ${COLORS.bgCard} 0%, #0d1525 50%, ${COLORS.bgCard} 100%)`,
+              borderRadius: 16,
+              border: `1px solid ${COLORS.border}`,
+              overflow: 'hidden',
+              position: 'relative',
+            }}>
+              {/* Close Icon */}
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="关闭"
+                onClick={() => setAuctionPigeonDetailOpen(false)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setAuctionPigeonDetailOpen(false); }}
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  background: `${COLORS.bgPrimary}60`,
+                  border: `1px solid ${COLORS.border}`,
+                  color: COLORS.textSecondary,
+                  transition: 'all 0.2s',
+                  zIndex: 10,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 77, 79, 0.15)';
+                  e.currentTarget.style.borderColor = '#ff4d4f';
+                  e.currentTarget.style.color = '#ff4d4f';
+                  e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 77, 79, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = `${COLORS.bgPrimary}60`;
+                  e.currentTarget.style.borderColor = COLORS.border;
+                  e.currentTarget.style.color = COLORS.textSecondary;
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+
+              {/* Hero Section */}
+              <div style={{
+                padding: '24px 24px 20px',
+                background: `linear-gradient(135deg, ${COLORS.accentGold}15 0%, ${COLORS.accentCyan}10 100%)`,
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <img
+                    src={photoSrc}
+                    alt={pigeonName}
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 14,
+                      objectFit: 'cover',
+                      border: `3px solid ${COLORS.accentGold}`,
+                      boxShadow: `0 4px 20px ${COLORS.accentGold}40`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: COLORS.textPrimary }}>
+                        {pigeonName}
+                      </h3>
+                      <Tag
+                        color={isBidding ? 'red' : a.status === 'upcoming' ? 'orange' : 'default'}
+                        icon={isBidding ? <FireOutlined /> : a.status === 'upcoming' ? <ClockCircleOutlined /> : <CheckCircleOutlined />}
+                        style={{ margin: 0, fontSize: 11, fontWeight: 600 }}
+                      >
+                        {isBidding ? '竞价中' : a.status === 'upcoming' ? '即将开始' : '已结束'}
+                      </Tag>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                      <Tag style={{ fontSize: 11 }}>{breed} · {gender}</Tag>
+                      <Tag style={{ fontSize: 11 }}>{age}</Tag>
+                    </div>
+                    <div style={{ fontSize: 12, color: COLORS.textSecondary, fontFamily: 'monospace' }}>
+                      足环号: {ring}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Metrics */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '16px 20px' }}>
+                {[
+                  { label: '当前出价', value: `¥${price.toLocaleString()}`, icon: <RiseOutlined />, color: COLORS.accentGold },
+                  { label: '预估成交价', value: `¥${estimatedPrice.toLocaleString()}`, icon: <FundOutlined />, color: COLORS.accentCyan },
+                  { label: '加价幅度', value: `¥${increment.toLocaleString()}`, icon: <ThunderboltOutlined />, color: '#fa8c16' },
+                ].map((m, idx) => (
+                  <div key={idx} style={{
+                    padding: '12px',
+                    borderRadius: 10,
+                    background: `linear-gradient(135deg, rgba(26,35,50,0.9), rgba(13,21,37,0.9))`,
+                    border: `1px solid ${COLORS.border}`,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: m.color, borderRadius: '0 2px 2px 0' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <span style={{ color: m.color, fontSize: 13 }}>{m.icon}</span>
+                      <span style={{ fontSize: 10, color: COLORS.textSecondary }}>{m.label}</span>
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
+                      {m.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Info Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 20px' }}>
+                <div style={{ borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: 12, background: 'rgba(10,17,40,0.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ width: 3, height: 10, background: COLORS.accentGold, borderRadius: 2, marginRight: 6 }} />
+                    <span style={{ color: COLORS.textPrimary, fontSize: 12, fontWeight: 600 }}>鸽子档案</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      { icon: <ApartmentOutlined />, label: '所属公棚', value: a.seller },
+                      { icon: <FlagOutlined />, label: '拍卖编号', value: `AUC-${String(a.id).padStart(5, '0')}` },
+                      { icon: <ShareAltOutlined />, label: '起拍价', value: `¥${a.startingBid.toLocaleString()}` },
+                      { icon: <TrophyOutlined />, label: '出价次数', value: `${a.bidCount} 次` },
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: 11 }}>
+                        <span style={{ color: COLORS.accentCyan, width: 18 }}>{item.icon}</span>
+                        <span style={{ color: COLORS.textSecondary, width: 64 }}>{item.label}</span>
+                        <span style={{ color: COLORS.textPrimary, fontWeight: 500, flex: 1, textAlign: 'right' }}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: 12, background: 'rgba(10,17,40,0.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ width: 3, height: 10, background: COLORS.accentCyan, borderRadius: 2, marginRight: 6 }} />
+                    <span style={{ color: COLORS.textPrimary, fontSize: 12, fontWeight: 600 }}>拍卖信息</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      { icon: <ClockCircleOutlined />, label: '开始时间', value: a.startTime },
+                      { icon: <ClockCircleOutlined />, label: '结束时间', value: a.endTime },
+                      { icon: <SafetyCertificateOutlined />, label: '保证金', value: `¥${a.deposit.toLocaleString()}` },
+                      { icon: <TeamOutlined />, label: '领先出价', value: a.topBidder },
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: 11 }}>
+                        <span style={{ color: COLORS.accentCyan, width: 18 }}>{item.icon}</span>
+                        <span style={{ color: COLORS.textSecondary, width: 64 }}>{item.label}</span>
+                        <span style={{ color: COLORS.textPrimary, fontWeight: 500, flex: 1, textAlign: 'right' }}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pedigree Section */}
+              <div style={{ padding: '14px 20px' }}>
+                <div style={{ borderRadius: 12, border: `1px solid ${COLORS.border}`, padding: 12, background: 'rgba(10,17,40,0.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ width: 3, height: 10, background: COLORS.accentGold, borderRadius: 2, marginRight: 6 }} />
+                    <span style={{ color: COLORS.textPrimary, fontSize: 12, fontWeight: 600 }}>血统谱系</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {[
+                      { label: '父鸽', value: `2024-${String(a.id).padStart(3, '0')}-${100 + i}`, color: COLORS.accentCyan },
+                      { label: '母鸽', value: `2024-${String(a.id).padStart(3, '0')}-${200 + i}`, color: COLORS.accentGold },
+                      { label: '祖辈', value: `2022-${String(a.id).padStart(3, '0')}-${300 + i}`, color: '#fa8c16' },
+                    ].map((p, idx) => (
+                      <div key={idx} style={{
+                        padding: '10px',
+                        borderRadius: 8,
+                        background: `linear-gradient(135deg, rgba(26,35,50,0.6), rgba(13,21,37,0.6))`,
+                        border: `1px solid ${COLORS.border}`,
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: 10, color: p.color, marginBottom: 4, fontWeight: 600 }}>{p.label}</div>
+                        <div style={{ fontSize: 10, color: COLORS.textPrimary, fontFamily: 'monospace' }}>{p.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                padding: '14px 20px',
+                background: `${COLORS.bgPrimary}80`,
+                borderTop: `1px solid ${COLORS.border}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <Button
+                  onClick={() => setAuctionPigeonDetailOpen(false)}
+                  style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }}
+                >
+                  返回
+                </Button>
+                {isBidding ? (
+                  <Button
+                    type="primary"
+                    size="large"
+                    style={{
+                      background: `linear-gradient(135deg, ${COLORS.accentGold}, #fa8c16)`,
+                      borderColor: COLORS.accentGold,
+                      color: COLORS.bgPrimary,
+                      fontWeight: 700,
+                      height: 38,
+                      padding: '0 28px',
+                      boxShadow: `0 4px 16px ${COLORS.accentGold}40`,
+                    }}
+                  >
+                    立即出价 ¥{(price + increment).toLocaleString()}
+                  </Button>
+                ) : (
+                  <Button size="large" disabled>
+                    拍卖已结束
+                  </Button>
+                )}
               </div>
             </div>
           );
