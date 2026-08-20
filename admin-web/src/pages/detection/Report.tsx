@@ -453,6 +453,7 @@ const DetectionReport = () => {
   const currentUser = useCurrentUser();
   const canReport = hasPermission(currentUser, 'detection:report');
   const actionRef = useRef<ActionType>();
+  const printContainerRef = useRef<HTMLDivElement>(null);
   const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: msg });
 
   // 新增/编辑抽屉
@@ -557,6 +558,118 @@ const DetectionReport = () => {
     } catch {
       // 拦截器已提示错误
     }
+  };
+
+  // 构建打印报告HTML内容
+  const buildPrintHtml = (d: DetectionReport): string => {
+    const statusColor =
+      d.status === 'published' ? 'status-published' :
+      d.status === 'pending' ? 'status-pending' :
+      d.status === 'rejected' ? 'status-rejected' : 'status-draft';
+    const statusLabel = STATUS_MAP[d.status]?.label || d.status;
+
+    // 检测结果渲染
+    let resultHtml = '';
+    if (d.result_data) {
+      resultHtml = renderPrintResult(d.result_data);
+    } else {
+      resultHtml = `<div style="padding:16px;background:#fff;border-radius:8px;">${d.result || '暂无检测结果'}</div>`;
+    }
+
+    // 鸽只信息
+    const profile = d.gene_profile;
+    const profileHtml = profile ? `
+      <div class="desc-item"><span class="desc-label">鸽名</span><span class="desc-value">🕊️ ${profile.name}</span></div>
+      <div class="desc-item"><span class="desc-label">足环号</span><span class="desc-value"><code>${profile.ring_number}</code></span></div>
+      ${profile.owner_name ? `<div class="desc-item"><span class="desc-label">鸽主</span><span class="desc-value">${profile.owner_name}</span></div>` : ''}
+      ${d.order?.order_no ? `<div class="desc-item"><span class="desc-label">关联订单</span><span class="desc-value"><code>${d.order.order_no}</code></span></div>` : ''}
+    ` : '';
+
+    // 附件
+    const attachmentHtml = d.report_url ? `
+      <div class="card">
+        <div class="card-title"><span class="dot dot-orange"></span>报告附件</div>
+        <div class="file-link">
+          <span class="file-icon">📄</span>
+          <div>
+            <div class="file-title">检测报告文件</div>
+            <div class="file-sub">原始PDF文件</div>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    return `
+      <div class="report-header">
+        <h1>信鸽基因检测报告</h1>
+        <div class="subtitle">Pigeon Genetic Detection Report</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <span class="status-tag ${statusColor}">${statusLabel}</span>
+            <div class="report-no">编号：${d.report_no}</div>
+          </div>
+        </div>
+        <div class="info-row" style="margin-top:16px;">
+          <div class="info-item">
+            <div class="info-label">检测日期</div>
+            <div class="info-value">${d.test_date || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">检测项目</div>
+            <div class="info-value">${d.project}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">检测机构</div>
+            <div class="info-value">${d.test_org || '-'}</div>
+          </div>
+        </div>
+      </div>
+      ${profileHtml ? `
+        <div class="card">
+          <div class="card-title"><span class="dot dot-blue"></span>检测对象信息</div>
+          <div class="desc-grid">${profileHtml}</div>
+        </div>
+      ` : ''}
+      <div class="card">
+        <div class="card-title"><span class="dot dot-green"></span>检测结果</div>
+        <div class="result-content">${resultHtml}</div>
+      </div>
+      ${attachmentHtml}
+      <div class="card">
+        <div class="footer-info">
+          <span>录入时间：${d.created_at ? dayjs(d.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
+          <span>报告编号：${d.report_no}</span>
+        </div>
+      </div>
+    `;
+  };
+
+  // 打印/导出PDF
+  const handlePrint = () => {
+    if (!detail) {
+      msg.warning('报告数据未加载完成，请稍候重试');
+      return;
+    }
+    try {
+      // 将报告内容注入到隐藏的打印容器中
+      if (printContainerRef.current) {
+        printContainerRef.current.innerHTML = buildPrintHtml(detail);
+      }
+      // 触发打印（浏览器打印对话框支持"另存为PDF"）
+      window.print();
+      // 打印后清空打印容器
+      if (printContainerRef.current) {
+        printContainerRef.current.innerHTML = '';
+      }
+    } catch (err) {
+      console.error('打印失败:', err);
+      msg.error('打印失败，请重试');
+    }
+  };
+
+  // 导出PDF（与打印共用同一逻辑，浏览器打印对话框中选择"另存为PDF"即可）
+  const handleExportPdf = () => {
+    handlePrint();
   };
 
   // 选择订单后自动带出所有信息
@@ -1086,8 +1199,8 @@ const DetectionReport = () => {
               信鸽基因检测报告
             </Typography.Title>
             <Space size={4}>
-              <Button size="small" icon={<PrinterOutlined />}>打印</Button>
-              <Button size="small" type="primary" icon={<SaveOutlined />}>导出PDF</Button>
+              <Button size="small" icon={<PrinterOutlined />} onClick={handlePrint}>打印</Button>
+              <Button size="small" type="primary" icon={<SaveOutlined />} onClick={handleExportPdf}>导出PDF</Button>
             </Space>
           </div>
         }
@@ -1255,6 +1368,272 @@ const DetectionReport = () => {
           </div>
         )}
       </Drawer>
+
+      {/* 打印专用样式和容器 */}
+      <style>{`
+        @page { size: A4; margin: 15mm; }
+        .print-container {
+          display: none;
+        }
+        @media print {
+          /* 隐藏所有非打印元素 */
+          body * {
+            visibility: hidden;
+          }
+          .print-container,
+          .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            display: block !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            background: #fff;
+          }
+          /* 打印内容样式 */
+          .print-container .report-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+            color: #fff;
+            padding: 24px 28px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+          }
+          .print-container .report-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+          }
+          .print-container .report-header .subtitle {
+            font-size: 13px;
+            opacity: 0.75;
+            margin-bottom: 16px;
+          }
+          .print-container .report-header .info-row {
+            display: flex;
+            gap: 24px;
+          }
+          .print-container .report-header .info-item {
+            flex: 1;
+          }
+          .print-container .report-header .info-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 2px;
+          }
+          .print-container .report-header .info-value {
+            font-size: 16px;
+            font-weight: 600;
+          }
+          .print-container .report-header .status-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+          }
+          .print-container .report-header .status-published { background: #10b981; }
+          .print-container .report-header .status-draft { background: #9ca3af; }
+          .print-container .report-header .status-pending { background: #f59e0b; }
+          .print-container .report-header .status-rejected { background: #ef4444; }
+          .print-container .report-header .report-no {
+            font-size: 13px;
+            opacity: 0.85;
+            font-family: monospace;
+          }
+          .print-container .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            break-inside: avoid;
+          }
+          .print-container .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .print-container .card-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+          }
+          .print-container .dot-blue { background: #1e3a8a; }
+          .print-container .dot-green { background: #10b981; }
+          .print-container .dot-orange { background: #f59e0b; }
+          .print-container .desc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 24px;
+          }
+          .print-container .desc-item {
+            display: flex;
+            gap: 8px;
+            font-size: 13px;
+          }
+          .print-container .desc-label { color: #6b7280; min-width: 80px; }
+          .print-container .desc-value { color: #1f2937; font-weight: 500; }
+          .print-container .desc-value code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+          }
+          .print-container .result-content {
+            background: #fafbfc;
+            border-top: 3px solid #10b981;
+            padding: 20px 24px;
+            border-radius: 8px;
+          }
+          .print-container .stat-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+          }
+          .print-container .stat-box {
+            flex: 1;
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+          }
+          .print-container .stat-label {
+            color: #6b7280;
+            font-size: 12px;
+            margin-bottom: 4px;
+          }
+          .print-container .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e3a8a;
+          }
+          .print-container .stat-value .unit {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6b7280;
+          }
+          .print-container .tag {
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 600;
+          }
+          .print-container .tag-success { background: #d1fae5; color: #065f46; }
+          .print-container .tag-error { background: #fee2e2; color: #991b1b; }
+          .print-container .tag-warning { background: #fef3c7; color: #92400e; }
+          .print-container .tag-default { background: #f3f4f6; color: #374151; }
+          .print-container .conclusion-box {
+            background: #fff;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            border-radius: 8px;
+          }
+          .print-container .conclusion-title {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+          }
+          .print-container .conclusion-text {
+            white-space: pre-wrap;
+            color: #1f2937;
+          }
+          .print-container .file-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            color: #92400e;
+            text-decoration: none;
+          }
+          .print-container .file-icon {
+            font-size: 24px;
+            color: #ef4444;
+          }
+          .print-container .file-title {
+            font-weight: 600;
+          }
+          .print-container .file-sub {
+            font-size: 12px;
+            color: #b45309;
+          }
+          .print-container .footer-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #6b7280;
+          }
+          .print-container .progress-bar {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+          }
+          .print-container .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+          }
+          .print-container .screen-list {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          .print-container .screen-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+          }
+          .print-container .screen-item:last-child { border-bottom: none; }
+          .print-container .screen-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #1f2937;
+          }
+          .print-container .screen-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+          }
+          .print-container .screen-dot-positive { background: #ef4444; }
+          .print-container .screen-dot-negative { background: #10b981; }
+          .print-container .screen-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .print-container .mono {
+            font-family: monospace;
+            color: #6b7280;
+            font-size: 13px;
+          }
+        }
+      `}</style>
+
+      {/* 隐藏的打印内容容器 */}
+      <div
+        ref={printContainerRef}
+        className="print-container"
+        aria-hidden="true"
+      />
     </>
   );
 };
@@ -1431,6 +1810,96 @@ function renderStructuredDetail(data: StructuredResultData): React.ReactNode {
       <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: 13, color: '#374151' }}>{JSON.stringify(data, null, 2)}</pre>
     </div>
   );
+}
+
+// 打印中渲染结构化结果（输出HTML字符串）
+function renderPrintResult(data: StructuredResultData): string {
+  if (!data || typeof data !== 'object') return '';
+  const d = data as Record<string, unknown>;
+
+  if ('match_result' in d) {
+    const matchResult = d.match_result as string;
+    const conclusion = d.conclusion as string | undefined;
+    const matchLabel = matchResult === 'match' ? '匹配' : matchResult === 'mismatch' ? '不匹配' : '部分匹配';
+    const matchClass = matchResult === 'match' ? 'tag-success' : matchResult === 'mismatch' ? 'tag-error' : 'tag-warning';
+    return `
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">DNA比对结果</div>
+          <span class="tag ${matchClass}">${matchLabel}</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">匹配度</div>
+          <div class="stat-value">${(d.match_percent as number) ?? '-'}<span class="unit">%</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">检测位点数</div>
+          <div class="stat-value">${(d.loci_count as number) ?? '-'}<span class="unit">个</span></div>
+        </div>
+      </div>
+      ${conclusion ? `<div class="conclusion-box"><div class="conclusion-title">📋 检测结论</div><div class="conclusion-text">${conclusion}</div></div>` : ''}
+    `;
+  }
+  if ('sire_confirmed' in d) {
+    const conclusion = d.conclusion as string | undefined;
+    return `
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">父本确认</div>
+          <span class="tag ${d.sire_confirmed ? 'tag-success' : 'tag-error'}">${d.sire_confirmed ? '✅ 确认' : '❌ 不确认'}</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">母本确认</div>
+          <span class="tag ${d.dam_confirmed ? 'tag-success' : 'tag-error'}">${d.dam_confirmed ? '✅ 确认' : '❌ 不确认'}</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">亲权概率</div>
+          <div class="stat-value">${(d.paternity_probability as number) ?? '-'}<span class="unit">%</span></div>
+        </div>
+      </div>
+      ${conclusion ? `<div class="conclusion-box"><div class="conclusion-title">📋 检测结论</div><div class="conclusion-text">${conclusion}</div></div>` : ''}
+    `;
+  }
+  if ('breed_match_percent' in d) {
+    const conclusion = d.conclusion as string | undefined;
+    const matchPercent = d.breed_match_percent as number;
+    const progressColor = matchPercent >= 90 ? '#10b981' : matchPercent >= 70 ? '#f59e0b' : '#ef4444';
+    return `
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">品系匹配度</div>
+          <div class="stat-value" style="color:${progressColor}">${matchPercent ?? '-'}<span class="unit">%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(matchPercent, 100) || 0}%;background:${progressColor}"></div></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">匹配品系</div>
+          <div class="stat-value">${(d.matched_breed as string) || '-'}</div>
+        </div>
+      </div>
+      ${conclusion ? `<div class="conclusion-box"><div class="conclusion-title">📋 检测结论</div><div class="conclusion-text">${conclusion}</div></div>` : ''}
+    `;
+  }
+  if ('items' in d && Array.isArray(d.items)) {
+    const conclusion = d.conclusion as string | undefined;
+    const items = d.items as Array<{ name: string; result: string; value: string }>;
+    const itemsHtml = items.map((item) => `
+      <div class="screen-item">
+        <div class="screen-name">
+          <span class="screen-dot ${item.result === 'positive' ? 'screen-dot-positive' : 'screen-dot-negative'}"></span>
+          ${item.name}
+        </div>
+        <div class="screen-right">
+          <span class="tag ${item.result === 'positive' ? 'tag-error' : 'tag-success'}">${item.result === 'positive' ? '阳性' : '阴性'}</span>
+          <span class="mono">${item.value}</span>
+        </div>
+      </div>
+    `).join('');
+    return `
+      <div class="screen-list">${itemsHtml}</div>
+      ${conclusion ? `<div class="conclusion-box" style="border-left-color:#f59e0b"><div class="conclusion-title">📋 综合结论</div><div class="conclusion-text">${conclusion}</div></div>` : ''}
+    `;
+  }
+  return `<pre style="margin:0;white-space:pre-wrap;font-size:13px;">${JSON.stringify(data, null, 2)}</pre>`;
 }
 
 export default DetectionReport;
