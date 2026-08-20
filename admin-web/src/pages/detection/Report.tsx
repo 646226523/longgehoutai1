@@ -1,8 +1,10 @@
 import {
   App,
+  Badge,
   Button,
   Card,
   Col,
+  Descriptions,
   Divider,
   Drawer,
   Form,
@@ -13,6 +15,7 @@ import {
   Select,
   Space,
   Tag,
+  Typography,
   Upload,
   DatePicker,
 } from 'antd';
@@ -20,7 +23,10 @@ import type { UploadFile, UploadProps } from 'antd';
 import {
   CloudUploadOutlined,
   EyeOutlined,
+  FilePdfOutlined,
   PlusOutlined,
+  PrinterOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useRef, useState } from 'react';
@@ -1071,75 +1077,181 @@ const DetectionReport = () => {
         </Row>
       </Drawer>
 
-      {/* 详情抽屉 */}
+      {/* 详情抽屉 - 专业报告样式 */}
       <Drawer
-        title="检测报告详情"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              <FilePdfOutlined style={{ color: '#eb2f96', marginRight: 8 }} />
+              信鸽基因检测报告
+            </Typography.Title>
+            <Space size={4}>
+              <Button size="small" icon={<PrinterOutlined />}>打印</Button>
+              <Button size="small" type="primary" icon={<SaveOutlined />}>导出PDF</Button>
+            </Space>
+          </div>
+        }
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
-        width={600}
+        width={780}
         destroyOnHidden
+        styles={{ body: { padding: 0, background: '#f5f5f5' } }}
       >
         {detail && (
-          <div style={{ lineHeight: 2 }}>
-            <p>
-              <strong>报告编号:</strong> {detail.report_no}
-            </p>
-            <p>
-              <strong>状态:</strong>{' '}
-              <Tag color={STATUS_MAP[detail.status]?.color}>{STATUS_MAP[detail.status]?.label || detail.status}</Tag>
-            </p>
-            <p>
-              <strong>检测机构:</strong> {detail.test_org || '-'}
-            </p>
-            <p>
-              <strong>检测项目:</strong> {detail.project}
-            </p>
-            <p>
-              <strong>检测日期:</strong> {detail.test_date || '-'}
-            </p>
-            {detail.order_id && (
-              <p>
-                <strong>关联订单 ID:</strong> {detail.order_id}
-              </p>
-            )}
+          <div style={{ padding: 20 }}>
+            {/* ========== 报告头 ========== */}
+            <Card
+              variant="borderless"
+              style={{
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)',
+                color: '#fff',
+                borderRadius: 12,
+                marginBottom: 16,
+              }}
+              styles={{ body: { padding: '24px 28px' } }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <Typography.Title level={3} style={{ color: '#fff', margin: 0, fontWeight: 700, letterSpacing: 2 }}>
+                    信鸽基因检测报告
+                  </Typography.Title>
+                  <Typography.Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
+                    Pigeon Genetic Detection Report
+                  </Typography.Text>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <Tag color={STATUS_MAP[detail.status]?.color} style={{ fontSize: 14, padding: '4px 12px' }}>
+                    {STATUS_MAP[detail.status]?.label || detail.status}
+                  </Tag>
+                  <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontFamily: 'monospace' }}>
+                    编号：{detail.report_no}
+                  </div>
+                </div>
+              </div>
+              <Divider style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '16px 0' }} />
+              <Row gutter={[24, 12]}>
+                <Col span={8}>
+                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测日期</Typography.Text>
+                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.test_date || '-'}</div>
+                </Col>
+                <Col span={8}>
+                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测项目</Typography.Text>
+                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.project}</div>
+                </Col>
+                <Col span={8}>
+                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测机构</Typography.Text>
+                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.test_org || '-'}</div>
+                </Col>
+              </Row>
+            </Card>
+
+            {/* ========== 检测对象信息 ========== */}
             {detail.gene_profile && (
-              <p>
-                <strong>关联鸽只:</strong> {detail.gene_profile.ring_number} {detail.gene_profile.name}
-                {detail.gene_profile.owner_name ? `(鸽主:${detail.gene_profile.owner_name})` : ''}
-              </p>
-            )}
-            <Divider />
-            <p>
-              <strong>检测结果:</strong>
-            </p>
-            {detail.result_data ? (
-              <div style={{ background: '#fafafa', padding: 12, borderRadius: 4 }}>
-                {renderStructuredDetail(detail.result_data)}
-              </div>
-            ) : (
-              <div
-                style={{
-                  background: '#fafafa',
-                  padding: 12,
-                  borderRadius: 4,
-                  whiteSpace: 'pre-wrap',
-                }}
+              <Card
+                title={
+                  <Space>
+                    <Badge color="#1e3a8a" />
+                    <span>检测对象信息</span>
+                  </Space>
+                }
+                variant="borderless"
+                style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
               >
-                {detail.result || '-'}
-              </div>
+                <Descriptions column={2} size="small" styles={{ label: { color: '#6b7280', width: 100 } }}>
+                  <Descriptions.Item label="鸽名">
+                    <Typography.Text strong style={{ fontSize: 15 }}>
+                      🕊️ {detail.gene_profile.name}
+                    </Typography.Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="足环号">
+                    <Typography.Text code style={{ fontSize: 14 }}>{detail.gene_profile.ring_number}</Typography.Text>
+                  </Descriptions.Item>
+                  {detail.gene_profile.owner_name && (
+                    <Descriptions.Item label="鸽主">{detail.gene_profile.owner_name}</Descriptions.Item>
+                  )}
+                  {detail.order?.order_no && (
+                    <Descriptions.Item label="关联订单">
+                      <Tag color="blue">{detail.order.order_no}</Tag>
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </Card>
             )}
+
+            {/* ========== 检测结果 ========== */}
+            <Card
+              title={
+                <Space>
+                  <Badge color="#10b981" />
+                  <span>检测结果</span>
+                </Space>
+              }
+              variant="borderless"
+              style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              styles={{ body: { padding: 0 } }}
+            >
+              {detail.result_data ? (
+                <div style={{ padding: '20px 24px', background: '#fafbfc', borderTop: '3px solid #10b981' }}>
+                  {renderStructuredDetail(detail.result_data)}
+                </div>
+              ) : (
+                <div style={{ padding: '20px 24px', background: '#fafbfc', borderTop: '3px solid #10b981', whiteSpace: 'pre-wrap' }}>
+                  {detail.result || <span style={{ color: '#bfbfbf' }}>暂无检测结果</span>}
+                </div>
+              )}
+            </Card>
+
+            {/* ========== 报告文件 ========== */}
             {detail.report_url && (
-              <p>
-                <strong>报告文件:</strong>{' '}
-                <a href={detail.report_url} target="_blank" rel="noreferrer">
-                  {detail.report_url}
+              <Card
+                title={
+                  <Space>
+                    <Badge color="#f59e0b" />
+                    <span>报告附件</span>
+                  </Space>
+                }
+                variant="borderless"
+                style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              >
+                <a
+                  href={detail.report_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: 8,
+                    color: '#92400e',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <FilePdfOutlined style={{ fontSize: 24, marginRight: 12, color: '#ef4444' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>查看检测报告文件</div>
+                    <div style={{ fontSize: 12, color: '#b45309' }}>点击在新窗口打开</div>
+                  </div>
                 </a>
-              </p>
+              </Card>
             )}
-            <p>
-              <strong>录入时间:</strong>{' '}
-              {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm') : '-'}
-            </p>
+
+            {/* ========== 报告信息 ========== */}
+            <Card
+              variant="borderless"
+              size="small"
+              style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+            >
+              <Descriptions column={2} size="small" styles={{ label: { color: '#6b7280' } }}>
+                <Descriptions.Item label="录入时间">
+                  {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="报告编号">
+                  <Typography.Text code>{detail.report_no}</Typography.Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
           </div>
         )}
       </Drawer>
@@ -1153,17 +1265,40 @@ function renderStructuredDetail(data: StructuredResultData): React.ReactNode {
   const d = data as Record<string, unknown>;
 
   if ('match_result' in d) {
-    // DNA 类型
-    const matchMap: Record<string, string> = { match: '✅ 匹配', mismatch: '❌ 不匹配', partial: '⚠️ 部分匹配' };
+    // DNA 类型 (身份认证/性别鉴定/赛程性能)
     const matchResult = d.match_result as string;
     const conclusion = d.conclusion as string | undefined;
+    const matchColor = matchResult === 'match' ? '#10b981' : matchResult === 'mismatch' ? '#ef4444' : '#f59e0b';
+    const matchLabel = matchResult === 'match' ? '匹配' : matchResult === 'mismatch' ? '不匹配' : '部分匹配';
     return (
       <div>
-        <div>DNA比对结果: {matchMap[matchResult] || matchResult}</div>
-        <div>匹配度: {d.match_percent as number}%</div>
-        <div>检测位点数: {d.loci_count as number} 个</div>
+        <Row gutter={[16, 12]}>
+          <Col span={8}>
+            <div style={{ textAlign: 'center', padding: '12px 8px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>DNA比对结果</div>
+              <Tag color={matchColor} style={{ fontSize: 15, padding: '4px 16px', fontWeight: 600 }}>
+                {matchLabel}
+              </Tag>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div style={{ textAlign: 'center', padding: '12px 8px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>匹配度</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e3a8a' }}>{(d.match_percent as number) ?? '-'}%</div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div style={{ textAlign: 'center', padding: '12px 8px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>检测位点数</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e3a8a' }}>{(d.loci_count as number) ?? '-'}<span style={{ fontSize: 14, fontWeight: 400, color: '#6b7280' }}> 个</span></div>
+            </div>
+          </Col>
+        </Row>
         {conclusion && (
-          <div style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>结论: {conclusion}</div>
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#fff', borderRadius: 8, borderLeft: '4px solid #10b981' }}>
+            <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>📋 检测结论</div>
+            <div style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{conclusion}</div>
+          </div>
         )}
       </div>
     );
@@ -1173,24 +1308,78 @@ function renderStructuredDetail(data: StructuredResultData): React.ReactNode {
     const conclusion = d.conclusion as string | undefined;
     return (
       <div>
-        <div>父本确认: {d.sire_confirmed ? '✅ 确认' : '❌ 不确认'}</div>
-        <div>母本确认: {d.dam_confirmed ? '✅ 确认' : '❌ 不确认'}</div>
-        <div>亲权概率: {d.paternity_probability as number}%</div>
+        <Row gutter={[16, 12]}>
+          <Col span={8}>
+            <div style={{ textAlign: 'center', padding: '12px 8px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>父本确认</div>
+              <Tag color={d.sire_confirmed ? 'success' : 'error'} style={{ fontSize: 15, padding: '4px 16px', fontWeight: 600 }}>
+                {d.sire_confirmed ? '✅ 确认' : '❌ 不确认'}
+              </Tag>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div style={{ textAlign: 'center', padding: '12px 8px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>母本确认</div>
+              <Tag color={d.dam_confirmed ? 'success' : 'error'} style={{ fontSize: 15, padding: '4px 16px', fontWeight: 600 }}>
+                {d.dam_confirmed ? '✅ 确认' : '❌ 不确认'}
+              </Tag>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div style={{ textAlign: 'center', padding: '12px 8px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>亲权概率</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e3a8a' }}>{(d.paternity_probability as number) ?? '-'}%</div>
+            </div>
+          </Col>
+        </Row>
         {conclusion && (
-          <div style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>结论: {conclusion}</div>
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#fff', borderRadius: 8, borderLeft: '4px solid #10b981' }}>
+            <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>📋 检测结论</div>
+            <div style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{conclusion}</div>
+          </div>
         )}
       </div>
     );
   }
   if ('breed_match_percent' in d) {
-    // 品种鉴定
+    // 品种鉴定/血统分析
     const conclusion = d.conclusion as string | undefined;
+    const matchPercent = d.breed_match_percent as number;
     return (
       <div>
-        <div>品系匹配度: {d.breed_match_percent as number}%</div>
-        <div>匹配品系: {(d.matched_breed as string) || '-'}</div>
+        <Row gutter={[16, 12]}>
+          <Col span={12}>
+            <div style={{ textAlign: 'center', padding: '16px 12px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>品系匹配度</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: matchPercent >= 90 ? '#10b981' : matchPercent >= 70 ? '#f59e0b' : '#ef4444' }}>
+                {matchPercent ?? '-'}<span style={{ fontSize: 16, fontWeight: 400, color: '#6b7280' }}>%</span>
+              </div>
+              {/* 进度条 */}
+              <div style={{ marginTop: 8, height: 6, background: '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.min(matchPercent, 100) || 0}%`,
+                  background: matchPercent >= 90 ? '#10b981' : matchPercent >= 70 ? '#f59e0b' : '#ef4444',
+                  borderRadius: 3,
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div style={{ textAlign: 'center', padding: '16px 12px', background: '#fff', borderRadius: 8 }}>
+              <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4 }}>匹配品系</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e3a8a' }}>
+                {(d.matched_breed as string) || '-'}
+              </div>
+            </div>
+          </Col>
+        </Row>
         {conclusion && (
-          <div style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>结论: {conclusion}</div>
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#fff', borderRadius: 8, borderLeft: '4px solid #10b981' }}>
+            <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>📋 检测结论</div>
+            <div style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{conclusion}</div>
+          </div>
         )}
       </div>
     );
@@ -1201,27 +1390,47 @@ function renderStructuredDetail(data: StructuredResultData): React.ReactNode {
     const items = d.items as Array<{ name: string; result: string; value: string }>;
     return (
       <div>
-        {items.map((item, idx) => (
-          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-            <span>{item.name}</span>
-            <span>
-              {item.result === 'positive' ? (
-                <Tag color="error">阳性</Tag>
-              ) : (
-                <Tag color="success">阴性</Tag>
-              )}
-              <span style={{ marginLeft: 8, color: '#8c8c8c' }}>{item.value}</span>
-            </span>
-          </div>
-        ))}
+        <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden' }}>
+          {items.map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                borderBottom: idx < items.length - 1 ? '1px solid #f3f4f6' : 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: item.result === 'positive' ? '#ef4444' : '#10b981' }} />
+                <span style={{ fontWeight: 500, color: '#1f2937' }}>{item.name}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Tag color={item.result === 'positive' ? 'error' : 'success'} style={{ fontWeight: 600 }}>
+                  {item.result === 'positive' ? '阳性' : '阴性'}
+                </Tag>
+                <span style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: 13 }}>{item.value}</span>
+              </div>
+            </div>
+          ))}
+        </div>
         {conclusion && (
-          <div style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>综合结论: {conclusion}</div>
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#fff', borderRadius: 8, borderLeft: '4px solid #f59e0b' }}>
+            <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>📋 综合结论</div>
+            <div style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{conclusion}</div>
+          </div>
         )}
       </div>
     );
   }
   // 通用: JSON 展示
-  return <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(data, null, 2)}</pre>;
+  return (
+    <div style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
+      <Typography.Text type="secondary" style={{ marginBottom: 8, display: 'block' }}>结构化检测数据</Typography.Text>
+      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: 13, color: '#374151' }}>{JSON.stringify(data, null, 2)}</pre>
+    </div>
+  );
 }
 
 export default DetectionReport;
