@@ -11,30 +11,43 @@ import './index.css';
 // 设置 dayjs 中文
 dayjs.locale('zh-cn');
 
-// Suppress Vite HMR connection errors in console
+function shouldSuppressHmrError(args: unknown[]): boolean {
+  const keywords = ['net::ERR_ABORTED', 'net::ERR_CONNECTION_REFUSED', 'net::ERR_FAILED', 'net::ERR_CANCELED'];
+  const viteHmr = '@vite/client';
+  for (const arg of args) {
+    let text = '';
+    if (arg instanceof Error) text = `${arg.message} ${arg.stack ?? ''}`;
+    else if (arg !== null && arg !== undefined) text = String(arg);
+    for (const kw of keywords) if (text.includes(kw)) return true;
+    if (text.includes(viteHmr) && text.includes('ping')) return true;
+  }
+  return false;
+}
+
 if (import.meta.env.DEV) {
-  const originalConsoleError = console.error;
+  const originalConsoleError = console.error.bind(console);
   console.error = (...args: unknown[]) => {
-    const msg = args.join(' ');
-    if (
-      msg.includes('net::ERR_CONNECTION_REFUSED') ||
-      msg.includes('net::ERR_ABORTED') ||
-      (msg.includes('@vite/client') && msg.includes('ping'))
-    ) {
-      return;
-    }
-    originalConsoleError.apply(console, args);
+    if (shouldSuppressHmrError(args)) return;
+    originalConsoleError(...args);
   };
 
   window.addEventListener('error', (e) => {
-    if (
-      e.message?.includes('ERR_CONNECTION_REFUSED') ||
-      e.message?.includes('ERR_ABORTED')
-    ) {
+    const msg = e.message || String(e.error || '');
+    const keywords = ['ERR_CONNECTION_REFUSED', 'ERR_ABORTED', 'ERR_FAILED', 'ERR_CANCELED'];
+    if (keywords.some(k => msg.includes(k))) {
       e.stopImmediatePropagation();
       return false;
     }
   }, true);
+
+  window.addEventListener('unhandledrejection', (e) => {
+    const reason = e.reason;
+    const args = [reason instanceof Error ? reason : new Error(String(reason))];
+    if (shouldSuppressHmrError(args)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

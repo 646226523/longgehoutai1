@@ -12,10 +12,6 @@ export default defineConfig({
     port: 3014,
     strictPort: true,
     hmr: {
-      host: 'localhost',
-      port: 3014,
-      clientPort: 3014,
-      protocol: 'ws',
       overlay: false,
     },
     watch: {
