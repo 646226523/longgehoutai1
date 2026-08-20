@@ -3,7 +3,7 @@ import { Alert, App, Modal, Typography } from 'antd';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { login } from '../services/auth';
+import { getStoredToken, login, restoreTokenFromCookie } from '../services/auth';
 
 const { Text } = Typography;
 
@@ -13,6 +13,14 @@ const CAROUSEL_IMAGES = [
   '/鸽子3.jpg',
   '/鸽子4.jpg',
 ];
+
+function isProxyEnvironment(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return hostname.includes('traecontent.cn') ||
+    hostname.includes('agent-sandbox') ||
+    hostname.includes('agent-sandbox-bj-d1-gw');
+}
 
 const Login = () => {
   const { message } = App.useApp();
@@ -29,6 +37,16 @@ const Login = () => {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const { accessToken, refreshToken } = getStoredToken();
+    if (!accessToken && !refreshToken) {
+      const restored = restoreTokenFromCookie();
+      if (restored) {
+        navigate('/', { replace: true });
+      }
+    }
+  }, []);
+
   const handleSubmit = async (values: { username: string; password: string }) => {
     setLoading(true);
     setErrorMsg('');
@@ -39,7 +57,15 @@ const Login = () => {
       void result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : '登录失败';
-      setErrorMsg(msg);
+      const sessionErrorKeywords = ['missing session token', 'session token', 'unauthorized', '401', 'invalid session'];
+      const isSessionError = sessionErrorKeywords.some((keyword) => msg.toLowerCase().includes(keyword));
+      if (isSessionError && isProxyEnvironment()) {
+        setErrorMsg(
+          `检测到代理环境会话问题：${msg}。\n建议尝试直接通过 localhost 访问，或点击"代理环境帮助"查看解决方案。`
+        );
+      } else {
+        setErrorMsg(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -431,15 +457,49 @@ const Login = () => {
               <p className="login-welcome-sub">请登录以访问赛鸽基因溯源管理后台</p>
             </div>
 
+            {isProxyEnvironment() && (
+              <div style={{
+                textAlign: 'center',
+                marginTop: 12,
+                padding: '8px 16px',
+                background: '#e6f4ff',
+                borderRadius: 8,
+                color: '#1677ff',
+                fontSize: 13
+              }}>
+                💡 代理环境：登录后可跨设备访问您的工作台
+              </div>
+            )}
+
             {errorMsg && (
-              <Alert
-                type="error"
-                message={errorMsg}
-                showIcon
-                style={{ marginBottom: 16 }}
-                closable
-                onClose={() => setErrorMsg('')}
-              />
+              <>
+                <Alert
+                  type="error"
+                  message={errorMsg}
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                  closable
+                  onClose={() => setErrorMsg('')}
+                />
+                {isProxyEnvironment() && (
+                  <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                    <a
+                      href="http://localhost:3000"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const newUrl = window.location.href.replace(
+                          /^(https?:\/\/)[^/]+/,
+                          '$1localhost:3000'
+                        );
+                        window.location.href = newUrl;
+                      }}
+                      style={{ color: '#1677ff', fontSize: 13 }}
+                    >
+                      🔧 切换到 localhost 模式
+                    </a>
+                  </div>
+                )}
+              </>
             )}
 
             <LoginForm

@@ -11,6 +11,12 @@ function generateToken() {
   return `${base64(header)}.${base64(payload)}.mock_signature`;
 }
 
+function getSessionFromCookie(req) {
+  const cookieHeader = req.headers.cookie || '';
+  const match = cookieHeader.match(/(?:^|;\s*)admin_session=([^;]+)/);
+  return match ? match[1] : null;
+}
+
 const MOCK_USER = {
   id: 1,
   username: 'admin',
@@ -129,6 +135,7 @@ export function mockApiPlugin() {
               tokenStore.set(accessToken, { userId: 1, expireAt: Date.now() + 24 * 60 * 60 * 1000 });
               tokenStore.set(refreshToken, { userId: 1, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
               setCorsHeaders(res);
+              res.setHeader('Set-Cookie', `admin_session=${accessToken}; path=/; SameSite=Lax`);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ code: 0, message: '登录成功', data: { accessToken, refreshToken, expiresIn: 86400, user: MOCK_USER } }));
             } else {
@@ -149,7 +156,10 @@ export function mockApiPlugin() {
       server.middlewares.use('/api/auth/profile', (req, res, next) => {
         if (req.method !== 'GET') { next(); return; }
         const authHeader = req.headers.authorization || '';
-        const token = authHeader.replace('Bearer ', '');
+        let token = authHeader.replace('Bearer ', '');
+        if (!token) {
+          token = getSessionFromCookie(req);
+        }
         if (!token || !tokenStore.has(token)) {
           res.statusCode = 401;
           setCorsHeaders(res);
@@ -187,11 +197,23 @@ export function mockApiPlugin() {
         });
       });
 
+      // POST /api/auth/logout
+      server.middlewares.use('/api/auth/logout', (req, res, next) => {
+        if (req.method !== 'POST') { next(); return; }
+        setCorsHeaders(res);
+        res.setHeader('Set-Cookie', 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax');
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 0, message: '退出成功', data: null }));
+      });
+
       // GET /api/admin/dashboard/overview
       server.middlewares.use('/api/admin/dashboard/overview', (req, res, next) => {
         if (req.method !== 'GET') { next(); return; }
         const authHeader = req.headers.authorization || '';
-        const token = authHeader.replace('Bearer ', '');
+        let token = authHeader.replace('Bearer ', '');
+        if (!token) {
+          token = getSessionFromCookie(req);
+        }
         if (!token || !tokenStore.has(token)) {
           res.statusCode = 401;
           setCorsHeaders(res);

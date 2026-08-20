@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, AxiosError } from 'axios';
 import { getMessage } from '../utils/antd-app-instance';
+import { getCookie, deleteCookie, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '../utils/cookie';
 // eslint-disable-next-line no-restricted-imports -- fallback 仅在 App 组件挂载前极端情况使用，正常请求链路均通过 <AntdApp> context 消费的 getMessage()
 import { message as staticMessageFallback } from 'antd';
 
@@ -40,12 +41,24 @@ const AUTH_ENDPOINTS = ['/auth/login', '/auth/refresh'];
 const request: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 5000,
+  withCredentials: true,
 });
 
 // 请求拦截器:自动携带 Token
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    let token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (!token) {
+      token = getCookie(ACCESS_TOKEN_COOKIE);
+      if (token) {
+        localStorage.setItem(ACCESS_TOKEN_KEY, token);
+        const refreshTokenFromCookie = getCookie(REFRESH_TOKEN_COOKIE);
+        if (refreshTokenFromCookie) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, refreshTokenFromCookie);
+        }
+      }
+    }
+
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
@@ -96,7 +109,13 @@ request.interceptors.response.use(
 
     // 401:尝试用 refresh token 刷新
     if (status === 401 && originalRequest && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      let refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) {
+        refreshToken = getCookie(REFRESH_TOKEN_COOKIE);
+        if (refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        }
+      }
       if (!refreshToken) {
         redirectToLogin();
         return Promise.reject(error);
@@ -180,6 +199,8 @@ request.interceptors.response.use(
 function redirectToLogin() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  deleteCookie(ACCESS_TOKEN_COOKIE);
+  deleteCookie(REFRESH_TOKEN_COOKIE);
   if (!window.location.pathname.startsWith(LOGIN_PATH)) {
     window.location.replace(LOGIN_PATH);
   }

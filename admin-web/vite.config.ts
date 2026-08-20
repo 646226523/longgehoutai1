@@ -11,8 +11,18 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3014,
     strictPort: true,
+    allowedHosts: true,
     hmr: {
       overlay: false,
+      clientPort: undefined,
+      protocol: 'ws',
+      host: undefined,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3014',
+        changeOrigin: true,
+      },
     },
     watch: {
       ignored: ['**/node_modules/**', '**/dist/**'],
