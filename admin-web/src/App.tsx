@@ -1,4 +1,5 @@
 import { Spin, App as AntdApp } from 'antd';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from './layouts/AdminLayout';
@@ -61,18 +62,31 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         setUser(u);
       })
       .catch((err: unknown) => {
-        const axiosErr = err as { response?: { status?: number }; code?: string };
+        const axiosErr = err as { response?: { status?: number; data?: { error?: string } }; code?: string; data?: { error?: string } };
         if (axiosErr.response?.status === 401) {
           localStorage.removeItem(ACCESS_TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
           localStorage.removeItem(USER_INFO_KEY);
           window.location.replace('/login');
-        } else if (axiosErr.code && ['ERR_ABORTED'].includes(axiosErr.code)) {
-          // 浏览器导航/组件卸载导致的请求中断,静默忽略
           return;
-        } else {
-          setNetworkError(true);
         }
+
+        const sessionErrorKeywords = ['session token', 'missing session', 'session expired', 'invalid session', 'session not found'];
+        const errorMessage = (axiosErr.response?.data?.error || axiosErr.data?.error || '').toLowerCase();
+        const isSessionError = sessionErrorKeywords.some((keyword) => errorMessage.includes(keyword));
+        if (isSessionError) {
+          localStorage.removeItem(ACCESS_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          localStorage.removeItem(USER_INFO_KEY);
+          window.location.replace('/login');
+          return;
+        }
+
+        if (axiosErr.code && ['ERR_ABORTED'].includes(axiosErr.code)) {
+          return;
+        }
+
+        setNetworkError(true);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -216,7 +230,9 @@ function Bootstrap() {
 function App() {
   return (
     <AntdApp>
-      <Bootstrap />
+      <ErrorBoundary>
+        <Bootstrap />
+      </ErrorBoundary>
     </AntdApp>
   );
 }

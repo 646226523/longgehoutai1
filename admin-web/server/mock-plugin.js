@@ -98,6 +98,23 @@ export function mockApiPlugin() {
   return {
     name: 'mock-api',
     configureServer(server) {
+      const setCorsHeaders = (res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+      };
+
+      server.middlewares.use((req, res, next) => {
+        if (req.method === 'OPTIONS') {
+          setCorsHeaders(res);
+          res.statusCode = 200;
+          res.end();
+          return;
+        }
+        next();
+      });
+
       // POST /api/auth/login
       server.middlewares.use('/api/auth/login', (req, res, next) => {
         if (req.method !== 'POST') { next(); return; }
@@ -111,14 +128,17 @@ export function mockApiPlugin() {
               const refreshToken = generateToken();
               tokenStore.set(accessToken, { userId: 1, expireAt: Date.now() + 24 * 60 * 60 * 1000 });
               tokenStore.set(refreshToken, { userId: 1, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+              setCorsHeaders(res);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ code: 0, message: '登录成功', data: { accessToken, refreshToken, expiresIn: 86400, user: MOCK_USER } }));
             } else {
+              setCorsHeaders(res);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ code: 1001, message: '用户名或密码错误', data: null }));
             }
           } catch {
-            res.setHeader('Content-Type', 'application/json');
+            setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
             res.statusCode = 400;
             res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
           }
@@ -132,11 +152,13 @@ export function mockApiPlugin() {
         const token = authHeader.replace('Bearer ', '');
         if (!token || !tokenStore.has(token)) {
           res.statusCode = 401;
-          res.setHeader('Content-Type', 'application/json');
+          setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ code: 401, message: '未授权或Token已过期', data: null }));
           return;
         }
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_USER }));
       });
 
@@ -153,10 +175,12 @@ export function mockApiPlugin() {
             const newRefreshToken = generateToken();
             tokenStore.set(newAccessToken, { userId: 1, expireAt: Date.now() + 24 * 60 * 60 * 1000 });
             tokenStore.set(newRefreshToken, { userId: 1, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-            res.setHeader('Content-Type', 'application/json');
+            setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ code: 0, message: '刷新成功', data: { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresIn: 86400 } }));
           } catch {
-            res.setHeader('Content-Type', 'application/json');
+            setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
             res.statusCode = 400;
             res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
           }
@@ -170,11 +194,13 @@ export function mockApiPlugin() {
         const token = authHeader.replace('Bearer ', '');
         if (!token || !tokenStore.has(token)) {
           res.statusCode = 401;
-          res.setHeader('Content-Type', 'application/json');
+          setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ code: 401, message: '未授权', data: null }));
           return;
         }
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({
           code: 0, message: 'success',
           data: {
@@ -233,11 +259,13 @@ export function mockApiPlugin() {
             const ext = dotIdx >= 0 ? originalName.slice(dotIdx).toLowerCase() : '.jpg';
 
             const mockUrl = `/uploads/mock_${Date.now()}${ext}`;
-            res.setHeader('Content-Type', 'application/json');
+            setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ code: 0, message: 'success', data: { url: mockUrl } }));
           } catch {
             const mockUrl = `/uploads/mock_${Date.now()}.jpg`;
-            res.setHeader('Content-Type', 'application/json');
+            setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ code: 0, message: 'success', data: { url: mockUrl } }));
           }
         });
@@ -247,7 +275,8 @@ export function mockApiPlugin() {
       server.middlewares.use('/api/system/audit-logs/modules', (req, res, next) => {
         if (req.method !== 'GET') { next(); return; }
         const modules = ['user', 'gene', 'auction', 'nft', 'competition', 'loft', 'system', 'detection'];
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 0, message: 'success', data: modules }));
       });
 
@@ -269,14 +298,16 @@ export function mockApiPlugin() {
         const start = (page - 1) * pageSize;
         const list = filtered.slice(start, start + pageSize);
 
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
       });
 
       // GET /api/system/dictionaries/types - 字典类型列表
       server.middlewares.use('/api/system/dictionaries/types', (req, res, next) => {
         if (req.method !== 'GET') { next(); return; }
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_DICT_TYPES }));
       });
 
@@ -300,7 +331,8 @@ export function mockApiPlugin() {
         const start = (page - 1) * pageSize;
         const list = filtered.slice(start, start + pageSize);
 
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
       });
 
@@ -352,7 +384,8 @@ server.middlewares.use('/api/system/configs', (req, res, next) => {
   if (req.method === 'PUT') {
     if (!key) {
       res.statusCode = 400;
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ code: 400, message: '缺少配置键', data: null }));
       return;
     }
@@ -376,15 +409,18 @@ server.middlewares.use('/api/system/configs', (req, res, next) => {
         }
         if (!found) {
           res.statusCode = 404;
-          res.setHeader('Content-Type', 'application/json');
+          setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ code: 404, message: '配置键不存在', data: null }));
           return;
         }
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
       } catch {
         res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
       }
     });
@@ -402,7 +438,8 @@ server.middlewares.use('/api/system/configs', (req, res, next) => {
       const filtered = MOCK_SYSTEM_CONFIGS.groups.filter((g) => g.group === groupFilter);
       data = { groups: filtered, list: filtered.flatMap((g) => g.items) };
     }
-    res.setHeader('Content-Type', 'application/json');
+    setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ code: 0, message: 'success', data }));
     return;
   }
@@ -423,7 +460,8 @@ server.middlewares.use('/api/system/map-config', (req, res, next) => {
     baidu_key: getVal('baidu_key'),
     tencent_key: getVal('tencent_key'),
   };
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data }));
 });
 
@@ -492,7 +530,8 @@ const detectionOrderStore = new Map();
 // GET /api/detection/dict/item-types - 检测项目类型字典
 server.middlewares.use('/api/detection/dict/item-types', (req, res, next) => {
   if (req.method !== 'GET') { next(); return; }
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_DETECTION_ITEM_TYPES }));
 });
 
@@ -527,7 +566,8 @@ server.middlewares.use('/api/detection/orgs', (req, res, next) => {
   const start = (page - 1) * pageSize;
   const list = all.slice(start, start + pageSize);
 
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
 });
 
@@ -555,10 +595,12 @@ server.middlewares.use('/api/detection/orgs', (req, res, next) => {
         created_at: now,
         updated_at: now,
       });
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ code: 0, message: '新增成功', data: { id } }));
     } catch (e) {
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.statusCode = 400;
       res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
     }
@@ -571,7 +613,8 @@ server.middlewares.use('/api/detection/orgs/options', (req, res, next) => {
   const list = Array.from(detectionOrgStore.values())
     .filter(o => o.status === 1)
     .map(o => ({ id: o.id, name: o.name, code: o.code, projects: o.projects }));
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: list }));
 });
 
@@ -581,12 +624,14 @@ server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)$/, (req, res, next) => {
   const id = parseInt(req.url.split('/').pop(), 10);
   const org = detectionOrgStore.get(id);
   if (!org) {
-    res.setHeader('Content-Type', 'application/json');
+    setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
     res.statusCode = 404;
     res.end(JSON.stringify({ code: 404, message: '检测机构不存在', data: null }));
     return;
   }
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: org }));
 });
 
@@ -596,7 +641,8 @@ server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)$/, (req, res, next) => {
   const id = parseInt(req.url.split('/').pop(), 10);
   const existing = detectionOrgStore.get(id);
   if (!existing) {
-    res.setHeader('Content-Type', 'application/json');
+    setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
     res.statusCode = 404;
     res.end(JSON.stringify({ code: 404, message: '检测机构不存在', data: null }));
     return;
@@ -620,10 +666,12 @@ server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)$/, (req, res, next) => {
         status: data.status ?? existing.status,
         updated_at: now,
       });
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
     } catch (e) {
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.statusCode = 400;
       res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
     }
@@ -636,14 +684,16 @@ server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)\/status$/, (req, res, nex
   const id = parseInt(req.url.split('/')[2], 10);
   const existing = detectionOrgStore.get(id);
   if (!existing) {
-    res.setHeader('Content-Type', 'application/json');
+    setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
     res.statusCode = 404;
     res.end(JSON.stringify({ code: 404, message: '检测机构不存在', data: null }));
     return;
   }
   const nextStatus = existing.status === 1 ? 0 : 1;
   detectionOrgStore.set(id, { ...existing, status: nextStatus, updated_at: Date.now() });
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: nextStatus === 1 ? '已启用' : '已停用', data: { status: nextStatus } }));
 });
 
@@ -663,7 +713,8 @@ server.middlewares.use('/api/detection/orders', (req, res, next) => {
   const start = (page - 1) * pageSize;
   const list = all.slice(start, start + pageSize);
 
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
 });
 
@@ -679,7 +730,8 @@ server.middlewares.use('/api/detection/orders/options', (req, res, next) => {
       org_id: o.org_id || null, test_org: o.test_org || '',
       gene_profile_id: o.gene_profile_id || null,
     }));
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: list }));
 });
 
@@ -712,10 +764,12 @@ server.middlewares.use('/api/detection/orders', (req, res, next) => {
         created_at: nowTs,
         updated_at: nowTs,
       });
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ code: 0, message: '新增成功', data: { id, order_no } }));
     } catch (e) {
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.statusCode = 400;
       res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
     }
@@ -767,7 +821,8 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
     order: r.order_id ? { order_no: '' } : null,
   }));
 
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
 });
 
@@ -780,12 +835,14 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
   const id = parseInt(match[1], 10);
   const report = detectionReportStore.get(id);
   if (!report) {
-    res.setHeader('Content-Type', 'application/json');
+    setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
     res.statusCode = 404;
     res.end(JSON.stringify({ code: 404, message: '报告不存在', data: null }));
     return;
   }
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'success', data: { ...report, gene_profile: null } }));
 });
 
@@ -814,10 +871,12 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
         status: data.status || 'draft',
         created_at: nowTs,
       });
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ code: 0, message: '录入成功', data: { id } }));
     } catch (e) {
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.statusCode = 400;
       res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
     }
@@ -838,7 +897,8 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
       const data = JSON.parse(body || '{}');
       const existing = detectionReportStore.get(id);
       if (!existing) {
-        res.setHeader('Content-Type', 'application/json');
+        setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
         res.statusCode = 404;
         res.end(JSON.stringify({ code: 404, message: '报告不存在', data: null }));
         return;
@@ -849,10 +909,12 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
         id,
         created_at: existing.created_at,
       });
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
     } catch (e) {
-      res.setHeader('Content-Type', 'application/json');
+      setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
       res.statusCode = 400;
       res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
     }
@@ -867,7 +929,8 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
   if (!match) { next(); return; }
   const id = parseInt(match[1], 10);
   detectionReportStore.delete(id);
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: '删除成功', data: null }));
 });
 
@@ -875,7 +938,8 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
 server.middlewares.use('/api', (req, res, next) => {
   const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard') || req.url?.startsWith('/api/system/audit-logs') || req.url?.startsWith('/api/system/dictionaries') || req.url?.startsWith('/api/system/configs') || req.url?.startsWith('/api/detection');
   if (skip) { next(); return; }
-  res.setHeader('Content-Type', 'application/json');
+  setCorsHeaders(res);
+              res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'mock', data: null }));
 });
     },

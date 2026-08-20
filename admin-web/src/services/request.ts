@@ -24,6 +24,18 @@ let isRefreshing = false;
 // 等待 Token 刷新完成的请求队列
 let pendingQueue: Array<() => void> = [];
 
+// 会话令牌错误关键词(用于识别需要强制登出的错误响应)
+const SESSION_TOKEN_ERROR_KEYWORDS = [
+  'session token',
+  'missing session',
+  'session expired',
+  'invalid session',
+  'session not found',
+];
+
+// 不需要 Token 的认证端点
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/refresh'];
+
 // axios 实例
 const request: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -37,6 +49,13 @@ request.interceptors.request.use(
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      const url = config.url || '';
+      const isAuthEndpoint = AUTH_ENDPOINTS.some((ep) => url.startsWith(ep));
+      if (!isAuthEndpoint) {
+        redirectToLogin();
+        return Promise.reject(new Error('未登录,正在跳转至登录页'));
+      }
     }
     return config;
   },
@@ -54,6 +73,20 @@ request.interceptors.response.use(
       }
       showError(res.message || '请求失败');
       return Promise.reject(new Error(res.message || '请求失败'));
+    }
+    // 非标准错误响应:有 error 字段但无 code 字段
+    if (res && typeof res.error === 'string') {
+      const errorMsg = res.error;
+      const isSessionError = SESSION_TOKEN_ERROR_KEYWORDS.some((kw) =>
+        errorMsg.toLowerCase().includes(kw)
+      );
+      if (isSessionError) {
+        redirectToLogin();
+        showError(errorMsg);
+        return Promise.reject(new Error(errorMsg));
+      }
+      showError(errorMsg);
+      return Promise.reject(new Error(errorMsg));
     }
     return res;
   },
@@ -119,6 +152,22 @@ request.interceptors.response.use(
         showError('网络连接异常,请检查网络状态');
       }
       return Promise.reject(error);
+    }
+
+    // 非标准错误响应:有 error 字段但无 code 字段
+    const errData = error.response?.data as { error?: string } | undefined;
+    if (errData && typeof errData.error === 'string') {
+      const errorMsg = errData.error;
+      const isSessionError = SESSION_TOKEN_ERROR_KEYWORDS.some((kw) =>
+        errorMsg.toLowerCase().includes(kw)
+      );
+      if (isSessionError) {
+        redirectToLogin();
+        showError(errorMsg);
+        return Promise.reject(new Error(errorMsg));
+      }
+      showError(errorMsg);
+      return Promise.reject(new Error(errorMsg));
     }
 
     const msg = error.response?.data?.message || error.message || '网络错误';
