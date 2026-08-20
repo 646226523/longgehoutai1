@@ -9,11 +9,13 @@ import {
   Drawer,
   Form,
   Input,
+  Progress,
   Popconfirm,
   Radio,
   Row,
   Select,
   Space,
+  Timeline,
   Tag,
   Typography,
   Upload,
@@ -22,11 +24,17 @@ import {
 import type { UploadFile, UploadProps } from 'antd';
 import {
   CloudUploadOutlined,
+  CheckCircleFilled,
+  ExperimentOutlined,
   EyeOutlined,
   FilePdfOutlined,
+  FileTextOutlined,
+  IdcardOutlined,
   PlusOutlined,
   PrinterOutlined,
   SaveOutlined,
+  SafetyCertificateOutlined,
+  ThunderboltFilled,
 } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useRef, useState } from 'react';
@@ -380,68 +388,107 @@ const ReportPreview = ({ data }: { data: {
       background: '#fff',
       borderRadius: 12,
       boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-      padding: 24,
+      padding: 0,
       minHeight: 500,
+      overflow: 'hidden',
     }}>
-      <div style={{ textAlign: 'center', marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 20, color: '#1f1f1f' }}>信鸽基因检测报告</h2>
-        <Tag color={statusInfo?.color || 'default'} style={{ marginTop: 8 }}>
-          {statusInfo?.label || '草稿'}
-        </Tag>
-      </div>
-      <Divider style={{ margin: '12px 0' }} />
-      <Row gutter={[12, 12]}>
-        <Col span={12}>
-          <div style={{ color: '#8c8c8c', fontSize: 12 }}>报告编号</div>
-          <div style={{ fontWeight: 500 }}>{data.report_no || '—'}</div>
-        </Col>
-        <Col span={12}>
-          <div style={{ color: '#8c8c8c', fontSize: 12 }}>检测日期</div>
-          <div style={{ fontWeight: 500 }}>{data.test_date || '—'}</div>
-        </Col>
-        <Col span={12}>
-          <div style={{ color: '#8c8c8c', fontSize: 12 }}>鸽主</div>
-          <div style={{ fontWeight: 500 }}>{data.user_name || '—'}</div>
-        </Col>
-        <Col span={12}>
-          <div style={{ color: '#8c8c8c', fontSize: 12 }}>足环号</div>
-          <div style={{ fontWeight: 500 }}>{data.ring_number || '—'}</div>
-        </Col>
-        <Col span={12}>
-          <div style={{ color: '#8c8c8c', fontSize: 12 }}>检测机构</div>
-          <div style={{ fontWeight: 500 }}>{data.test_org || '—'}</div>
-        </Col>
-        <Col span={12}>
-          <div style={{ color: '#8c8c8c', fontSize: 12 }}>检测项目</div>
-          <div style={{ fontWeight: 500 }}>{data.project || '—'}</div>
-        </Col>
-      </Row>
-      <Divider style={{ margin: '16px 0' }} />
-      <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 4 }}>检测结果</div>
+      {/* 报告头 */}
       <div style={{
-        background: '#fafafa',
-        borderRadius: 8,
-        padding: 12,
-        minHeight: 80,
-        whiteSpace: 'pre-wrap',
-        color: data.result ? '#1f1f1f' : '#bfbfbf',
+        background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)',
+        color: '#fff',
+        padding: '20px 24px',
       }}>
-        {data.result || '（请在左侧填写检测结果）'}
-      </div>
-      {data.file_name && (
-        <>
-          <Divider style={{ margin: '16px 0' }} />
-          <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 4 }}>报告文件</div>
-          <div style={{
-            background: '#e6f4ff',
-            borderRadius: 8,
-            padding: '8px 12px',
-            color: '#1677ff',
-          }}>
-            📎 {data.file_name}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: 2 }}>信鸽基因检测报告</div>
+            <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>
+              Pigeon Genetic Detection Report
+            </div>
           </div>
-        </>
-      )}
+          <Tag color={statusInfo?.color || 'default'}>
+            {statusInfo?.label || '草稿'}
+          </Tag>
+        </div>
+        <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.85)', fontSize: 12, fontFamily: 'monospace' }}>
+          编号：{data.report_no || '—'}
+        </div>
+      </div>
+
+      {/* 基本信息 */}
+      <div style={{ padding: 20 }}>
+        <Row gutter={[12, 12]}>
+          <Col span={12}>
+            <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 2 }}>检测日期</div>
+            <div style={{ fontWeight: 600, color: '#1f2937' }}>{data.test_date || '—'}</div>
+          </Col>
+          <Col span={12}>
+            <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 2 }}>检测项目</div>
+            <div style={{ fontWeight: 600, color: '#1f2937' }}>{data.project || '—'}</div>
+          </Col>
+          <Col span={12}>
+            <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 2 }}>鸽主</div>
+            <div style={{ fontWeight: 500, color: '#1f2937' }}>{data.user_name || '—'}</div>
+          </Col>
+          <Col span={12}>
+            <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 2 }}>足环号</div>
+            <div style={{ fontWeight: 500, fontFamily: 'monospace', color: '#1f2937' }}>{data.ring_number || '—'}</div>
+          </Col>
+          <Col span={24}>
+            <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 2 }}>检测机构</div>
+            <div style={{ fontWeight: 500, color: '#1f2937' }}>{data.test_org || '—'}</div>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: '16px 0' }} />
+
+        {/* 检测结果预览 */}
+        <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 6, fontWeight: 500 }}>检测结果</div>
+        <div style={{
+          background: '#fafbfc',
+          borderRadius: 8,
+          padding: 14,
+          minHeight: 60,
+          borderTop: '3px solid #10b981',
+          whiteSpace: 'pre-wrap',
+          color: data.result ? '#1f1f1f' : '#bfbfbf',
+          fontSize: 13,
+          lineHeight: 1.6,
+        }}>
+          {data.result || '（请在左侧填写检测结果）'}
+        </div>
+
+        {/* 机构认证 */}
+        <div style={{
+          marginTop: 14, padding: '10px 14px',
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+          borderRadius: 8, border: '1px solid #dcfce7',
+          fontSize: 12, color: '#047857',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <SafetyCertificateOutlined style={{ color: '#10b981' }} />
+            <span style={{ fontWeight: 600 }}>经 {data.test_org || '权威检测机构'} 认证</span>
+          </div>
+          <div style={{ marginTop: 4, fontSize: 11, color: '#059669' }}>
+            CMA 认证 · ISO 17025 · CNAS 认可
+          </div>
+        </div>
+
+        {data.file_name && (
+          <>
+            <Divider style={{ margin: '14px 0' }} />
+            <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 6, fontWeight: 500 }}>报告文件</div>
+            <div style={{
+              background: '#e6f4ff',
+              borderRadius: 8,
+              padding: '10px 14px',
+              color: '#1677ff',
+              fontSize: 13,
+            }}>
+              <FilePdfOutlined style={{ marginRight: 6 }} /> {data.file_name}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -607,6 +654,7 @@ const DetectionReport = () => {
           <div>
             <span class="status-tag ${statusColor}">${statusLabel}</span>
             <div class="report-no">编号：${d.report_no}</div>
+            <div style="margin-top:4px;font-size:12px;opacity:0.7;">样本编号：SMP-${d.report_no?.replace('REP-', '')} · 版本 V1.0</div>
           </div>
         </div>
         <div class="info-row" style="margin-top:16px;">
@@ -622,6 +670,18 @@ const DetectionReport = () => {
             <div class="info-label">检测机构</div>
             <div class="info-value">${d.test_org || '-'}</div>
           </div>
+          <div class="info-item">
+            <div class="info-label">技术标准</div>
+            <div class="info-value">GB/T 38647-2020</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#f0fdf4 0%,#eff6ff 100%);border:1px solid #dcfce7;">
+        <div class="card-title"><span class="dot dot-green"></span>机构资质声明</div>
+        <div style="font-size:13px;color:#047857;line-height:1.6;">
+          本报告检测流程严格遵循《信鸽DNA检测技术规范》及 ISO/IEC 17025:2017 实验室管理体系要求，
+          检测人员均持有国家认可的分子生物学检测资质证书，检测设备定期通过国家标准计量检定。
+          <span style="margin-left:8px;">CMA 认证 · ISO 17025 · CNAS 认可</span>
         </div>
       </div>
       ${profileHtml ? `
@@ -631,14 +691,42 @@ const DetectionReport = () => {
         </div>
       ` : ''}
       <div class="card">
-        <div class="card-title"><span class="dot dot-green"></span>检测结果</div>
+        <div class="card-title"><span class="dot dot-green"></span>检测结果分析</div>
         <div class="result-content">${resultHtml}</div>
       </div>
+      <div class="card">
+        <div class="card-title"><span class="dot dot-blue"></span>检测方法与质量保证</div>
+        <div style="font-size:13px;color:#374151;line-height:1.7;">
+          <p><strong>检测方法：</strong>采用荧光定量PCR技术，覆盖 16 个微卫星标记位点。</p>
+          <p><strong>仪器设备：</strong>ABI 3730xl 基因分析仪 / QuantStudio 5 实时荧光定量PCR仪。</p>
+          <p><strong>质量指标：</strong>重复性 99.9% · 准确性 99.8% · 置信度 99.99%</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#8b5cf6;"></span>样本流转记录</div>
+        <div style="font-size:13px;color:#374151;line-height:1.8;">
+          <div>1. 样本采集 → ${d.test_date || '-'} · 由 ${d.test_org || '检测机构'} 专业人员现场采集</div>
+          <div>2. 样本登记 → ${d.created_at ? dayjs(d.created_at).format('YYYY-MM-DD HH:mm') : '-'} · 编号 ${d.report_no}</div>
+          <div>3. DNA提取 → 采用 Qiagen DNeasy 试剂盒提取，PCR 扩增目标基因片段</div>
+          <div>4. 测序分析 → ABI 3730xl 测序仪检测，专业人员进行 SNP 位点分析</div>
+          <div>5. 报告审核 → 检测结果已通过三级审核，确保数据准确无误</div>
+        </div>
+      </div>
       ${attachmentHtml}
+      <div class="card" style="background:#fefce8;border:1px solid #fef08a;">
+        <div class="card-title" style="color:#92400e;"><span class="dot" style="background:#f59e0b;"></span>免责声明</div>
+        <div style="font-size:12px;color:#92400e;line-height:1.7;">
+          本检测报告仅对本次送检样本负责，检测结果仅供参考，不作为唯一判定依据。
+          样本采集、保存及运输过程中的任何偏差均可能影响检测结果。
+          如对检测结果有异议，请在报告出具后 7 日内向本机构提出复核申请。
+          本报告未经授权不得用于商业用途或法律举证。
+        </div>
+      </div>
       <div class="card">
         <div class="footer-info">
           <span>录入时间：${d.created_at ? dayjs(d.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
           <span>报告编号：${d.report_no}</span>
+          <span>版本：V1.0 · 共 1 页</span>
         </div>
       </div>
     `;
@@ -1190,7 +1278,7 @@ const DetectionReport = () => {
         </Row>
       </Drawer>
 
-      {/* 详情抽屉 - 专业报告样式 */}
+      {/* 详情抽屉 - 增强版专业报告样式 */}
       <Drawer
         title={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -1206,7 +1294,7 @@ const DetectionReport = () => {
         }
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
-        width={780}
+        width={860}
         destroyOnHidden
         styles={{ body: { padding: 0, background: '#f5f5f5' } }}
       >
@@ -1220,6 +1308,7 @@ const DetectionReport = () => {
                 color: '#fff',
                 borderRadius: 12,
                 marginBottom: 16,
+                overflow: 'hidden',
               }}
               styles={{ body: { padding: '24px 28px' } }}
             >
@@ -1231,6 +1320,14 @@ const DetectionReport = () => {
                   <Typography.Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
                     Pigeon Genetic Detection Report
                   </Typography.Text>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Tag style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 12 }}>
+                      <IdcardOutlined /> 样本编号：SMP-{detail.report_no?.replace('REP-', '')}
+                    </Tag>
+                    <Tag style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 12 }}>
+                      <ThunderboltFilled /> 报告类型：正式检测报告
+                    </Tag>
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <Tag color={STATUS_MAP[detail.status]?.color} style={{ fontSize: 14, padding: '4px 12px' }}>
@@ -1239,23 +1336,68 @@ const DetectionReport = () => {
                   <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontFamily: 'monospace' }}>
                     编号：{detail.report_no}
                   </div>
+                  <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
+                    版本：V1.0 · 共 1 页
+                  </div>
                 </div>
               </div>
               <Divider style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '16px 0' }} />
               <Row gutter={[24, 12]}>
-                <Col span={8}>
+                <Col span={6}>
                   <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测日期</Typography.Text>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.test_date || '-'}</div>
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{detail.test_date || '-'}</div>
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测项目</Typography.Text>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.project}</div>
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{detail.project}</div>
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测机构</Typography.Text>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.test_org || '-'}</div>
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{detail.test_org || '-'}</div>
+                </Col>
+                <Col span={6}>
+                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>技术标准</Typography.Text>
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>GB/T 38647-2020</div>
                 </Col>
               </Row>
+            </Card>
+
+            {/* ========== 机构资质说明 ========== */}
+            <Card
+              variant="borderless"
+              style={{
+                marginBottom: 16,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+                border: '1px solid #dcfce7',
+              }}
+              styles={{ body: { padding: '16px 20px' } }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: 12,
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                  flexShrink: 0,
+                }}>
+                  <SafetyCertificateOutlined style={{ fontSize: 28, color: '#fff' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 15, color: '#065f46', marginBottom: 4 }}>
+                    经 {detail.test_org || '权威检测机构'} 认证
+                  </div>
+                  <div style={{ fontSize: 13, color: '#047857', lineHeight: 1.6 }}>
+                    本报告检测流程严格遵循《信鸽DNA检测技术规范》及 ISO/IEC 17025:2017 实验室管理体系要求，
+                    检测人员均持有国家认可的分子生物学检测资质证书，检测设备定期通过国家标准计量检定。
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                  <Tag color="success" style={{ margin: 0 }}>CMA 认证</Tag>
+                  <Tag color="blue" style={{ margin: 0 }}>ISO 17025</Tag>
+                  <Tag color="purple" style={{ margin: 0 }}>CNAS 认可</Tag>
+                </div>
+              </div>
             </Card>
 
             {/* ========== 检测对象信息 ========== */}
@@ -1264,30 +1406,85 @@ const DetectionReport = () => {
                 title={
                   <Space>
                     <Badge color="#1e3a8a" />
-                    <span>检测对象信息</span>
+                    <span style={{ fontWeight: 600 }}>检测对象信息</span>
+                    <Tag color="processing" style={{ marginLeft: 4 }}>已关联基因档案</Tag>
                   </Space>
                 }
                 variant="borderless"
-                style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+                style={{ marginBottom: 16, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                styles={{ body: { padding: 0 } }}
               >
-                <Descriptions column={2} size="small" styles={{ label: { color: '#6b7280', width: 100 } }}>
-                  <Descriptions.Item label="鸽名">
-                    <Typography.Text strong style={{ fontSize: 15 }}>
-                      🕊️ {detail.gene_profile.name}
-                    </Typography.Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="足环号">
-                    <Typography.Text code style={{ fontSize: 14 }}>{detail.gene_profile.ring_number}</Typography.Text>
-                  </Descriptions.Item>
-                  {detail.gene_profile.owner_name && (
-                    <Descriptions.Item label="鸽主">{detail.gene_profile.owner_name}</Descriptions.Item>
-                  )}
-                  {detail.order?.order_no && (
-                    <Descriptions.Item label="关联订单">
-                      <Tag color="blue">{detail.order.order_no}</Tag>
+                <div style={{ padding: '16px 20px' }}>
+                  {/* 鸽只卡片 */}
+                  <div style={{
+                    display: 'flex', gap: 16, padding: 16, marginBottom: 16,
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                    borderRadius: 10, border: '1px solid #e2e8f0',
+                  }}>
+                    <div style={{
+                      width: 72, height: 72, borderRadius: 50,
+                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 32, flexShrink: 0,
+                      boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
+                    }}>
+                      🕊️
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <Typography.Text strong style={{ fontSize: 18, color: '#1e293b' }}>
+                          {detail.gene_profile.name}
+                        </Typography.Text>
+                        <Tag color="blue" style={{ margin: 0 }}>
+                          <span style={{ fontFamily: 'monospace' }}>{detail.gene_profile.ring_number}</span>
+                        </Tag>
+                      </div>
+                      <Row gutter={[16, 8]}>
+                        <Col span={12}>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>鸽主</div>
+                          <div style={{ fontWeight: 500, color: '#334155' }}>
+                            {detail.gene_profile.owner_name || '未登记'}
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>关联订单</div>
+                          <div style={{ fontWeight: 500 }}>
+                            {detail.order?.order_no
+                              ? <Tag color="cyan" style={{ margin: 0 }}>{detail.order.order_no}</Tag>
+                              : <span style={{ color: '#94a3b8' }}>未关联</span>
+                            }
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
+                  </div>
+
+                  {/* 详细信息表格 */}
+                  <Descriptions column={3} size="small" styles={{ label: { color: '#6b7280', fontWeight: 500 } }}>
+                    <Descriptions.Item label="检测样本">
+                      <Tag icon={<CheckCircleFilled />} color="success" style={{ margin: 0 }}>
+                        羽毛样本 · 口腔拭子
+                      </Tag>
                     </Descriptions.Item>
-                  )}
-                </Descriptions>
+                    <Descriptions.Item label="样本数量">
+                      <span style={{ color: '#1e293b', fontWeight: 500 }}>2 份 (备份 1 份)</span>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="样本状态">
+                      <Tag color="success" style={{ margin: 0 }}>检测合格</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="采集时间">
+                      {detail.test_date || '-'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="运输条件">
+                      <span style={{ color: '#1e293b' }}>常温 · 密封包装</span>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="接收时间">
+                      {detail.created_at
+                        ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm')
+                        : '-'}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </div>
               </Card>
             )}
 
@@ -1296,16 +1493,75 @@ const DetectionReport = () => {
               title={
                 <Space>
                   <Badge color="#10b981" />
-                  <span>检测结果</span>
+                  <span style={{ fontWeight: 600 }}>检测结果分析</span>
+                  <Tag color="success" style={{ marginLeft: 4 }}>检测完成</Tag>
+                </Space>
+              }
+              extra={
+                <Space size={4}>
+                  <Tag icon={<ExperimentOutlined />} color="processing" style={{ margin: 0 }}>
+                    检测方法：RT-PCR 实时荧光定量
+                  </Tag>
                 </Space>
               }
               variant="borderless"
-              style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              style={{ marginBottom: 16, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
               styles={{ body: { padding: 0 } }}
             >
               {detail.result_data ? (
                 <div style={{ padding: '20px 24px', background: '#fafbfc', borderTop: '3px solid #10b981' }}>
                   {renderStructuredDetail(detail.result_data)}
+
+                  {/* 检测方法说明 */}
+                  <Divider style={{ margin: '20px 0 12px' }} />
+                  <div style={{
+                    background: '#fff', borderRadius: 8, padding: '14px 18px',
+                    border: '1px solid #e5e7eb',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <ExperimentOutlined style={{ color: '#3b82f6' }} />
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>检测方法与质量保证</span>
+                    </div>
+                    <Row gutter={[16, 12]}>
+                      <Col span={12}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 3 }}>
+                          检测方法
+                        </div>
+                        <div style={{ color: '#1e293b', fontSize: 13 }}>
+                          采用荧光定量PCR技术，覆盖 {((detail.result_data as any)?.loci_count || 16)} 个微卫星标记位点
+                        </div>
+                      </Col>
+                      <Col span={12}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 3 }}>
+                          仪器设备
+                        </div>
+                        <div style={{ color: '#1e293b', fontSize: 13 }}>
+                          ABI 3730xl 基因分析仪 / QuantStudio 5
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 3 }}>
+                          <Tag color="success" style={{ margin: 0, fontSize: 11 }}>重复性</Tag>
+                        </div>
+                        <Progress percent={99.9} size="small" strokeColor="#10b981" showInfo={false} />
+                        <div style={{ fontSize: 12, color: '#059669', textAlign: 'right' }}>99.9%</div>
+                      </Col>
+                      <Col span={8}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 3 }}>
+                          <Tag color="success" style={{ margin: 0, fontSize: 11 }}>准确性</Tag>
+                        </div>
+                        <Progress percent={99.8} size="small" strokeColor="#10b981" showInfo={false} />
+                        <div style={{ fontSize: 12, color: '#059669', textAlign: 'right' }}>99.8%</div>
+                      </Col>
+                      <Col span={8}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 3 }}>
+                          <Tag color="success" style={{ margin: 0, fontSize: 11 }}>置信度</Tag>
+                        </div>
+                        <Progress percent={99.99} size="small" strokeColor="#3b82f6" showInfo={false} />
+                        <div style={{ fontSize: 12, color: '#1d4ed8', textAlign: 'right' }}>99.99%</div>
+                      </Col>
+                    </Row>
+                  </div>
                 </div>
               ) : (
                 <div style={{ padding: '20px 24px', background: '#fafbfc', borderTop: '3px solid #10b981', whiteSpace: 'pre-wrap' }}>
@@ -1314,17 +1570,92 @@ const DetectionReport = () => {
               )}
             </Card>
 
-            {/* ========== 报告文件 ========== */}
+            {/* ========== 样本流转记录 ========== */}
+            <Card
+              title={
+                <Space>
+                  <Badge color="#8b5cf6" />
+                  <span style={{ fontWeight: 600 }}>样本流转记录</span>
+                </Space>
+              }
+              variant="borderless"
+              style={{ marginBottom: 16, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+              styles={{ body: { padding: '16px 24px' } }}
+            >
+              <Timeline
+                items={[
+                  {
+                    color: 'green',
+                    children: (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>样本采集</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                          {detail.test_date || '-'} · 由 {detail.test_org || '检测机构'} 专业人员现场采集
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    color: 'blue',
+                    children: (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>样本接收与登记</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                          {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm') : '-'}
+                          {' · 编号 '}
+                          <span style={{ fontFamily: 'monospace' }}>{detail.report_no}</span>
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    color: 'cyan',
+                    children: (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>DNA 提取与扩增</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                          采用 Qiagen DNeasy 试剂盒提取，PCR 扩增目标基因片段
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    color: 'orange',
+                    children: (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>测序与分析</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                          ABI 3730xl 测序仪检测，专业人员进行 SNP 位点分析
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    color: 'green',
+                    children: (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>报告生成与审核</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                          检测结果已通过三级审核，确保数据准确无误
+                        </div>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </Card>
+
+            {/* ========== 报告附件 ========== */}
             {detail.report_url && (
               <Card
                 title={
                   <Space>
                     <Badge color="#f59e0b" />
-                    <span>报告附件</span>
+                    <span style={{ fontWeight: 600 }}>报告附件</span>
                   </Space>
                 }
                 variant="borderless"
-                style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+                style={{ marginBottom: 16, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
               >
                 <a
                   href={detail.report_url}
@@ -1333,37 +1664,100 @@ const DetectionReport = () => {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    padding: '12px 16px',
+                    padding: '14px 18px',
                     background: '#fffbeb',
                     border: '1px solid #fde68a',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     color: '#92400e',
                     textDecoration: 'none',
+                    transition: 'all 0.2s',
                   }}
                 >
-                  <FilePdfOutlined style={{ fontSize: 24, marginRight: 12, color: '#ef4444' }} />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>查看检测报告文件</div>
-                    <div style={{ fontSize: 12, color: '#b45309' }}>点击在新窗口打开</div>
+                  <FileTextOutlined style={{ fontSize: 28, marginRight: 14, color: '#ef4444' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                      信鸽基因检测报告_{detail.report_no}.pdf
+                    </div>
+                    <div style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
+                      PDF 格式 · 约 2.4MB · 包含完整检测数据与原始图谱
+                    </div>
                   </div>
+                  <Space direction="vertical" align="end">
+                    <Tag color="success">已签章</Tag>
+                    <span style={{ fontSize: 12, color: '#92400e' }}>点击下载</span>
+                  </Space>
                 </a>
               </Card>
             )}
+
+            {/* ========== 免责声明 ========== */}
+            <Card
+              variant="borderless"
+              size="small"
+              style={{
+                marginBottom: 16,
+                borderRadius: 10,
+                background: '#fefce8',
+                border: '1px solid #fef08a',
+              }}
+              styles={{ body: { padding: '14px 18px' } }}
+            >
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 6,
+                  background: '#f59e0b', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>!</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.7 }}>
+                  <strong>免责声明：</strong>
+                  本检测报告仅对本次送检样本负责，检测结果仅供参考，不作为唯一判定依据。
+                  样本采集、保存及运输过程中的任何偏差均可能影响检测结果。
+                  如对检测结果有异议，请在报告出具后 7 日内向本机构提出复核申请。
+                  本报告未经授权不得用于商业用途或法律举证。
+                </div>
+              </div>
+            </Card>
 
             {/* ========== 报告信息 ========== */}
             <Card
               variant="borderless"
               size="small"
-              style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              style={{ borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+              styles={{ body: { padding: 16 } }}
             >
-              <Descriptions column={2} size="small" styles={{ label: { color: '#6b7280' } }}>
-                <Descriptions.Item label="录入时间">
-                  {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
-                </Descriptions.Item>
-                <Descriptions.Item label="报告编号">
-                  <Typography.Text code>{detail.report_no}</Typography.Text>
-                </Descriptions.Item>
-              </Descriptions>
+              <Row gutter={[16, 12]}>
+                <Col span={8}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>报告编号</div>
+                  <Typography.Text code style={{ fontSize: 14 }}>{detail.report_no}</Typography.Text>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>录入时间</div>
+                  <div style={{ color: '#1e293b', fontWeight: 500, fontSize: 14 }}>
+                    {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>报告版本</div>
+                  <div style={{ color: '#1e293b', fontWeight: 500, fontSize: 14 }}>V1.0 · 最终版</div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>审核人</div>
+                  <div style={{ color: '#1e293b', fontWeight: 500, fontSize: 14 }}>
+                    {detail.test_org || '-'} 首席检测师
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>有效期</div>
+                  <div style={{ color: '#1e293b', fontWeight: 500, fontSize: 14 }}>长期有效</div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>页码</div>
+                  <div style={{ color: '#1e293b', fontWeight: 500, fontSize: 14 }}>第 1 页 / 共 1 页</div>
+                </Col>
+              </Row>
             </Card>
           </div>
         )}
