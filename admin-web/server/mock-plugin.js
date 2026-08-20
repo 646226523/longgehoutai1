@@ -427,9 +427,453 @@ server.middlewares.use('/api/system/map-config', (req, res, next) => {
   res.end(JSON.stringify({ code: 0, message: 'success', data }));
 });
 
+// ==================== 检测机构 Mock 数据 ====================
+
+// 检测项目类型字典
+const MOCK_DETECTION_ITEM_TYPES = [
+  { code: 'dna_paternity', name: 'DNA亲子鉴定' },
+  { code: 'dna_variety', name: 'DNA品种鉴定' },
+  { code: 'dna_gender', name: 'DNA性别鉴定' },
+  { code: 'dna_race', name: 'DNA赛程性能检测' },
+  { code: 'dna_health', name: 'DNA健康筛查' },
+  { code: 'dna_ancestry', name: 'DNA血统分析' },
+];
+
+// 检测机构内存存储
+let detectionOrgIdSeq = 4;
+const detectionOrgStore = new Map();
+
+// 预置 3 条示例机构数据
+(function initDetectionOrgs() {
+  const now = Date.now();
+  detectionOrgStore.set(1, {
+    id: 1, name: '信鸽DNA检测中心', code: 'LAB-2026-0801-001',
+    contact: '张主任', phone: '13800138001', address: '上海市浦东新区张江高科技园区',
+    location: JSON.stringify({ lng: 121.597, lat: 31.203, address: '上海市浦东新区张江高科技园区' }),
+    qualification: null, projects: 'DNA亲子鉴定,DNA品种鉴定', status: 1,
+    created_at: now - 5 * 86400000, updated_at: now - 2 * 3600000,
+  });
+  detectionOrgStore.set(2, {
+    id: 2, name: '鲲鹏基因检测实验室', code: 'LAB-2026-0802-002',
+    contact: '李经理', phone: '13900139002', address: '北京市海淀区中关村科技园区',
+    location: JSON.stringify({ lng: 116.316, lat: 39.984, address: '北京市海淀区中关村科技园区' }),
+    qualification: null, projects: 'DNA亲子鉴定,DNA性别鉴定,DNA血统分析', status: 1,
+    created_at: now - 3 * 86400000, updated_at: now - 1 * 3600000,
+  });
+  detectionOrgStore.set(3, {
+    id: 3, name: '赛鸽健康检测中心', code: 'LAB-2026-0805-003',
+    contact: '王医生', phone: '13700137003', address: '广州市天河区生物科技园区',
+    location: JSON.stringify({ lng: 113.361, lat: 23.124, address: '广州市天河区生物科技园区' }),
+    qualification: null, projects: 'DNA健康筛查,DNA赛程性能检测', status: 2,
+    created_at: now - 1 * 86400000, updated_at: now - 30 * 60000,
+  });
+})();
+
+// 检测订单内存存储
+let detectionOrderIdSeq = 3;
+const detectionOrderStore = new Map();
+
+(function initDetectionOrders() {
+  const now = Date.now();
+  detectionOrderStore.set(1, {
+    id: 1, order_no: 'DT20260815001', user_name: '陈鸽友', phone: '13612345678',
+    gene_profile_id: null, ring_number: '2024-CN-001234', test_org: '信鸽DNA检测中心',
+    org_id: 1, project: 'DNA亲子鉴定', scheduled_date: '2026-08-20',
+    status: 'pending', remark: '紧急检测', created_at: now - 2 * 86400000, updated_at: now - 1 * 3600000,
+  });
+  detectionOrderStore.set(2, {
+    id: 2, order_no: 'DT20260818001', user_name: '刘鸽友', phone: '13587654321',
+    gene_profile_id: null, ring_number: '2024-CN-005678', test_org: '鲲鹏基因检测实验室',
+    org_id: 2, project: 'DNA品种鉴定', scheduled_date: null,
+    status: 'confirmed', remark: '', created_at: now - 1 * 86400000, updated_at: now - 2 * 3600000,
+  });
+})();
+
+// GET /api/detection/dict/item-types - 检测项目类型字典
+server.middlewares.use('/api/detection/dict/item-types', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_DETECTION_ITEM_TYPES }));
+});
+
+// GET /api/detection/orgs - 检测机构分页列表
+server.middlewares.use('/api/detection/orgs', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  // Connect 剥离匹配前缀后,pathname === '/' 表示精确匹配(无子路由)
+  if (url.pathname !== '/') { next(); return; }
+  const page = parseInt(url.searchParams.get('page') || '1', 10);
+  const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+  const keyword = url.searchParams.get('keyword') || '';
+  const status = url.searchParams.get('status');
+
+  let all = Array.from(detectionOrgStore.values());
+  if (keyword) {
+    const kw = keyword.toLowerCase();
+    all = all.filter(o =>
+      (o.name && o.name.toLowerCase().includes(kw)) ||
+      (o.code && o.code.toLowerCase().includes(kw)) ||
+      (o.contact && o.contact.toLowerCase().includes(kw))
+    );
+  }
+  if (status !== null && status !== undefined && status !== '') {
+    all = all.filter(o => String(o.status) === String(status));
+  }
+
+  // 排序: status DESC, created_at DESC
+  all.sort((a, b) => (b.status - a.status) || (b.created_at - a.created_at));
+
+  const total = all.length;
+  const start = (page - 1) * pageSize;
+  const list = all.slice(start, start + pageSize);
+
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
+});
+
+// POST /api/detection/orgs - 新增检测机构
+server.middlewares.use('/api/detection/orgs', (req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body || '{}');
+      const id = detectionOrgIdSeq++;
+      const now = Date.now();
+      detectionOrgStore.set(id, {
+        id,
+        name: (data.name || '').trim(),
+        code: (data.code || '').trim(),
+        contact: data.contact || null,
+        phone: data.phone || null,
+        address: data.address || null,
+        location: data.location || null,
+        qualification: data.qualification || null,
+        projects: data.projects || '',
+        status: data.status ?? 1,
+        created_at: now,
+        updated_at: now,
+      });
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 0, message: '新增成功', data: { id } }));
+    } catch (e) {
+      res.setHeader('Content-Type', 'application/json');
+      res.statusCode = 400;
+      res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+    }
+  });
+});
+
+// GET /api/detection/orgs/options - 机构下拉选项(仅合作中)
+server.middlewares.use('/api/detection/orgs/options', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const list = Array.from(detectionOrgStore.values())
+    .filter(o => o.status === 1)
+    .map(o => ({ id: o.id, name: o.name, code: o.code, projects: o.projects }));
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: list }));
+});
+
+// GET /api/detection/orgs/:id - 机构详情
+server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)$/, (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const id = parseInt(req.url.split('/').pop(), 10);
+  const org = detectionOrgStore.get(id);
+  if (!org) {
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 404;
+    res.end(JSON.stringify({ code: 404, message: '检测机构不存在', data: null }));
+    return;
+  }
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: org }));
+});
+
+// PUT /api/detection/orgs/:id - 编辑机构
+server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)$/, (req, res, next) => {
+  if (req.method !== 'PUT') { next(); return; }
+  const id = parseInt(req.url.split('/').pop(), 10);
+  const existing = detectionOrgStore.get(id);
+  if (!existing) {
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 404;
+    res.end(JSON.stringify({ code: 404, message: '检测机构不存在', data: null }));
+    return;
+  }
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body || '{}');
+      const now = Date.now();
+      detectionOrgStore.set(id, {
+        ...existing,
+        name: (data.name || existing.name).trim(),
+        code: (data.code || existing.code).trim(),
+        contact: data.contact ?? existing.contact,
+        phone: data.phone ?? existing.phone,
+        address: data.address ?? existing.address,
+        location: data.location ?? existing.location,
+        qualification: data.qualification ?? existing.qualification,
+        projects: data.projects ?? existing.projects,
+        status: data.status ?? existing.status,
+        updated_at: now,
+      });
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
+    } catch (e) {
+      res.setHeader('Content-Type', 'application/json');
+      res.statusCode = 400;
+      res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+    }
+  });
+});
+
+// PATCH /api/detection/orgs/:id/status - 切换机构状态
+server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)\/status$/, (req, res, next) => {
+  if (req.method !== 'PATCH') { next(); return; }
+  const id = parseInt(req.url.split('/')[2], 10);
+  const existing = detectionOrgStore.get(id);
+  if (!existing) {
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 404;
+    res.end(JSON.stringify({ code: 404, message: '检测机构不存在', data: null }));
+    return;
+  }
+  const nextStatus = existing.status === 1 ? 0 : 1;
+  detectionOrgStore.set(id, { ...existing, status: nextStatus, updated_at: Date.now() });
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: nextStatus === 1 ? '已启用' : '已停用', data: { status: nextStatus } }));
+});
+
+// GET /api/detection/orders - 检测订单分页列表
+server.middlewares.use('/api/detection/orders', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  // Connect 剥离匹配前缀后,pathname === '/' 表示精确匹配(无子路由)
+  if (url.pathname !== '/') { next(); return; }
+  const page = parseInt(url.searchParams.get('page') || '1', 10);
+  const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+
+  const all = Array.from(detectionOrderStore.values())
+    .sort((a, b) => b.created_at - a.created_at);
+
+  const total = all.length;
+  const start = (page - 1) * pageSize;
+  const list = all.slice(start, start + pageSize);
+
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
+});
+
+// GET /api/detection/orders/options - 订单下拉选项
+server.middlewares.use('/api/detection/orders/options', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const list = Array.from(detectionOrderStore.values())
+    .sort((a, b) => b.created_at - a.created_at)
+    .slice(0, 200)
+    .map(o => ({
+      id: o.id, order_no: o.order_no, user_name: o.user_name,
+      phone: o.phone, ring_number: o.ring_number, project: o.project, status: o.status,
+      org_id: o.org_id || null, test_org: o.test_org || '',
+      gene_profile_id: o.gene_profile_id || null,
+    }));
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: list }));
+});
+
+// POST /api/detection/orders - 新增订单
+server.middlewares.use('/api/detection/orders', (req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body || '{}');
+      const id = detectionOrderIdSeq++;
+      const now = new Date();
+      const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const seq = String(detectionOrderStore.size + 1).padStart(3, '0');
+      const order_no = `DT${ymd}${seq}`;
+      const nowTs = Date.now();
+      detectionOrderStore.set(id, {
+        id, order_no,
+        user_name: data.user_name || '',
+        phone: data.phone || null,
+        gene_profile_id: data.gene_profile_id || null,
+        ring_number: data.ring_number || '',
+        test_org: data.test_org || '',
+        org_id: data.org_id || null,
+        project: data.project || '',
+        scheduled_date: data.scheduled_date || null,
+        status: data.status || 'pending',
+        remark: data.remark || null,
+        created_at: nowTs,
+        updated_at: nowTs,
+      });
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 0, message: '新增成功', data: { id, order_no } }));
+    } catch (e) {
+      res.setHeader('Content-Type', 'application/json');
+      res.statusCode = 400;
+      res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+    }
+  });
+});
+
+// ==================== 检测报告 Mock 数据 ====================
+
+let detectionReportIdSeq = 1;
+const detectionReportStore = new Map();
+
+// 预置示例报告数据
+(function initDetectionReports() {
+  const now = Date.now();
+  detectionReportStore.set(1, {
+    id: 1, order_id: 1, gene_profile_id: null,
+    report_no: 'REP-2026-0815-001',
+    test_org: '信鸽DNA检测中心', project: 'DNA亲子鉴定',
+    result: '确认该样本与所提供的父母样本存在亲缘关系，亲权概率 99.99%。',
+    result_data: {
+      match_result: 'match', match_percent: 99.99, loci_count: 16,
+      conclusion: '确认该样本与所提供的父母样本存在亲缘关系，亲权概率 99.99%。',
+    },
+    report_url: null, test_date: '2026-08-15', status: 'published',
+    created_at: now - 1 * 86400000,
+  });
+  detectionReportIdSeq = 2;
+})();
+
+// GET /api/detection/reports - 检测报告分页列表
+server.middlewares.use('/api/detection/reports', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  // 精确匹配: 子路由如 /:id 交给后面的处理器
+  if (url.pathname !== '/') { next(); return; }
+
+  const page = parseInt(url.searchParams.get('page') || '1', 10);
+  const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+  const keyword = url.searchParams.get('report_no') || '';
+
+  let all = Array.from(detectionReportStore.values()).sort((a, b) => b.created_at - a.created_at);
+  if (keyword) {
+    all = all.filter(r => r.report_no.includes(keyword));
+  }
+  const total = all.length;
+  const list = all.slice((page - 1) * pageSize, page * pageSize).map(r => ({
+    ...r,
+    gene_profile: null,
+    order: r.order_id ? { order_no: '' } : null,
+  }));
+
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
+});
+
+// GET /api/detection/reports/:id - 报告详情
+server.middlewares.use('/api/detection/reports', (req, res, next) => {
+  if (req.method !== 'GET') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  const match = url.pathname.match(/^\/(\d+)$/);
+  if (!match) { next(); return; }
+  const id = parseInt(match[1], 10);
+  const report = detectionReportStore.get(id);
+  if (!report) {
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 404;
+    res.end(JSON.stringify({ code: 404, message: '报告不存在', data: null }));
+    return;
+  }
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: 'success', data: { ...report, gene_profile: null } }));
+});
+
+// POST /api/detection/reports - 新增报告
+server.middlewares.use('/api/detection/reports', (req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body || '{}');
+      const id = detectionReportIdSeq++;
+      const now = new Date();
+      const nowTs = Date.now();
+      detectionReportStore.set(id, {
+        id,
+        order_id: data.order_id || null,
+        gene_profile_id: data.gene_profile_id || null,
+        report_no: data.report_no || '',
+        test_org: data.test_org || '',
+        project: data.project || '',
+        result: data.result || '',
+        result_data: data.result_data || null,
+        report_url: data.report_url || null,
+        test_date: data.test_date || null,
+        status: data.status || 'draft',
+        created_at: nowTs,
+      });
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 0, message: '录入成功', data: { id } }));
+    } catch (e) {
+      res.setHeader('Content-Type', 'application/json');
+      res.statusCode = 400;
+      res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+    }
+  });
+});
+
+// PUT /api/detection/reports/:id - 更新报告
+server.middlewares.use('/api/detection/reports', (req, res, next) => {
+  if (req.method !== 'PUT') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  const match = url.pathname.match(/^\/(\d+)$/);
+  if (!match) { next(); return; }
+  const id = parseInt(match[1], 10);
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body || '{}');
+      const existing = detectionReportStore.get(id);
+      if (!existing) {
+        res.setHeader('Content-Type', 'application/json');
+        res.statusCode = 404;
+        res.end(JSON.stringify({ code: 404, message: '报告不存在', data: null }));
+        return;
+      }
+      detectionReportStore.set(id, {
+        ...existing,
+        ...data,
+        id,
+        created_at: existing.created_at,
+      });
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
+    } catch (e) {
+      res.setHeader('Content-Type', 'application/json');
+      res.statusCode = 400;
+      res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+    }
+  });
+});
+
+// DELETE /api/detection/reports/:id - 删除报告
+server.middlewares.use('/api/detection/reports', (req, res, next) => {
+  if (req.method !== 'DELETE') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  const match = url.pathname.match(/^\/(\d+)$/);
+  if (!match) { next(); return; }
+  const id = parseInt(match[1], 10);
+  detectionReportStore.delete(id);
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ code: 0, message: '删除成功', data: null }));
+});
+
 // Catch-all for other /api routes
 server.middlewares.use('/api', (req, res, next) => {
-  const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard') || req.url?.startsWith('/api/system/audit-logs') || req.url?.startsWith('/api/system/dictionaries') || req.url?.startsWith('/api/system/configs');
+  const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard') || req.url?.startsWith('/api/system/audit-logs') || req.url?.startsWith('/api/system/dictionaries') || req.url?.startsWith('/api/system/configs') || req.url?.startsWith('/api/detection');
   if (skip) { next(); return; }
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'mock', data: null }));

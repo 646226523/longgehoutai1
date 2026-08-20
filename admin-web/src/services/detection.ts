@@ -118,6 +118,10 @@ export interface DetectionOrderOption {
   ring_number: string;
   project: string;
   status: DetectionOrderStatus;
+  // 自动带出字段
+  org_id: number | null;
+  test_org: string;
+  gene_profile_id: number | null;
 }
 
 // ==================== 检测排期日历 ====================
@@ -127,6 +131,51 @@ export interface CalendarDayCount {
 }
 
 // ==================== 检测报告 ====================
+export type DetectionReportStatus = 'draft' | 'pending' | 'published' | 'rejected';
+
+// 结构化检测结果 - DNA 身份认证 / 亲子鉴定
+export interface DnaResultData {
+  match_result: 'match' | 'mismatch' | 'partial';
+  match_percent: number;
+  loci_count: number;
+  conclusion: string;
+}
+
+// 结构化检测结果 - 遗传病筛查
+export interface DiseaseScreenItem {
+  name: string;
+  result: 'negative' | 'positive';
+  value: string;
+}
+
+export interface DiseaseScreenResultData {
+  items: DiseaseScreenItem[];
+  conclusion: string;
+}
+
+// 结构化检测结果 - 亲子鉴定
+export interface PaternityResultData {
+  sire_confirmed: boolean;
+  dam_confirmed: boolean;
+  paternity_probability: number;
+  conclusion: string;
+}
+
+// 结构化检测结果 - 品种鉴定
+export interface VarietyResultData {
+  breed_match_percent: number;
+  matched_breed: string;
+  conclusion: string;
+}
+
+// 通用结构化检测结果
+export type StructuredResultData =
+  | DnaResultData
+  | DiseaseScreenResultData
+  | PaternityResultData
+  | VarietyResultData
+  | Record<string, unknown>;
+
 export interface DetectionReport {
   id: number;
   order_id: number | null;
@@ -135,11 +184,14 @@ export interface DetectionReport {
   test_org: string;
   project: string;
   result: string | null;
+  result_data: StructuredResultData | null;
   report_url: string | null;
   test_date: string | null;
+  status: DetectionReportStatus;
   created_at: number;
   // 列表/详情附加:关联鸽只简要
   gene_profile?: GeneProfileBrief | null;
+  order?: { order_no: string } | null;
 }
 
 export interface DetectionReportListParams {
@@ -158,8 +210,12 @@ export interface DetectionReportCreateParams {
   test_org: string;
   project: string;
   result?: string;
+  result_data?: StructuredResultData | null;
   report_url?: string;
   test_date?: string;
+  status?: DetectionReportStatus;
+  file_name?: string;
+  file_size?: number;
 }
 
 export interface DetectionReportUpdateParams extends DetectionReportCreateParams {}
