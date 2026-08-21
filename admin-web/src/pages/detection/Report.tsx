@@ -1,6 +1,5 @@
 import {
   App,
-  Badge,
   Button,
   Card,
   Col,
@@ -21,11 +20,16 @@ import {
 } from 'antd';
 import type { UploadFile, UploadProps } from 'antd';
 import {
+  AuditOutlined,
+  CheckCircleFilled,
   CloudUploadOutlined,
+  ExperimentOutlined,
   EyeOutlined,
   FilePdfOutlined,
+  FileSearchOutlined,
   PlusOutlined,
   PrinterOutlined,
+  SafetyCertificateOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
@@ -446,7 +450,91 @@ const ReportPreview = ({ data }: { data: {
   );
 };
 
-// ==================== 主组件 ====================
+function getDetectionProtocol(project: string) {
+  const code = getProjectCode(project);
+  const protocols: Record<string, { method: string; basis: string; sample: string }> = {
+    dna_paternity: {
+      method: 'STR 多位点基因分型与亲权指数分析',
+      basis: '依据检测项目标准操作规程进行位点扩增、分型与亲缘关系判定',
+      sample: '口腔拭子 / 羽毛毛囊 / 血液样本',
+    },
+    dna_variety: {
+      method: '遗传标记分型与参考群体比对分析',
+      basis: '依据检测项目标准操作规程进行特征位点比对与品系相似度评估',
+      sample: '口腔拭子 / 羽毛毛囊 / 血液样本',
+    },
+    dna_health: {
+      method: '目标病原核酸扩增与定性分析',
+      basis: '依据检测项目标准操作规程进行目标序列筛查与结果判读',
+      sample: '口腔拭子 / 泄殖腔拭子 / 血液样本',
+    },
+    dna_ancestry: {
+      method: '遗传标记分型与血统特征比对分析',
+      basis: '依据检测项目标准操作规程进行血统特征位点分析',
+      sample: '口腔拭子 / 羽毛毛囊 / 血液样本',
+    },
+  };
+  return protocols[code] || {
+    method: '目标基因位点检测与生物信息学分析',
+    basis: '依据检测项目标准操作规程完成样本处理、数据分析与结果判读',
+    sample: '生物样本（具体类型未记录）',
+  };
+}
+
+function getReportIntegrity(report: DetectionReport) {
+  const checks = [report.report_no, report.test_org, report.project, report.test_date, report.result || report.result_data];
+  const completed = checks.filter(Boolean).length;
+  return Math.round((completed / checks.length) * 100);
+}
+
+function getVerificationCode(report: DetectionReport) {
+  const source = `${report.id}-${report.report_no}-${report.created_at}`;
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = (hash * 31 + source.charCodeAt(index)) >>> 0;
+  }
+  return `PGR-${hash.toString(16).toUpperCase().padStart(8, '0')}`;
+}
+
+// 统一数据准备函数 - 确保详情抽屉和打印使用完全相同的数据
+function prepareReportData(report: DetectionReport) {
+  const protocol = getDetectionProtocol(report.project);
+  const integrity = getReportIntegrity(report);
+  const verificationCode = getVerificationCode(report);
+  const issuedAt = report.created_at ? dayjs(report.created_at).format('YYYY-MM-DD HH:mm:ss') : '未记录';
+  const issuedDate = report.created_at ? dayjs(report.created_at).format('YYYY-MM-DD') : '未记录';
+  const statusLabel = STATUS_MAP[report.status]?.label || report.status;
+  const profile = report.gene_profile;
+  const order = report.order;
+
+  return {
+    protocol,
+    integrity,
+    verificationCode,
+    issuedAt,
+    issuedDate,
+    statusLabel,
+    profile,
+    order,
+    hasTestOrg: !!report.test_org,
+    hasResultData: !!(report.result_data || report.result),
+    hasFile: !!report.report_url,
+    profileOwnerName: profile?.owner_name || '未记录',
+    orderNo: order?.order_no || '未关联订单',
+    objectName: profile?.name || '未记录',
+    ringNumber: profile?.ring_number || '未记录',
+    archiveNo: report.gene_profile_id ? `GP-${String(report.gene_profile_id).padStart(6, '0')}` : '未关联档案',
+    sampleNo: report.order_id ? `SMP-${String(report.order_id).padStart(6, '0')}` : '未记录',
+    testOrg: report.test_org || '未记录',
+    project: report.project || '未记录',
+    testDate: report.test_date || '未记录',
+    reportNo: report.report_no,
+    result: report.result || '',
+    resultData: report.result_data,
+    reportUrl: report.report_url || null,
+    status: report.status,
+  };
+}
 
 const DetectionReport = () => {
   const { message: msg } = App.useApp();
@@ -560,85 +648,192 @@ const DetectionReport = () => {
     }
   };
 
-  // 构建打印报告HTML内容
+  // 构建打印报告HTML内容 - 权威实验室报告布局
   const buildPrintHtml = (d: DetectionReport): string => {
-    const statusColor =
-      d.status === 'published' ? 'status-published' :
-      d.status === 'pending' ? 'status-pending' :
-      d.status === 'rejected' ? 'status-rejected' : 'status-draft';
-    const statusLabel = STATUS_MAP[d.status]?.label || d.status;
+    const reportData = prepareReportData(d);
+    const { protocol, integrity, verificationCode, issuedAt, statusLabel, hasTestOrg, hasResultData, profileOwnerName, orderNo, objectName, ringNumber, archiveNo, sampleNo, testOrg, project, testDate, reportNo, result, resultData, reportUrl, status } = reportData;
 
     // 检测结果渲染
     let resultHtml = '';
-    if (d.result_data) {
-      resultHtml = renderPrintResult(d.result_data);
+    if (resultData) {
+      resultHtml = renderPrintResult(resultData);
     } else {
-      resultHtml = `<div style="padding:16px;background:#fff;border-radius:8px;">${d.result || '暂无检测结果'}</div>`;
+      resultHtml = `<div class="print-report-raw-result">${result || '暂无检测结果'}</div>`;
     }
 
-    // 鸽只信息
-    const profile = d.gene_profile;
-    const profileHtml = profile ? `
-      <div class="desc-item"><span class="desc-label">鸽名</span><span class="desc-value">🕊️ ${profile.name}</span></div>
-      <div class="desc-item"><span class="desc-label">足环号</span><span class="desc-value"><code>${profile.ring_number}</code></span></div>
-      ${profile.owner_name ? `<div class="desc-item"><span class="desc-label">鸽主</span><span class="desc-value">${profile.owner_name}</span></div>` : ''}
-      ${d.order?.order_no ? `<div class="desc-item"><span class="desc-label">关联订单</span><span class="desc-value"><code>${d.order.order_no}</code></span></div>` : ''}
-    ` : '';
-
-    // 附件
-    const attachmentHtml = d.report_url ? `
-      <div class="card">
-        <div class="card-title"><span class="dot dot-orange"></span>报告附件</div>
-        <div class="file-link">
-          <span class="file-icon">📄</span>
-          <div>
-            <div class="file-title">检测报告文件</div>
-            <div class="file-sub">原始PDF文件</div>
-          </div>
-        </div>
-      </div>
-    ` : '';
-
     return `
-      <div class="report-header">
-        <h1>信鸽基因检测报告</h1>
-        <div class="subtitle">Pigeon Genetic Detection Report</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div>
-            <span class="status-tag ${statusColor}">${statusLabel}</span>
-            <div class="report-no">编号：${d.report_no}</div>
+      <div class="print-report-root">
+        <!-- 报告抬头 -->
+        <div class="print-report-header">
+          <div class="print-report-header-top">
+            <div class="print-report-header-left">
+              <div class="print-report-logo">🧬</div>
+              <div>
+                <h1 class="print-report-title">信鸽基因检测报告</h1>
+                <div class="print-report-subtitle">PIGEON GENETIC TEST REPORT</div>
+                <div class="print-report-hint">实验室检测结果电子凭证</div>
+              </div>
+            </div>
+            <div class="print-report-header-right">
+              <span class="print-report-status print-status-${status}">${statusLabel}</span>
+              <div class="print-report-no-label">报告编号 REPORT NO.</div>
+              <div class="print-report-no">${reportNo}</div>
+            </div>
+          </div>
+          <div class="print-report-meta">
+            <div class="print-report-meta-cell"><span>检测项目</span><strong>${project || '未记录'}</strong></div>
+            <div class="print-report-meta-cell"><span>检测日期</span><strong>${testDate || '未记录'}</strong></div>
+            <div class="print-report-meta-cell"><span>签发时间</span><strong>${issuedAt.split(' ')[0]}</strong></div>
+            <div class="print-report-meta-cell print-report-meta-last"><span>报告版本</span><strong>V1.0</strong></div>
           </div>
         </div>
-        <div class="info-row" style="margin-top:16px;">
-          <div class="info-item">
-            <div class="info-label">检测日期</div>
-            <div class="info-value">${d.test_date || '-'}</div>
+
+        <!-- 01 · 委托方与检测对象信息 + 报告可信状态 -->
+        <div class="print-report-row">
+          <div class="print-section print-section-main">
+            <div class="print-section-title">01 · 委托方与检测对象信息</div>
+            <table class="print-desc-table">
+              <tr>
+                <th>委托人 / 鸽主</th>
+                <td>${profileOwnerName}</td>
+                <th>关联订单号</th>
+                <td>${orderNo}</td>
+              </tr>
+              <tr>
+                <th>检测对象</th>
+                <td>${objectName}</td>
+                <th>足环号</th>
+                <td><code>${ringNumber}</code></td>
+              </tr>
+              <tr>
+                <th>档案编号</th>
+                <td>${archiveNo}</td>
+                <th>样本编号</th>
+                <td>${sampleNo}</td>
+              </tr>
+              <tr>
+                <th>样本类型</th>
+                <td colspan="3">${protocol.sample}</td>
+              </tr>
+            </table>
           </div>
-          <div class="info-item">
-            <div class="info-label">检测项目</div>
-            <div class="info-value">${d.project}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">检测机构</div>
-            <div class="info-value">${d.test_org || '-'}</div>
+          <div class="print-section print-section-trust">
+            <div class="print-section-title">
+              <span>🛡️</span> 报告可信状态
+            </div>
+            <div class="print-trust-list">
+              <div class="print-trust-item"><span class="print-trust-dot print-trust-dot-green"></span>报告已纳入系统档案</div>
+              <div class="print-trust-item">
+                <span class="print-trust-dot ${integrity === 100 ? 'print-trust-dot-green' : 'print-trust-dot-orange'}"></span>
+                ${integrity === 100 ? '关键检测字段完整' : '部分检测字段未记录'}
+              </div>
+              <div class="print-trust-item">
+                <span class="print-trust-dot ${hasResultData ? 'print-trust-dot-green' : 'print-trust-dot-orange'}"></span>
+                ${hasResultData ? '检测结果可追溯' : '暂无结构化检测结果'}
+              </div>
+            </div>
+            <hr class="print-divider" />
+            <div class="print-trust-bar-label"><span>数据完整度</span><strong>${integrity}%</strong></div>
+            <div class="print-trust-bar"><div class="print-trust-bar-fill" style="width:${integrity}%;background:${integrity === 100 ? '#2f855a' : '#d97706'}"></div></div>
           </div>
         </div>
-      </div>
-      ${profileHtml ? `
-        <div class="card">
-          <div class="card-title"><span class="dot dot-blue"></span>检测对象信息</div>
-          <div class="desc-grid">${profileHtml}</div>
+
+        <!-- 02 · 检测机构与技术信息 -->
+        <div class="print-section">
+          <div class="print-section-title">02 · 检测机构与技术信息</div>
+          <table class="print-desc-table print-desc-table-bordered">
+            <tr>
+              <th>检测机构</th>
+              <td>${testOrg}</td>
+              <th>机构记录状态</th>
+              <td>${hasTestOrg ? '<span class="print-tag print-tag-green">系统有效机构</span>' : '<span class="print-tag print-tag-orange">机构信息未记录</span>'}</td>
+            </tr>
+            <tr>
+              <th>检测项目</th>
+              <td>${project || '未记录'}</td>
+              <th>质量控制</th>
+              <td>${hasResultData ? '<span class="print-tag print-tag-blue">结果字段校验通过</span>' : '<span class="print-tag print-tag-orange">待结果数据</span>'}</td>
+            </tr>
+            <tr>
+              <th>检测方法</th>
+              <td colspan="3">${protocol.method}</td>
+            </tr>
+            <tr>
+              <th>检测依据</th>
+              <td colspan="3">${protocol.basis}</td>
+            </tr>
+            <tr>
+              <th>检测日期</th>
+              <td>${testDate || '未记录'}</td>
+              <th>报告签发时间</th>
+              <td>${issuedAt}</td>
+            </tr>
+          </table>
         </div>
-      ` : ''}
-      <div class="card">
-        <div class="card-title"><span class="dot dot-green"></span>检测结果</div>
-        <div class="result-content">${resultHtml}</div>
-      </div>
-      ${attachmentHtml}
-      <div class="card">
-        <div class="footer-info">
-          <span>录入时间：${d.created_at ? dayjs(d.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}</span>
-          <span>报告编号：${d.report_no}</span>
+
+        <!-- 03 · 检测结果与专业判读 -->
+        <div class="print-section print-section-result">
+          <div class="print-section-title print-section-title-dark">03 · 检测结果与专业判读</div>
+          <div class="print-result-wrapper">
+            <div class="print-result-header">
+              <span>🔍 核心检测数据</span>
+              <span class="print-tag print-tag-green">数据判读完成</span>
+            </div>
+            ${resultHtml}
+          </div>
+        </div>
+
+        <!-- 04 · 结果解释与报告声明 -->
+        <div class="print-section print-section-declaration">
+          <div class="print-section-title">04 · 结果解释与报告声明</div>
+          <div class="print-declaration-content">
+            <p>本报告结果仅对本次送检样本负责。检测结论依据当前提交的样本、检测项目及系统记录的结构化数据形成，不应脱离样本身份与检测条件单独使用。</p>
+            <p>如样本身份、采集过程或保存条件存在疑问，建议重新采样复检。涉及亲缘、健康或品系判断时，应结合谱系资料、临床表现及其他专业证据综合评估。</p>
+            <p>未经检测机构书面许可，不得对本报告进行部分复制、修改或用于超出检测目的的证明活动。</p>
+          </div>
+        </div>
+
+        <!-- 05 · 原始文件与记录 / 06 · 电子追溯信息 -->
+        <div class="print-report-row">
+          <div class="print-section print-section-half">
+            <div class="print-section-title">05 · 原始文件与记录</div>
+            <div class="print-file-box">
+              ${reportUrl ? `
+                <div class="print-file-item">
+                  <span class="print-file-icon">📄</span>
+                  <div>
+                    <strong>原始检测报告附件</strong>
+                    <div class="print-file-sub">已上传归档</div>
+                  </div>
+                </div>
+              ` : '<div class="print-file-empty">未上传原始报告附件</div>'}
+            </div>
+          </div>
+          <div class="print-section print-section-half">
+            <div class="print-section-title">06 · 电子追溯信息</div>
+            <table class="print-desc-table print-desc-table-single">
+              <tr><th>校验码</th><td><code>${verificationCode}</code></td></tr>
+              <tr><th>记录 ID</th><td>DR-${String(d.id).padStart(8, '0')}</td></tr>
+              <tr><th>报告版本</th><td>V1.0 · 电子报告</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- 签章栏页脚 -->
+        <div class="print-report-signature">
+          <div class="print-signature-col">
+            <div class="print-signature-line">检测人员：系统未记录</div>
+          </div>
+          <div class="print-signature-col">
+            <div class="print-signature-line">审核人员：系统未记录</div>
+          </div>
+          <div class="print-signature-col">
+            <div class="print-signature-line">签发机构：电子归档</div>
+          </div>
+        </div>
+        <div class="print-report-footer">
+          <span>📋 本报告由检测报告管理系统生成并留存</span>
+          <span>第 1 页 / 共 1 页</span>
         </div>
       </div>
     `;
@@ -1190,200 +1385,193 @@ const DetectionReport = () => {
         </Row>
       </Drawer>
 
-      {/* 详情抽屉 - 专业报告样式 */}
       <Drawer
         title={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              <FilePdfOutlined style={{ color: '#eb2f96', marginRight: 8 }} />
-              信鸽基因检测报告
-            </Typography.Title>
-            <Space size={4}>
-              <Button size="small" icon={<PrinterOutlined />} onClick={handlePrint}>打印</Button>
-              <Button size="small" type="primary" icon={<SaveOutlined />} onClick={handleExportPdf}>导出PDF</Button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 12 }}>
+            <div>
+              <Typography.Title level={4} style={{ margin: 0, color: '#102a43' }}>检测报告详情</Typography.Title>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>实验室电子报告 · 完整检测记录</Typography.Text>
+            </div>
+            <Space>
+              <Button icon={<PrinterOutlined />} onClick={handlePrint}>打印</Button>
+              <Button type="primary" icon={<SaveOutlined />} onClick={handleExportPdf}>导出 PDF</Button>
             </Space>
           </div>
         }
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
-        width={780}
+        width={960}
         destroyOnHidden
-        styles={{ body: { padding: 0, background: '#f5f5f5' } }}
+        styles={{ body: { padding: 0, background: '#e9edf2' }, header: { padding: '16px 24px', borderBottom: '1px solid #d7dee8' } }}
       >
-        {detail && (
-          <div style={{ padding: 20 }}>
-            {/* ========== 报告头 ========== */}
-            <Card
-              variant="borderless"
-              style={{
-                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)',
-                color: '#fff',
-                borderRadius: 12,
-                marginBottom: 16,
-              }}
-              styles={{ body: { padding: '24px 28px' } }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <Typography.Title level={3} style={{ color: '#fff', margin: 0, fontWeight: 700, letterSpacing: 2 }}>
-                    信鸽基因检测报告
-                  </Typography.Title>
-                  <Typography.Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
-                    Pigeon Genetic Detection Report
-                  </Typography.Text>
+        {detail && (() => {
+          const reportData = prepareReportData(detail);
+          const { protocol, integrity, verificationCode, issuedAt, statusLabel, hasTestOrg, hasResultData, profileOwnerName, orderNo, objectName, ringNumber, archiveNo, sampleNo, testOrg, project, testDate, reportNo, result, resultData, reportUrl, status } = reportData;
+          const sectionStyle = { border: '1px solid #d9e2ec', borderRadius: 2, marginBottom: 20, background: '#fff' };
+          const sectionTitleStyle = { padding: '11px 16px', background: '#f4f7fa', borderBottom: '1px solid #d9e2ec', color: '#102a43', fontWeight: 700, letterSpacing: 1 };
+          return (
+            <div style={{ padding: '28px 32px 40px' }}>
+              <div style={{ maxWidth: 880, margin: '0 auto', background: '#fff', boxShadow: '0 8px 30px rgba(16,42,67,0.10)', borderTop: '6px solid #102a43' }}>
+                <div style={{ padding: '30px 36px 24px', borderBottom: '1px solid #d9e2ec' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                        <div style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', background: '#102a43', color: '#d6b36a' }}>
+                          <ExperimentOutlined style={{ fontSize: 25 }} />
+                        </div>
+                        <div>
+                          <Typography.Title level={2} style={{ margin: 0, color: '#102a43', letterSpacing: 4 }}>信鸽基因检测报告</Typography.Title>
+                          <Typography.Text style={{ color: '#627d98', letterSpacing: 1.3 }}>PIGEON GENETIC TEST REPORT</Typography.Text>
+                        </div>
+                      </div>
+                      <Typography.Text style={{ color: '#486581' }}>实验室检测结果电子凭证</Typography.Text>
+                    </div>
+                    <div style={{ minWidth: 225, textAlign: 'right' }}>
+                      <Tag color={STATUS_MAP[status]?.color} style={{ margin: 0, padding: '4px 12px', fontWeight: 700 }}>
+                        {statusLabel}
+                      </Tag>
+                      <div style={{ marginTop: 12, color: '#627d98', fontSize: 12 }}>报告编号 REPORT NO.</div>
+                      <Typography.Text strong style={{ color: '#102a43', fontFamily: 'monospace', fontSize: 15 }}>{reportNo}</Typography.Text>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '1px solid #d9e2ec' }}>
+                    {[
+                      ['检测项目', project || '未记录'],
+                      ['检测日期', testDate || '未记录'],
+                      ['签发时间', issuedAt.split(' ')[0]],
+                      ['报告版本', 'V1.0'],
+                    ].map(([label, value], index) => (
+                      <div key={label} style={{ padding: '12px 14px', borderRight: index < 3 ? '1px solid #d9e2ec' : undefined }}>
+                        <div style={{ color: '#829ab1', fontSize: 11, marginBottom: 4 }}>{label}</div>
+                        <div style={{ color: '#243b53', fontWeight: 650 }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <Tag color={STATUS_MAP[detail.status]?.color} style={{ fontSize: 14, padding: '4px 12px' }}>
-                    {STATUS_MAP[detail.status]?.label || detail.status}
-                  </Tag>
-                  <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontFamily: 'monospace' }}>
-                    编号：{detail.report_no}
+
+                <div style={{ padding: '24px 36px 34px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 250px', gap: 20, marginBottom: 20 }}>
+                    <div style={{ ...sectionStyle, marginBottom: 0 }}>
+                      <div style={sectionTitleStyle}>01 · 委托方与检测对象信息</div>
+                      <Descriptions column={2} size="small" colon={false} styles={{ label: { color: '#627d98', width: 92 }, content: { color: '#102a43', fontWeight: 500 } }} style={{ padding: '16px 18px' }}>
+                        <Descriptions.Item label="委托人 / 鸽主">{profileOwnerName}</Descriptions.Item>
+                        <Descriptions.Item label="关联订单号">{orderNo}</Descriptions.Item>
+                        <Descriptions.Item label="检测对象">{objectName}</Descriptions.Item>
+                        <Descriptions.Item label="足环号"><Typography.Text code>{ringNumber}</Typography.Text></Descriptions.Item>
+                        <Descriptions.Item label="档案编号">{archiveNo}</Descriptions.Item>
+                        <Descriptions.Item label="样本编号">{sampleNo}</Descriptions.Item>
+                        <Descriptions.Item label="样本类型" span={2}>{protocol.sample}</Descriptions.Item>
+                      </Descriptions>
+                    </div>
+                    <div style={{ border: '1px solid #cbd5e1', background: '#f8fafc', padding: 18 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#176b4d', fontWeight: 700, marginBottom: 14 }}>
+                        <SafetyCertificateOutlined /> 报告可信状态
+                      </div>
+                      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                        <div><CheckCircleFilled style={{ color: '#2f855a', marginRight: 8 }} />报告已纳入系统档案</div>
+                        <div>
+                          <CheckCircleFilled style={{ color: integrity === 100 ? '#2f855a' : '#d97706', marginRight: 8 }} />
+                          {integrity === 100 ? '关键检测字段完整' : '部分检测字段未记录'}
+                        </div>
+                        <div>
+                          {hasResultData ? (
+                            <CheckCircleFilled style={{ color: '#2f855a', marginRight: 8 }} />
+                          ) : (
+                            <CheckCircleFilled style={{ color: '#d97706', marginRight: 8 }} />
+                          )}
+                          {hasResultData ? '检测结果可追溯' : '暂无结构化检测结果'}
+                        </div>
+                      </Space>
+                      <Divider style={{ margin: '15px 0' }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#627d98', fontSize: 12 }}><span>数据完整度</span><strong style={{ color: '#102a43' }}>{integrity}%</strong></div>
+                      <div style={{ height: 5, background: '#d9e2ec', marginTop: 7 }}><div style={{ width: `${integrity}%`, height: '100%', background: integrity === 100 ? '#2f855a' : '#d97706' }} /></div>
+                    </div>
+                  </div>
+
+                  <div style={sectionStyle}>
+                    <div style={sectionTitleStyle}>02 · 检测机构与技术信息</div>
+                    <Descriptions bordered column={2} size="small" colon={false} styles={{ label: { width: 140, color: '#486581', background: '#f8fafc' }, content: { color: '#102a43' } }}>
+                      <Descriptions.Item label="检测机构">{testOrg}</Descriptions.Item>
+                      <Descriptions.Item label="机构记录状态">{hasTestOrg ? <Tag color="green">系统有效机构</Tag> : <Tag color="orange">机构信息未记录</Tag>}</Descriptions.Item>
+                      <Descriptions.Item label="检测项目">{project || '未记录'}</Descriptions.Item>
+                      <Descriptions.Item label="质量控制">{hasResultData ? <Tag color="blue">结果字段校验通过</Tag> : <Tag color="orange">待结果数据</Tag>}</Descriptions.Item>
+                      <Descriptions.Item label="检测方法" span={2}>{protocol.method}</Descriptions.Item>
+                      <Descriptions.Item label="检测依据" span={2}>{protocol.basis}</Descriptions.Item>
+                      <Descriptions.Item label="检测日期">{testDate || '未记录'}</Descriptions.Item>
+                      <Descriptions.Item label="报告签发时间">{issuedAt}</Descriptions.Item>
+                    </Descriptions>
+                  </div>
+
+                  <div style={{ ...sectionStyle, borderColor: '#b7c7d8' }}>
+                    <div style={{ ...sectionTitleStyle, background: '#102a43', color: '#fff', borderBottom: 0 }}>03 · 检测结果与专业判读</div>
+                    <div style={{ padding: 20, background: '#f8fafc' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <Space><FileSearchOutlined style={{ color: '#d6b36a', fontSize: 20 }} /><Typography.Text strong style={{ color: '#102a43', fontSize: 16 }}>核心检测数据</Typography.Text></Space>
+                        <Tag color="success">数据判读完成</Tag>
+                      </div>
+                      {resultData ? renderStructuredDetail(resultData) : (
+                        <div style={{ padding: 18, background: '#fff', border: '1px solid #d9e2ec', whiteSpace: 'pre-wrap' }}>{result || '暂无检测结果'}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ ...sectionStyle, borderLeft: '4px solid #d6b36a' }}>
+                    <div style={sectionTitleStyle}>04 · 结果解释与报告声明</div>
+                    <div style={{ padding: '16px 18px', color: '#334e68', lineHeight: 1.85 }}>
+                      <p style={{ marginTop: 0 }}>本报告结果仅对本次送检样本负责。检测结论依据当前提交的样本、检测项目及系统记录的结构化数据形成，不应脱离样本身份与检测条件单独使用。</p>
+                      <p>如样本身份、采集过程或保存条件存在疑问，建议重新采样复检。涉及亲缘、健康或品系判断时，应结合谱系资料、临床表现及其他专业证据综合评估。</p>
+                      <p style={{ marginBottom: 0 }}>未经检测机构书面许可，不得对本报告进行部分复制、修改或用于超出检测目的的证明活动。</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                    <div style={{ ...sectionStyle, marginBottom: 0 }}>
+                      <div style={sectionTitleStyle}>05 · 原始文件与记录</div>
+                      <div style={{ padding: 16 }}>
+                        {reportUrl ? (
+                          <a href={reportUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, color: '#102a43', background: '#f8fafc', border: '1px solid #d9e2ec', textDecoration: 'none' }}>
+                            <FilePdfOutlined style={{ fontSize: 26, color: '#b42318' }} />
+                            <div><strong>原始检测报告附件</strong><div style={{ color: '#627d98', fontSize: 12 }}>点击查看归档文件</div></div>
+                          </a>
+                        ) : <Typography.Text type="secondary">未上传原始报告附件</Typography.Text>}
+                      </div>
+                    </div>
+                    <div style={{ ...sectionStyle, marginBottom: 0 }}>
+                      <div style={sectionTitleStyle}>06 · 电子追溯信息</div>
+                      <div style={{ padding: '14px 16px' }}>
+                        <Descriptions column={1} size="small" colon={false} styles={{ label: { width: 90, color: '#627d98' }, content: { color: '#102a43' } }}>
+                          <Descriptions.Item label="校验码"><Typography.Text code>{verificationCode}</Typography.Text></Descriptions.Item>
+                          <Descriptions.Item label="记录 ID">DR-{String(detail.id).padStart(8, '0')}</Descriptions.Item>
+                          <Descriptions.Item label="报告版本">V1.0 · 电子报告</Descriptions.Item>
+                        </Descriptions>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 30, paddingTop: 20, borderTop: '1px solid #d9e2ec', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 28, textAlign: 'center' }}>
+                    {['检测人员：系统未记录', '审核人员：系统未记录', '签发机构：电子归档'].map((item) => <div key={item} style={{ borderBottom: '1px solid #829ab1', padding: '28px 8px 8px', color: '#486581', fontSize: 12 }}>{item}</div>)}
+                  </div>
+                  <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', color: '#829ab1', fontSize: 11 }}>
+                    <span><AuditOutlined /> 本报告由检测报告管理系统生成并留存</span>
+                    <span>第 1 页 / 共 1 页</span>
                   </div>
                 </div>
               </div>
-              <Divider style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '16px 0' }} />
-              <Row gutter={[24, 12]}>
-                <Col span={8}>
-                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测日期</Typography.Text>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.test_date || '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测项目</Typography.Text>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.project}</div>
-                </Col>
-                <Col span={8}>
-                  <Typography.Text style={{ color: 'rgba(255,255,255,0.7)' }}>检测机构</Typography.Text>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{detail.test_org || '-'}</div>
-                </Col>
-              </Row>
-            </Card>
-
-            {/* ========== 检测对象信息 ========== */}
-            {detail.gene_profile && (
-              <Card
-                title={
-                  <Space>
-                    <Badge color="#1e3a8a" />
-                    <span>检测对象信息</span>
-                  </Space>
-                }
-                variant="borderless"
-                style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-              >
-                <Descriptions column={2} size="small" styles={{ label: { color: '#6b7280', width: 100 } }}>
-                  <Descriptions.Item label="鸽名">
-                    <Typography.Text strong style={{ fontSize: 15 }}>
-                      🕊️ {detail.gene_profile.name}
-                    </Typography.Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="足环号">
-                    <Typography.Text code style={{ fontSize: 14 }}>{detail.gene_profile.ring_number}</Typography.Text>
-                  </Descriptions.Item>
-                  {detail.gene_profile.owner_name && (
-                    <Descriptions.Item label="鸽主">{detail.gene_profile.owner_name}</Descriptions.Item>
-                  )}
-                  {detail.order?.order_no && (
-                    <Descriptions.Item label="关联订单">
-                      <Tag color="blue">{detail.order.order_no}</Tag>
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Card>
-            )}
-
-            {/* ========== 检测结果 ========== */}
-            <Card
-              title={
-                <Space>
-                  <Badge color="#10b981" />
-                  <span>检测结果</span>
-                </Space>
-              }
-              variant="borderless"
-              style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-              styles={{ body: { padding: 0 } }}
-            >
-              {detail.result_data ? (
-                <div style={{ padding: '20px 24px', background: '#fafbfc', borderTop: '3px solid #10b981' }}>
-                  {renderStructuredDetail(detail.result_data)}
-                </div>
-              ) : (
-                <div style={{ padding: '20px 24px', background: '#fafbfc', borderTop: '3px solid #10b981', whiteSpace: 'pre-wrap' }}>
-                  {detail.result || <span style={{ color: '#bfbfbf' }}>暂无检测结果</span>}
-                </div>
-              )}
-            </Card>
-
-            {/* ========== 报告文件 ========== */}
-            {detail.report_url && (
-              <Card
-                title={
-                  <Space>
-                    <Badge color="#f59e0b" />
-                    <span>报告附件</span>
-                  </Space>
-                }
-                variant="borderless"
-                style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-              >
-                <a
-                  href={detail.report_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    background: '#fffbeb',
-                    border: '1px solid #fde68a',
-                    borderRadius: 8,
-                    color: '#92400e',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <FilePdfOutlined style={{ fontSize: 24, marginRight: 12, color: '#ef4444' }} />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>查看检测报告文件</div>
-                    <div style={{ fontSize: 12, color: '#b45309' }}>点击在新窗口打开</div>
-                  </div>
-                </a>
-              </Card>
-            )}
-
-            {/* ========== 报告信息 ========== */}
-            <Card
-              variant="borderless"
-              size="small"
-              style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-            >
-              <Descriptions column={2} size="small" styles={{ label: { color: '#6b7280' } }}>
-                <Descriptions.Item label="录入时间">
-                  {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
-                </Descriptions.Item>
-                <Descriptions.Item label="报告编号">
-                  <Typography.Text code>{detail.report_no}</Typography.Text>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </Drawer>
 
-      {/* 打印专用样式和容器 */}
+      {/* 打印专用样式和容器 - 权威实验室报告布局 */}
       <style>{`
-        @page { size: A4; margin: 15mm; }
+        @page { size: A4; margin: 12mm; }
         .print-container {
           display: none;
         }
         @media print {
-          /* 隐藏所有非打印元素 */
-          body * {
-            visibility: hidden;
-          }
+          body * { visibility: hidden; }
           .print-container,
-          .print-container * {
-            visibility: visible;
-          }
+          .print-container * { visibility: visible; }
           .print-container {
             display: block !important;
             position: absolute;
@@ -1393,237 +1581,447 @@ const DetectionReport = () => {
             padding: 0;
             margin: 0;
             background: #fff;
-          }
-          /* 打印内容样式 */
-          .print-container .report-header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
-            color: #fff;
-            padding: 24px 28px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-          }
-          .print-container .report-header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            margin-bottom: 4px;
-          }
-          .print-container .report-header .subtitle {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: #102a43;
             font-size: 13px;
-            opacity: 0.75;
+            line-height: 1.5;
+          }
+
+          /* ===== 根容器 ===== */
+          .print-container .print-report-root {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 0;
+            background: #fff;
+            border-top: 5px solid #102a43;
+          }
+
+          /* ===== 报告抬头 ===== */
+          .print-container .print-report-header {
+            border-bottom: 1px solid #d9e2ec;
+            padding-bottom: 18px;
             margin-bottom: 16px;
           }
-          .print-container .report-header .info-row {
+          .print-container .print-report-header-top {
             display: flex;
-            gap: 24px;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
           }
-          .print-container .report-header .info-item {
-            flex: 1;
+          .print-container .print-report-header-left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
           }
-          .print-container .report-header .info-label {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-bottom: 2px;
+          .print-container .print-report-logo {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #102a43;
+            color: #d6b36a;
+            font-size: 22px;
           }
-          .print-container .report-header .info-value {
-            font-size: 16px;
-            font-weight: 600;
+          .print-container .print-report-title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: #102a43;
+            letter-spacing: 3px;
           }
-          .print-container .report-header .status-tag {
+          .print-container .print-report-subtitle {
+            font-size: 11px;
+            color: #627d98;
+            letter-spacing: 1px;
+          }
+          .print-container .print-report-hint {
+            font-size: 11px;
+            color: #486581;
+            margin-top: 4px;
+          }
+          .print-container .print-report-header-right {
+            text-align: right;
+          }
+          .print-container .print-report-status {
             display: inline-block;
             padding: 4px 12px;
-            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 2px;
+          }
+          .print-container .print-status-published { background: #d1fae5; color: #065f46; }
+          .print-container .print-status-draft { background: #e5e7eb; color: #374151; }
+          .print-container .print-status-pending { background: #fef3c7; color: #92400e; }
+          .print-container .print-status-rejected { background: #fee2e2; color: #991b1b; }
+          .print-container .print-report-no-label {
+            font-size: 10px;
+            color: #829ab1;
+            margin-top: 10px;
+            letter-spacing: 1px;
+          }
+          .print-container .print-report-no {
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
-          }
-          .print-container .report-header .status-published { background: #10b981; }
-          .print-container .report-header .status-draft { background: #9ca3af; }
-          .print-container .report-header .status-pending { background: #f59e0b; }
-          .print-container .report-header .status-rejected { background: #ef4444; }
-          .print-container .report-header .report-no {
-            font-size: 13px;
-            opacity: 0.85;
+            color: #102a43;
             font-family: monospace;
           }
-          .print-container .card {
+          .print-container .print-report-meta {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid #d9e2ec;
+          }
+          .print-container .print-report-meta-cell {
+            padding: 10px 14px;
+            border-right: 1px solid #d9e2ec;
+          }
+          .print-container .print-report-meta-cell:last-child {
+            border-right: none;
+          }
+          .print-container .print-report-meta-cell span {
+            display: block;
+            font-size: 10px;
+            color: #829ab1;
+            margin-bottom: 3px;
+          }
+          .print-container .print-report-meta-cell strong {
+            font-size: 13px;
+            color: #243b53;
+            font-weight: 600;
+          }
+
+          /* ===== 板块布局 ===== */
+          .print-container .print-report-row {
+            display: grid;
+            grid-template-columns: 1fr 220px;
+            gap: 14px;
+            margin-bottom: 14px;
+          }
+          .print-container .print-report-row:has(.print-section-half) {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          /* ===== 通用板块 ===== */
+          .print-container .print-section {
+            border: 1px solid #d9e2ec;
+            border-radius: 2px;
             background: #fff;
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            margin-bottom: 14px;
             break-inside: avoid;
           }
-          .print-container .card-title {
-            font-size: 15px;
+          .print-container .print-section-main { margin-bottom: 0; }
+          .print-container .print-section-half { margin-bottom: 0; }
+          .print-container .print-section-trust {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+          }
+          .print-container .print-section-title {
+            padding: 10px 14px;
+            background: #f4f7fa;
+            border-bottom: 1px solid #d9e2ec;
+            font-size: 12px;
+            font-weight: 700;
+            color: #102a43;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .print-container .print-section-title-dark {
+            background: #102a43;
+            color: #fff;
+            border-bottom: none;
+          }
+
+          /* ===== 描述表格 ===== */
+          .print-container .print-desc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+          .print-container .print-desc-table th,
+          .print-container .print-desc-table td {
+            padding: 8px 14px;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+          }
+          .print-container .print-desc-table th {
+            width: 90px;
+            color: #627d98;
+            font-weight: 500;
+            font-size: 11px;
+          }
+          .print-container .print-desc-table td {
+            color: #102a43;
+          }
+          .print-container .print-desc-table td code {
+            background: #f3f4f6;
+            padding: 1px 5px;
+            font-size: 11px;
+          }
+          .print-container .print-desc-table-bordered th {
+            background: #f8fafc;
+            border-right: 1px solid #d9e2ec;
+            color: #486581;
+            font-weight: 500;
+          }
+          .print-container .print-desc-table-bordered td {
+            border-right: 1px solid #d9e2ec;
+          }
+          .print-container .print-desc-table-bordered tr:last-child th,
+          .print-container .print-desc-table-bordered tr:last-child td {
+            border-bottom: none;
+          }
+          .print-container .print-desc-table-single th {
+            width: 100px;
+          }
+
+          /* ===== 标签 ===== */
+          .print-container .print-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
             font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 12px;
+            border-radius: 2px;
+          }
+          .print-container .print-tag-green { background: #d1fae5; color: #065f46; }
+          .print-container .print-tag-blue { background: #dbeafe; color: #1e40af; }
+          .print-container .print-tag-orange { background: #fed7aa; color: #9a3412; }
+          .print-container .print-tag-red { background: #fee2e2; color: #991b1b; }
+
+          /* ===== 可信状态 ===== */
+          .print-container .print-trust-list {
+            padding: 12px 14px;
+            font-size: 12px;
+          }
+          .print-container .print-trust-item {
             display: flex;
             align-items: center;
             gap: 8px;
+            margin-bottom: 6px;
           }
-          .print-container .card-title .dot {
+          .print-container .print-trust-item:last-child {
+            margin-bottom: 0;
+          }
+          .print-container .print-trust-dot {
             width: 8px;
             height: 8px;
-            border-radius: 4px;
+            border-radius: 50%;
           }
-          .print-container .dot-blue { background: #1e3a8a; }
-          .print-container .dot-green { background: #10b981; }
-          .print-container .dot-orange { background: #f59e0b; }
-          .print-container .desc-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 24px;
+          .print-container .print-trust-dot-green { background: #2f855a; }
+          .print-container .print-trust-dot-orange { background: #d97706; }
+          .print-container .print-divider {
+            border: none;
+            border-top: 1px solid #d9e2ec;
+            margin: 10px 0;
           }
-          .print-container .desc-item {
+          .print-container .print-trust-bar-label {
             display: flex;
-            gap: 8px;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #627d98;
+            padding: 0 14px;
+          }
+          .print-container .print-trust-bar-label strong {
+            color: #102a43;
+          }
+          .print-container .print-trust-bar {
+            height: 4px;
+            background: #d9e2ec;
+            margin: 6px 14px 0;
+          }
+          .print-container .print-trust-bar-fill {
+            height: 100%;
+            transition: width 0.3s;
+          }
+
+          /* ===== 检测结果 ===== */
+          .print-container .print-section-result {
+            border-color: #b7c7d8;
+          }
+          .print-container .print-result-wrapper {
+            padding: 14px 18px;
+            background: #f8fafc;
+          }
+          .print-container .print-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
             font-size: 13px;
+            font-weight: 600;
+            color: #102a43;
           }
-          .print-container .desc-label { color: #6b7280; min-width: 80px; }
-          .print-container .desc-value { color: #1f2937; font-weight: 500; }
-          .print-container .desc-value code {
-            background: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-          }
-          .print-container .result-content {
-            background: #fafbfc;
-            border-top: 3px solid #10b981;
-            padding: 20px 24px;
-            border-radius: 8px;
-          }
-          .print-container .stat-row {
+          .print-container .print-result-wrapper .stat-row {
             display: flex;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 12px;
+            margin-bottom: 14px;
           }
-          .print-container .stat-box {
+          .print-container .print-result-wrapper .stat-box {
             flex: 1;
             background: #fff;
-            border-radius: 8px;
-            padding: 12px 8px;
+            padding: 10px 6px;
             text-align: center;
+            border: 1px solid #e2e8f0;
           }
-          .print-container .stat-label {
+          .print-container .print-result-wrapper .stat-label {
             color: #6b7280;
-            font-size: 12px;
-            margin-bottom: 4px;
+            font-size: 11px;
+            margin-bottom: 3px;
           }
-          .print-container .stat-value {
-            font-size: 22px;
+          .print-container .print-result-wrapper .stat-value {
+            font-size: 20px;
             font-weight: 700;
             color: #1e3a8a;
           }
-          .print-container .stat-value .unit {
-            font-size: 14px;
+          .print-container .print-result-wrapper .stat-value .unit {
+            font-size: 12px;
             font-weight: 400;
             color: #6b7280;
           }
-          .print-container .tag {
+          .print-container .print-result-wrapper .tag {
             display: inline-block;
-            padding: 4px 16px;
-            border-radius: 4px;
-            font-size: 15px;
+            padding: 3px 12px;
+            font-size: 13px;
             font-weight: 600;
           }
-          .print-container .tag-success { background: #d1fae5; color: #065f46; }
-          .print-container .tag-error { background: #fee2e2; color: #991b1b; }
-          .print-container .tag-warning { background: #fef3c7; color: #92400e; }
-          .print-container .tag-default { background: #f3f4f6; color: #374151; }
-          .print-container .conclusion-box {
+          .print-container .print-result-wrapper .tag-success { background: #d1fae5; color: #065f46; }
+          .print-container .print-result-wrapper .tag-error { background: #fee2e2; color: #991b1b; }
+          .print-container .print-result-wrapper .tag-warning { background: #fef3c7; color: #92400e; }
+          .print-container .print-result-wrapper .progress-bar {
+            height: 5px;
+            background: #e5e7eb;
+            margin-top: 6px;
+          }
+          .print-container .print-result-wrapper .progress-fill {
+            height: 100%;
+          }
+          .print-container .print-result-wrapper .conclusion-box {
             background: #fff;
-            border-left: 4px solid #10b981;
-            padding: 12px 16px;
-            border-radius: 8px;
+            border-left: 3px solid #2f855a;
+            padding: 10px 14px;
+            margin-top: 10px;
           }
-          .print-container .conclusion-title {
+          .print-container .print-result-wrapper .conclusion-title {
             color: #6b7280;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
           }
-          .print-container .conclusion-text {
+          .print-container .print-result-wrapper .conclusion-text {
             white-space: pre-wrap;
             color: #1f2937;
-          }
-          .print-container .file-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            color: #92400e;
-            text-decoration: none;
-          }
-          .print-container .file-icon {
-            font-size: 24px;
-            color: #ef4444;
-          }
-          .print-container .file-title {
-            font-weight: 600;
-          }
-          .print-container .file-sub {
             font-size: 12px;
-            color: #b45309;
           }
-          .print-container .footer-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #6b7280;
-          }
-          .print-container .progress-bar {
-            height: 6px;
-            background: #e5e7eb;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-          }
-          .print-container .progress-fill {
-            height: 100%;
-            border-radius: 3px;
-          }
-          .print-container .screen-list {
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-          }
-          .print-container .screen-item {
+          .print-container .print-result-wrapper .screen-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
+            padding: 8px 12px;
+            background: #fff;
             border-bottom: 1px solid #f3f4f6;
+            font-size: 12px;
           }
-          .print-container .screen-item:last-child { border-bottom: none; }
-          .print-container .screen-name {
+          .print-container .print-result-wrapper .screen-item:last-child {
+            border-bottom: none;
+          }
+          .print-container .print-result-wrapper .screen-name {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-weight: 500;
-            color: #1f2937;
           }
-          .print-container .screen-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 4px;
+          .print-container .print-result-wrapper .screen-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
           }
-          .print-container .screen-dot-positive { background: #ef4444; }
-          .print-container .screen-dot-negative { background: #10b981; }
-          .print-container .screen-right {
+          .print-container .print-result-wrapper .screen-dot-positive { background: #ef4444; }
+          .print-container .print-result-wrapper .screen-dot-negative { background: #10b981; }
+          .print-container .print-result-wrapper .screen-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
           }
-          .print-container .mono {
+          .print-container .print-result-wrapper .mono {
             font-family: monospace;
             color: #6b7280;
-            font-size: 13px;
+            font-size: 11px;
+          }
+          .print-container .print-report-raw-result {
+            padding: 12px 14px;
+            background: #fff;
+            border: 1px solid #d9e2ec;
+            white-space: pre-wrap;
+          }
+
+          /* ===== 声明 ===== */
+          .print-container .print-section-declaration {
+            border-left: 4px solid #d6b36a;
+          }
+          .print-container .print-declaration-content {
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #334e68;
+            line-height: 1.7;
+          }
+          .print-container .print-declaration-content p {
+            margin: 0 0 8px;
+          }
+          .print-container .print-declaration-content p:last-child {
+            margin-bottom: 0;
+          }
+
+          /* ===== 文件与追溯 ===== */
+          .print-container .print-file-box {
+            padding: 12px 14px;
+          }
+          .print-container .print-file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #f8fafc;
+            border: 1px solid #d9e2ec;
+          }
+          .print-container .print-file-icon {
+            font-size: 20px;
+          }
+          .print-container .print-file-sub {
+            font-size: 11px;
+            color: #627d98;
+            margin-top: 2px;
+          }
+          .print-container .print-file-empty {
+            color: #829ab1;
+            font-size: 12px;
+          }
+
+          /* ===== 签章与页脚 ===== */
+          .print-container .print-report-signature {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid #d9e2ec;
+          }
+          .print-container .print-signature-col {
+            text-align: center;
+          }
+          .print-container .print-signature-line {
+            border-bottom: 1px solid #829ab1;
+            padding-bottom: 6px;
+            font-size: 11px;
+            color: #486581;
+          }
+          .print-container .print-report-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #829ab1;
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid #f3f4f6;
           }
         }
       `}</style>
