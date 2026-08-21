@@ -1,11 +1,8 @@
-﻿import {
-  DrawerForm,
+import {
   ModalForm,
   PageContainer,
   ProFormDigit,
-  ProFormSelect,
   ProFormText,
-  ProFormTextArea,
   ProTable,
   type ActionType,
   type ProColumns,
@@ -13,22 +10,35 @@
 import {
   App,
   Button,
+  Card,
+  Col,
   Descriptions,
+  Divider,
   Drawer,
   Empty,
+  Form,
+  Input,
+  InputNumber,
   Popconfirm,
+  Row,
+  Select,
   Space,
   Spin,
   Tabs,
   Tag,
+  Tooltip,
+  theme,
 } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  InfoCircleOutlined,
   PlayCircleOutlined,
   PlusOutlined,
+  SearchOutlined,
   StopOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -88,9 +98,13 @@ const AuctionItems = () => {
 
   const sid = sessionId ? Number(sessionId) : undefined;
 
+  const { token } = theme.useToken();
+  const [form] = Form.useForm();
+
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<AuctionItem | null>(null);
   const [assetOptions, setAssetOptions] = useState<NftAssetBrief[]>([]);
+  const [assetKeyword, setAssetKeyword] = useState('');
 
   // 详情抽屉
   const [detailVisible, setDetailVisible] = useState(false);
@@ -113,13 +127,25 @@ const AuctionItems = () => {
   const openCreate = () => {
     setEditing(null);
     setDrawerVisible(true);
+    setAssetKeyword('');
     loadAssetOptions();
+    form.resetFields();
+    form.setFieldsValue({ start_price: 0, increment: 0, sort_order: 0 });
   };
 
   const openEdit = (record: AuctionItem) => {
     setEditing(record);
     setDrawerVisible(true);
+    setAssetKeyword('');
     loadAssetOptions();
+    form.setFieldsValue({
+      nft_asset_id: record.nft_asset_id ?? undefined,
+      name: record.name,
+      description: record.description ?? undefined,
+      start_price: record.start_price,
+      increment: record.increment,
+      sort_order: record.sort_order,
+    });
   };
 
   const openDetail = async (record: AuctionItem) => {
@@ -399,75 +425,329 @@ const AuctionItems = () => {
       />
 
       {/* 上架/编辑抽屉 */}
-      <DrawerForm
+      <Drawer
         title={editing ? '编辑拍品' : '上架拍品'}
         open={drawerVisible}
-        onOpenChange={setDrawerVisible}
-        onFinish={handleSubmit}
-        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
-        initialValues={
-          editing
-            ? {
-                nft_asset_id: editing.nft_asset_id ?? undefined,
-                name: editing.name,
-                description: editing.description ?? undefined,
-                start_price: editing.start_price,
-                increment: editing.increment,
-                sort_order: editing.sort_order,
-              }
-            : { start_price: 0, increment: 0, sort_order: 0 }
+        onClose={() => setDrawerVisible(false)}
+        width={900}
+        destroyOnHidden
+        maskClosable={false}
+        extra={
+          <Space>
+            <Button onClick={() => setDrawerVisible(false)}>取消</Button>
+            <Button type="primary" onClick={() => form.submit()}>
+              {editing ? '保存修改' : '确认上架'}
+            </Button>
+          </Space>
         }
       >
-        <ProFormSelect
-          name="nft_asset_id"
-          label="关联 NFT 资产"
-          placeholder="请选择已上链 NFT 资产"
-          showSearch
-          options={assetOptions.map((a) => ({
-            label: `${a.name}${a.token_id ? ` (${a.token_id})` : ''} - ${a.owner_name}`,
-            value: a.id,
-          }))}
-          fieldProps={{
-            onSearch: (v: string) => loadAssetOptions(v),
-          }}
-          tooltip="仅可选择已上链/审核通过的 NFT 资产,且未被同场次其他拍品占用"
-        />
-        <ProFormText
-          name="name"
-          label="拍品名称"
-          placeholder="请输入拍品名称"
-          rules={[{ required: true, message: '请输入拍品名称' }]}
-        />
-        <ProFormTextArea
-          name="description"
-          label="拍品描述"
-          placeholder="请输入拍品描述"
-          fieldProps={{ autoSize: { minRows: 2, maxRows: 5 } }}
-        />
-        <ProFormDigit
-          name="start_price"
-          label="起拍价(¥)"
-          placeholder="请输入起拍价"
-          min={0}
-          fieldProps={{ precision: 2 }}
-          rules={[{ required: true, message: '请输入起拍价' }]}
-        />
-        <ProFormDigit
-          name="increment"
-          label="加价幅度(¥)"
-          placeholder="请输入加价幅度"
-          min={0}
-          fieldProps={{ precision: 2 }}
-          rules={[{ required: true, message: '请输入加价幅度' }]}
-        />
-        <ProFormDigit
-          name="sort_order"
-          label="排序"
-          placeholder="数值越小越靠前"
-          min={0}
-          fieldProps={{ precision: 0 }}
-        />
-      </DrawerForm>
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark
+          onFinish={handleSubmit}
+          initialValues={{ start_price: 0, increment: 0, sort_order: 0 }}
+        >
+          <Row gutter={24}>
+            {/* 左侧表单 */}
+            <Col span={15}>
+              {/* ① 关联 NFT 资产 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid ${token.colorPrimary}` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <WalletOutlined style={{ color: token.colorPrimary }} />
+                    <span>① 关联 NFT 资产</span>
+                  </Space>
+                }
+              >
+                <Form.Item
+                  name="nft_asset_id"
+                  label="选择 NFT 资产"
+                  tooltip={{
+                    title: '仅可选择已上链/审核通过的 NFT 资产,且未被同场次其他拍品占用',
+                  }}
+                >
+                  <Select
+                    showSearch
+                    placeholder="请选择已上链 NFT 资产"
+                    optionFilterProp="label"
+                    onSearch={(v) => {
+                      setAssetKeyword(v);
+                      loadAssetOptions(v);
+                    }}
+                    notFoundContent={assetKeyword ? '无匹配的资产' : '请输入关键词搜索'}
+                    options={assetOptions.map((a) => ({
+                      label: `${a.name}${a.token_id ? ` (${a.token_id})` : ''} - ${a.owner_name}`,
+                      value: a.id,
+                    }))}
+                    suffixIcon={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+                  />
+                </Form.Item>
+              </Card>
+
+              {/* ② 拍品基本信息 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid #13c2c2` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <InfoCircleOutlined style={{ color: '#13c2c2' }} />
+                    <span>② 拍品基本信息</span>
+                  </Space>
+                }
+              >
+                <Form.Item
+                  name="name"
+                  label="拍品名称"
+                  rules={[{ required: true, message: '请输入拍品名称' }]}
+                >
+                  <Input placeholder="请输入拍品名称" maxLength={60} showCount />
+                </Form.Item>
+                <Form.Item name="description" label="拍品描述">
+                  <Input.TextArea
+                    placeholder="请输入拍品描述"
+                    autoSize={{ minRows: 3, maxRows: 6 }}
+                    maxLength={500}
+                    showCount
+                  />
+                </Form.Item>
+              </Card>
+
+              {/* ③ 竞拍参数 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid #faad14` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <Tag color="warning">¥</Tag>
+                    <span>③ 竞拍参数</span>
+                  </Space>
+                }
+              >
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="start_price"
+                      label="起拍价(¥)"
+                      rules={[{ required: true, message: '请输入起拍价' }]}
+                    >
+                      <InputNumber
+                        min={0}
+                        step={100}
+                        precision={2}
+                        style={{ width: '100%' }}
+                        placeholder="请输入起拍价"
+                        formatter={(v) => `¥ ${v}`}
+                        parser={((v: string | undefined) => (v ? Number(v.replace(/[^\d.]/g, '')) : 0)) as any}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="increment"
+                      label="加价幅度(¥)"
+                      rules={[{ required: true, message: '请输入加价幅度' }]}
+                    >
+                      <InputNumber
+                        min={0}
+                        step={50}
+                        precision={2}
+                        style={{ width: '100%' }}
+                        placeholder="请输入加价幅度"
+                        formatter={(v) => `¥ ${v}`}
+                        parser={((v: string | undefined) => (v ? Number(v.replace(/[^\d.]/g, '')) : 0)) as any}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Form.Item name="sort_order" label="排序" tooltip="数值越小越靠前">
+                  <InputNumber
+                    min={0}
+                    step={1}
+                    precision={0}
+                    style={{ width: 200 }}
+                    placeholder="数值越小越靠前"
+                  />
+                </Form.Item>
+              </Card>
+            </Col>
+
+            {/* 右侧预览 */}
+            <Col span={9}>
+              <div style={{ position: 'sticky', top: 0 }}>
+                <Card
+                  styles={{
+                    body: { padding: 0 },
+                  }}
+                  variant="borderless"
+                  style={{
+                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorInfoBg} 100%)`,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  }}
+                  title={
+                    <Space>
+                      <EyeOutlined style={{ color: token.colorPrimary }} />
+                      <span>拍品预览</span>
+                    </Space>
+                  }
+                >
+                  <div style={{ padding: 16 }}>
+                    <Form.Item noStyle shouldUpdate={(prev, cur) =>
+                      prev.nft_asset_id !== cur.nft_asset_id
+                      || prev.name !== cur.name
+                      || prev.start_price !== cur.start_price
+                      || prev.increment !== cur.increment
+                    }>
+                      {({ getFieldValue }) => {
+                        const assetId = getFieldValue('nft_asset_id');
+                        const name = getFieldValue('name');
+                        const startPrice = getFieldValue('start_price') ?? 0;
+                        const increment = getFieldValue('increment') ?? 0;
+                        const selectedAsset = assetOptions.find((a) => a.id === assetId);
+
+                        return (
+                          <>
+                            {/* 拍品标题区 */}
+                            <div
+                              style={{
+                                background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorLink} 100%)`,
+                                borderRadius: 8,
+                                padding: 16,
+                                color: '#fff',
+                                marginBottom: 12,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 18,
+                                  fontWeight: 700,
+                                  marginBottom: 4,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {name || '拍品名称'}
+                              </div>
+                              <Space size={4}>
+                                <Tag
+                                  style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }}
+                                >
+                                  起拍 ¥{Number(startPrice).toLocaleString()}
+                                </Tag>
+                                <Tag
+                                  style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }}
+                                >
+                                  加价 ¥{Number(increment).toLocaleString()}
+                                </Tag>
+                              </Space>
+                            </div>
+
+                            {/* NFT 资产信息 */}
+                            {selectedAsset ? (
+                              <>
+                                <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>
+                                  关联 NFT 资产
+                                </div>
+                                <Descriptions
+                                  column={1}
+                                  size="small"
+                                  styles={{
+                                    label: { color: token.colorTextSecondary, width: 80, fontSize: 12 },
+                                    content: { fontSize: 13 },
+                                  }}
+                                >
+                                  <Descriptions.Item label="资产名称">
+                                    <Space>
+                                      <span style={{ fontWeight: 500 }}>{selectedAsset.name}</span>
+                                      {selectedAsset.token_id && (
+                                        <Tag color="processing" style={{ margin: 0 }}>
+                                          #{selectedAsset.token_id}
+                                        </Tag>
+                                      )}
+                                    </Space>
+                                  </Descriptions.Item>
+                                  <Descriptions.Item label="持有者">
+                                    {selectedAsset.owner_name || '-'}
+                                  </Descriptions.Item>
+                                  <Descriptions.Item label="状态">
+                                    <Tag color={selectedAsset.status === 'minted' ? 'success' : 'default'}>
+                                      {selectedAsset.status === 'minted' ? '已上链' : selectedAsset.status}
+                                    </Tag>
+                                  </Descriptions.Item>
+                                </Descriptions>
+                              </>
+                            ) : (
+                              <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description="暂未选择 NFT 资产"
+                                style={{ padding: '12px 0' }}
+                              />
+                            )}
+
+                            <Divider style={{ margin: '12px 0' }} />
+
+                            {/* 关键参数 */}
+                            <Row gutter={8}>
+                              <Col span={12}>
+                                <div
+                                  style={{
+                                    textAlign: 'center',
+                                    padding: 8,
+                                    background: token.colorFill,
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  <div style={{ fontSize: 18, fontWeight: 700, color: token.colorPrimary }}>
+                                    ¥{Number(startPrice).toLocaleString()}
+                                  </div>
+                                  <div style={{ fontSize: 12, color: token.colorTextSecondary }}>起拍价</div>
+                                </div>
+                              </Col>
+                              <Col span={12}>
+                                <div
+                                  style={{
+                                    textAlign: 'center',
+                                    padding: 8,
+                                    background: token.colorFill,
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  <div style={{ fontSize: 18, fontWeight: 700, color: '#cf1322' }}>
+                                    ¥{Number(increment).toLocaleString()}
+                                  </div>
+                                  <div style={{ fontSize: 12, color: token.colorTextSecondary }}>加价幅度</div>
+                                </div>
+                              </Col>
+                            </Row>
+
+                            <Divider style={{ margin: '12px 0' }} />
+
+                            {/* 提示 */}
+                            <Tooltip title="拍卖师将按此起拍价开始竞拍,每次出价须为当前价加上加价幅度">
+                              <div style={{ fontSize: 12, color: token.colorTextTertiary, lineHeight: 1.6 }}>
+                                <InfoCircleOutlined style={{ marginRight: 4 }} />
+                                {increment > 0
+                                  ? `每次出价须在上一口价基础上增加 ¥${Number(increment).toLocaleString()} 或其倍数`
+                                  : '请设置加价幅度,以保证竞拍正常进行'}
+                              </div>
+                            </Tooltip>
+                          </>
+                        );
+                      }}
+                    </Form.Item>
+                  </div>
+                </Card>
+              </div>
+            </Col>
+          </Row>
+        </Form>
+      </Drawer>
 
       {/* 详情抽屉 */}
       <Drawer

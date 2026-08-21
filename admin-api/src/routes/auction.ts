@@ -136,7 +136,9 @@ auctionRouter.get(
 
     const rows = db
       .prepare(
-        `SELECT id, name, status, start_time, end_time, location, description, created_at, updated_at
+        `SELECT id, name, status, start_time, end_time, location, description,
+                session_code, auction_type, deposit, default_start_price, default_bid_step,
+                allow_entrusted_bid, allow_auto_bid, publish_time, created_at, updated_at
          FROM auction_sessions
          ${whereSql}
          ORDER BY created_at DESC
@@ -189,7 +191,9 @@ auctionRouter.get(
 
     const session = db
       .prepare(
-        `SELECT id, name, status, start_time, end_time, location, description, created_at, updated_at
+        `SELECT id, name, status, start_time, end_time, location, description,
+                session_code, auction_type, deposit, default_start_price, default_bid_step,
+                allow_entrusted_bid, allow_auto_bid, publish_time, created_at, updated_at
          FROM auction_sessions WHERE id = ?`
       )
       .get(id) as AuctionSessionRow | undefined;
@@ -234,12 +238,18 @@ auctionRouter.post(
       end_time?: number | null;
       location?: string;
       description?: string;
+      auction_type?: string;
+      deposit?: number | null;
+      default_start_price?: number | null;
+      default_bid_step?: number | null;
+      allow_entrusted_bid?: boolean | null;
+      allow_auto_bid?: boolean | null;
+      publish_time?: number | null;
     };
 
     const name = String(body.name ?? '').trim();
     if (!name) return fail(res, 400, '场次名称不能为空');
 
-    // 状态默认草稿,允许直接创建为未开始
     let status = String(body.status ?? SESSION_STATUS.DRAFT).trim();
     const validStatus: string[] = [
       SESSION_STATUS.DRAFT,
@@ -252,21 +262,39 @@ auctionRouter.post(
       status = SESSION_STATUS.DRAFT;
     }
 
-    // 时间校验:若同时提供起止时间,结束时间须晚于开始时间
     const startTime = body.start_time ?? null;
     const endTime = body.end_time ?? null;
     if (startTime !== null && endTime !== null && endTime <= startTime) {
       return fail(res, 400, '结束时间必须晚于开始时间');
     }
 
+    const auctionType = String(body.auction_type ?? 'online').trim();
+    const validTypes = ['online', 'offline', 'hybrid'];
+    const finalType = validTypes.includes(auctionType) ? auctionType : 'online';
+
+    const sessionCode = 'AUC-' + new Date().getFullYear() + '-' +
+      String(Math.floor(1000 + Math.random() * 9000));
+
     const result = db
       .prepare(
-        `INSERT INTO auction_sessions (name, status, start_time, end_time, location, description)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO auction_sessions
+          (name, status, start_time, end_time, location, description,
+           session_code, auction_type, deposit, default_start_price, default_bid_step,
+           allow_entrusted_bid, allow_auto_bid, publish_time)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(name, status, startTime, endTime, body.location ?? null, body.description ?? null);
+      .run(
+        name, status, startTime, endTime, body.location ?? null, body.description ?? null,
+        sessionCode, finalType,
+        body.deposit ?? 5000,
+        body.default_start_price ?? 5000,
+        body.default_bid_step ?? 500,
+        body.allow_entrusted_bid !== false ? 1 : 0,
+        body.allow_auto_bid !== false ? 1 : 0,
+        body.publish_time ?? null
+      );
 
-    return ok(res, { id: result.lastInsertRowid }, '场次创建成功');
+    return ok(res, { id: result.lastInsertRowid, session_code: sessionCode }, '场次创建成功');
   }
 );
 
@@ -280,7 +308,9 @@ auctionRouter.put(
     if (!Number.isFinite(id)) return fail(res, 400, '无效的场次 ID');
 
     const target = db
-      .prepare('SELECT id, name, status, start_time, end_time, location, description FROM auction_sessions WHERE id = ?')
+      .prepare(
+        'SELECT id, name, status, start_time, end_time, location, description, session_code, auction_type, deposit, default_start_price, default_bid_step, allow_entrusted_bid, allow_auto_bid, publish_time FROM auction_sessions WHERE id = ?'
+      )
       .get(id) as
       | {
           id: number;
@@ -290,6 +320,14 @@ auctionRouter.put(
           end_time: number | null;
           location: string | null;
           description: string | null;
+          session_code: string | null;
+          auction_type: string | null;
+          deposit: number | null;
+          default_start_price: number | null;
+          default_bid_step: number | null;
+          allow_entrusted_bid: number | null;
+          allow_auto_bid: number | null;
+          publish_time: number | null;
         }
       | undefined;
     if (!target) return fail(res, 404, '拍卖场次不存在');
@@ -308,9 +346,15 @@ auctionRouter.put(
       end_time?: number | null;
       location?: string;
       description?: string;
+      auction_type?: string;
+      deposit?: number | null;
+      default_start_price?: number | null;
+      default_bid_step?: number | null;
+      allow_entrusted_bid?: boolean | null;
+      allow_auto_bid?: boolean | null;
+      publish_time?: number | null;
     };
 
-    // 进行中场次仅允许编辑描述/地点
     const limited = target.status === SESSION_STATUS.ONGOING;
     const finalName = limited
       ? target.name
@@ -332,12 +376,25 @@ auctionRouter.put(
     const finalLocation = body.location !== undefined ? body.location : target.location;
     const finalDescription =
       body.description !== undefined ? body.description : target.description;
+    const finalAuctionType = limited ? target.auction_type : (body.auction_type !== undefined ? body.auction_type : target.auction_type);
+    const finalDeposit = limited ? target.deposit : (body.deposit !== undefined ? body.deposit : target.deposit);
+    const finalDefaultStartPrice = limited ? target.default_start_price : (body.default_start_price !== undefined ? body.default_start_price : target.default_start_price);
+    const finalDefaultBidStep = limited ? target.default_bid_step : (body.default_bid_step !== undefined ? body.default_bid_step : target.default_bid_step);
+    const finalAllowEntrustedBid = limited ? target.allow_entrusted_bid : (body.allow_entrusted_bid !== undefined ? (body.allow_entrusted_bid ? 1 : 0) : target.allow_entrusted_bid);
+    const finalAllowAutoBid = limited ? target.allow_auto_bid : (body.allow_auto_bid !== undefined ? (body.allow_auto_bid ? 1 : 0) : target.allow_auto_bid);
+    const finalPublishTime = limited ? target.publish_time : (body.publish_time !== undefined ? body.publish_time : target.publish_time);
 
     db.prepare(
       `UPDATE auction_sessions
-       SET name = ?, start_time = ?, end_time = ?, location = ?, description = ?, updated_at = ?
+       SET name = ?, start_time = ?, end_time = ?, location = ?, description = ?,
+           auction_type = ?, deposit = ?, default_start_price = ?, default_bid_step = ?,
+           allow_entrusted_bid = ?, allow_auto_bid = ?, publish_time = ?,
+           updated_at = ?
        WHERE id = ?`
-    ).run(finalName, finalStartTime, finalEndTime, finalLocation, finalDescription, Date.now(), id);
+    ).run(finalName, finalStartTime, finalEndTime, finalLocation, finalDescription,
+      finalAuctionType ?? 'online', finalDeposit, finalDefaultStartPrice, finalDefaultBidStep,
+      finalAllowEntrustedBid ?? 1, finalAllowAutoBid ?? 1, finalPublishTime,
+      Date.now(), id);
 
     return ok(res, null, '更新成功');
   }

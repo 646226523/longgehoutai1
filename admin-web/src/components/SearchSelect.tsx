@@ -20,6 +20,12 @@ interface SearchSelectProps {
   mode?: 'tags';
   onFocus?: () => void;
   defaultOptions?: SearchSelectOption[];
+  allowCreate?: boolean;
+}
+
+interface LabeledValue {
+  value: string;
+  label: React.ReactNode;
 }
 
 const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -29,16 +35,20 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
   placeholder = '请输入关键词搜索',
   optionLabel,
   disabled = false,
-  allowClear = true,
+  allowClear = false,
   className,
   style,
   mode,
   onFocus,
   defaultOptions,
+  allowCreate,
 }) => {
   const isTagsMode = mode === 'tags';
+  const isSingleAllowCreate = !isTagsMode && !!allowCreate;
+
   const [options, setOptions] = useState<SearchSelectOption[]>(defaultOptions ?? []);
   const [loading, setLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState<string>('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
   onSearchRef.current = onSearch;
@@ -61,6 +71,7 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
   }, [defaultOptions]);
 
   const handleSearch = useCallback((keyword: string) => {
+    setSearchValue(keyword);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       setLoading(true);
@@ -83,33 +94,51 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
     }
   }, [handleSearch, onFocus]);
 
-  const useRichDropdown = Boolean(optionLabel);
-
-  const selectOptions = options.map((o) => ({
-    value: String(o.value),
-    label: optionLabel ? optionLabel(o) : o.label,
-    selectedLabel: o.label,
-  }));
+  const handleBlur = useCallback(() => {
+    if (isSingleAllowCreate && searchValue) {
+      const trimmed = searchValue.trim();
+      if (trimmed) {
+        const existingOption = options.find((o) => String(o.value) === trimmed);
+        if (existingOption) {
+          onChange?.(existingOption.value, existingOption);
+        } else {
+          onChange?.(trimmed);
+        }
+      }
+    }
+    setSearchValue('');
+  }, [isSingleAllowCreate, searchValue, options, onChange]);
 
   const handleChange = useCallback(
     (val: unknown) => {
       if (isTagsMode) {
-        const arr = val as Array<{ value: string; label: React.ReactNode }>;
+        const arr = val as string[];
         if (!arr || arr.length === 0) {
           onChange?.(undefined, undefined);
           return;
         }
-        const item = arr[0];
-        if (item.value === item.label) {
-          onChange?.(item.value);
+        const newValue = arr[arr.length - 1];
+        if (onChange) {
+          const option = options.find((o) => String(o.value) === String(newValue));
+          onChange(option ? option.value : newValue, option);
+        }
+      } else if (isSingleAllowCreate) {
+        const v = val as LabeledValue | string | number | undefined;
+        if (v === undefined || v === null) {
+          onChange?.(undefined, undefined);
+          return;
+        }
+        let strVal: string;
+        if (typeof v === 'object' && 'value' in v) {
+          strVal = String(v.value);
         } else {
-          const option = selectOptions.find((o) => o.value === item.value);
-          if (option) {
-            const original = options.find((o) => String(o.value) === item.value);
-            onChange?.(original ? original.value : item.value, original);
-          } else {
-            onChange?.(item.value);
-          }
+          strVal = String(v);
+        }
+        const option = options.find((o) => String(o.value) === strVal);
+        if (option) {
+          onChange?.(option.value, option);
+        } else {
+          onChange?.(strVal);
         }
       } else {
         const v = val as string | number | undefined;
@@ -117,54 +146,67 @@ const SearchSelect: React.FC<SearchSelectProps> = ({
           onChange?.(undefined, undefined);
           return;
         }
-        const option = options.find((o) => o.value === v);
+        const strVal = String(v);
+        const option = options.find((o) => String(o.value) === strVal);
         if (option) {
-          onChange?.(v, option);
+          onChange?.(option.value, option);
         } else {
           onChange?.(v);
         }
       }
     },
-    [isTagsMode, onChange, options, selectOptions]
+    [isTagsMode, isSingleAllowCreate, onChange, options]
   );
 
-  const selectValue = isTagsMode
-    ? selectedValue !== undefined && selectedValue !== null
-      ? (() => {
-          const strVal = String(selectedValue);
-          const matched = selectOptions.find((o) => o.value === strVal);
-          return [
-            matched
-              ? { value: matched.value, label: matched.selectedLabel }
-              : { value: strVal, label: strVal },
-          ];
-        })()
-      : []
-    : (selectedValue as string | number | undefined);
+  let selectValue: unknown;
+  if (isTagsMode) {
+    selectValue = selectedValue !== undefined && selectedValue !== null
+      ? [String(selectedValue)]
+      : [];
+  } else if (isSingleAllowCreate && selectedValue !== undefined && selectedValue !== null) {
+    const strVal = String(selectedValue);
+    const existingOption = options.find((o) => String(o.value) === strVal);
+    const displayLabel = existingOption
+      ? (optionLabel ? optionLabel(existingOption) : existingOption.label)
+      : strVal;
+    selectValue = { value: strVal, label: displayLabel };
+  } else {
+    selectValue = selectedValue as string | number | undefined;
+  }
 
-  return (
-    <Select
-      showSearch
-      filterOption={false}
-      placeholder={placeholder}
-      mode={isTagsMode ? 'tags' : undefined}
-      labelInValue={isTagsMode}
-      value={selectValue as any}
-      onChange={handleChange}
-      onSearch={handleSearch}
-      loading={loading}
-      disabled={disabled}
-      allowClear={allowClear}
-      className={className}
-      style={style}
-      onFocus={handleFocus}
-      notFoundContent={loading ? '加载中...' : '无数据'}
-      optionFilterProp="label"
-      optionLabelProp={useRichDropdown ? 'selectedLabel' : 'label'}
-      options={selectOptions}
-      maxTagCount="responsive"
-    />
-  );
+  const selectProps: Record<string, unknown> = {
+    showSearch: true,
+    filterOption: false,
+    placeholder,
+    value: selectValue,
+    onChange: handleChange,
+    onSearch: handleSearch,
+    onBlur: handleBlur,
+    loading,
+    disabled,
+    allowClear,
+    className,
+    style,
+    onFocus: handleFocus,
+    notFoundContent: loading ? '加载中...' : '无数据',
+    optionFilterProp: 'label',
+    maxTagCount: 'responsive',
+  };
+
+  if (isTagsMode) {
+    selectProps.mode = 'tags';
+    selectProps.tokenSeparators = [','];
+  } else if (isSingleAllowCreate) {
+    selectProps.mode = 'combobox';
+    selectProps.labelInValue = true;
+  }
+
+  selectProps.options = options.map((o) => ({
+    value: String(o.value),
+    label: optionLabel ? optionLabel(o) : o.label,
+  }));
+
+  return <Select {...selectProps as any} />;
 };
 
 export default SearchSelect;

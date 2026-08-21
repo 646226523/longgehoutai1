@@ -1,7 +1,5 @@
-﻿import {
-  DrawerForm,
+import {
   ModalForm,
-  ProFormDigit,
   ProFormSelect,
   ProFormText,
   ProFormTextArea,
@@ -12,23 +10,39 @@
 import {
   App,
   Button,
+  Card,
+  Col,
   Descriptions,
+  Divider,
   Drawer,
   Empty,
+  Form,
+  Input,
+  InputNumber,
   Popconfirm,
+  Row,
+  Select,
   Space,
   Spin,
   Tabs,
   Tag,
+  Tooltip,
+  theme,
 } from 'antd';
 import {
+  AlertOutlined,
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
   FileAddOutlined,
-  TransactionOutlined,
+  FileTextOutlined,
+  InfoCircleOutlined,
+  PictureOutlined,
   PlusOutlined,
+  SearchOutlined,
+  TransactionOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
@@ -36,6 +50,7 @@ import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import RefreshButton from '../../components/RefreshButton';
+import ImageUploader from '../../components/ImageUploader';
 import {
   acceptArbitrationCase,
   archiveArbitrationCase,
@@ -55,6 +70,7 @@ import {
   type ArbitrationEvidence,
   type DealOption,
 } from '../../services/arbitration';
+import { getUserList, type UserItem } from '../../services/user';
 
 // 案件状态选项
 const STATUS_OPTIONS = [
@@ -130,6 +146,7 @@ const EXECUTE_STATUS_COLOR: Record<string, string> = {
 // 仲裁案件管理:列表 + 受理/立案 + 详情抽屉(证据 + 裁决)
 const ArbitrationCase = () => {
   const { message } = App.useApp();
+  const { token } = theme.useToken();
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'arbitration:view');
   const canJudge = hasPermission(currentUser, 'arbitration:judge');
@@ -139,6 +156,12 @@ const ArbitrationCase = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editing, setEditing] = useState<ArbitrationCase | null>(null);
   const [dealOptions, setDealOptions] = useState<DealOption[]>([]);
+  const [form] = Form.useForm();
+  const [evidenceImages, setEvidenceImages] = useState<string[]>([]);
+  const [userOptions, setUserOptions] = useState<{label: string, value: string}[]>([]);
+  const [complainantTouched, setComplainantTouched] = useState(false);
+  const [respondentTouched, setRespondentTouched] = useState(false);
+  const [userSearchTimer, setUserSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // 详情抽屉
   const [detailVisible, setDetailVisible] = useState(false);
@@ -161,16 +184,71 @@ const ArbitrationCase = () => {
     }
   };
 
+  const loadUserOptions = (keyword: string) => {
+    if (userSearchTimer) {
+      clearTimeout(userSearchTimer);
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await getUserList({ keyword, page: 1, pageSize: 20 });
+        const options = res.list.map((u: UserItem) => ({
+          label: u.nickname || u.username,
+          value: u.nickname || u.username,
+        }));
+        setUserOptions(options);
+      } catch {
+        // 静默处理错误
+      }
+    }, 300);
+    setUserSearchTimer(timer);
+  };
+
+  const handleDealChange = (dealId: number | undefined) => {
+    if (!dealId) {
+      return;
+    }
+    const deal = dealOptions.find((d) => d.id === dealId);
+    if (!deal) return;
+    
+    // 自动回填申诉人（seller）
+    if (!complainantTouched) {
+      form.setFieldsValue({ complainant: deal.seller });
+    }
+    
+    // 自动回填被诉人（buyer），buyer 不为 null 时才填充
+    if (deal.buyer && !respondentTouched) {
+      form.setFieldsValue({ respondent: deal.buyer });
+    }
+    
+    // 自动回填争议金额
+    form.setFieldsValue({ amount: deal.final_price });
+  };
+
   const openCreate = () => {
     setEditing(null);
     setDrawerVisible(true);
+    setEvidenceImages([]);
+    setComplainantTouched(false);
+    setRespondentTouched(false);
+    setUserOptions([]);
     loadDealOptions();
+    form.resetFields();
+    form.setFieldsValue({ type: 'other', amount: 0 });
   };
 
   const openEdit = (record: ArbitrationCase) => {
     setEditing(record);
     setDrawerVisible(true);
+    setEvidenceImages([]);
     loadDealOptions();
+    form.setFieldsValue({
+      type: record.type,
+      related_deal_id: record.related_deal_id ?? undefined,
+      complainant: record.complainant,
+      respondent: record.respondent,
+      amount: record.amount,
+      description: record.description ?? undefined,
+    });
   };
 
   const openDetail = async (record: ArbitrationCase) => {
@@ -530,67 +608,524 @@ const ArbitrationCase = () => {
       />
 
       {/* 新增/编辑抽屉 */}
-      <DrawerForm
+      <Drawer
         title={editing ? '编辑仲裁案件' : '登记仲裁案件'}
         open={drawerVisible}
-        onOpenChange={setDrawerVisible}
-        onFinish={handleSubmit}
-        drawerProps={{ destroyOnHidden: true, maskClosable: false, width: 560 }}
-        initialValues={
-          editing
-            ? {
-                type: editing.type,
-                related_deal_id: editing.related_deal_id ?? undefined,
-                complainant: editing.complainant,
-                respondent: editing.respondent,
-                amount: editing.amount,
-                description: editing.description ?? undefined,
-              }
-            : { type: 'other', amount: 0 }
+        onClose={() => setDrawerVisible(false)}
+        width={960}
+        destroyOnHidden
+        maskClosable={false}
+        extra={
+          <Space>
+            <Button onClick={() => setDrawerVisible(false)}>取消</Button>
+            <Button type="primary" onClick={() => form.submit()}>
+              {editing ? '保存修改' : '确认登记'}
+            </Button>
+          </Space>
         }
       >
-        <ProFormSelect
-          name="type"
-          label="纠纷类型"
-          options={TYPE_OPTIONS}
-          rules={[{ required: true, message: '请选择纠纷类型' }]}
-        />
-        <ProFormSelect
-          name="related_deal_id"
-          label="关联成交单"
-          placeholder="可选,选择关联的拍卖成交单"
-          showSearch
-          allowClear
-          options={dealOptions.map((d) => ({ label: d.label, value: d.id }))}
-          tooltip="可选,选择后系统将自动回填买卖双方信息(此处仅记录关联,不自动回填)"
-        />
-        <ProFormText
-          name="complainant"
-          label="申诉人"
-          placeholder="请输入申诉人"
-          rules={[{ required: true, message: '请输入申诉人' }]}
-        />
-        <ProFormText
-          name="respondent"
-          label="被诉人"
-          placeholder="请输入被诉人"
-          rules={[{ required: true, message: '请输入被诉人' }]}
-        />
-        <ProFormDigit
-          name="amount"
-          label="争议金额(¥)"
-          placeholder="请输入争议金额"
-          min={0}
-          fieldProps={{ precision: 2 }}
-          rules={[{ required: true, message: '请输入争议金额' }]}
-        />
-        <ProFormTextArea
-          name="description"
-          label="问题描述"
-          placeholder="请详细描述纠纷情况"
-          fieldProps={{ autoSize: { minRows: 3, maxRows: 8 } }}
-        />
-      </DrawerForm>
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark
+          onFinish={handleSubmit}
+          initialValues={{ type: 'other', amount: 0 }}
+        >
+          <Row gutter={24}>
+            {/* 左侧表单 */}
+            <Col span={15}>
+              {/* ① 纠纷基本信息 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid ${token.colorPrimary}` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <AlertOutlined style={{ color: token.colorPrimary }} />
+                    <span>① 纠纷基本信息</span>
+                  </Space>
+                }
+              >
+                <Form.Item
+                  name="type"
+                  label="纠纷类型"
+                  rules={[{ required: true, message: '请选择纠纷类型' }]}
+                >
+                  <Select
+                    placeholder="请选择纠纷类型"
+                    options={TYPE_OPTIONS}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="related_deal_id"
+                  label="关联成交单"
+                  tooltip="可选,选择后系统将自动回填双方当事人和争议金额"
+                >
+                  <Select
+                    showSearch
+                    placeholder="可选,选择关联的拍卖成交单"
+                    optionFilterProp="label"
+                    allowClear
+                    options={dealOptions.map((d) => ({ label: d.label, value: d.id }))}
+                    suffixIcon={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+                    onChange={(value) => handleDealChange(value as number | undefined)}
+                  />
+                </Form.Item>
+              </Card>
+
+              {/* ② 双方当事人 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid #fa8c16` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <UserOutlined style={{ color: '#fa8c16' }} />
+                    <span>② 双方当事人信息</span>
+                  </Space>
+                }
+              >
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <div
+                      style={{
+                        background: token.colorInfoBg,
+                        borderRadius: 8,
+                        padding: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: token.colorTextSecondary,
+                          marginBottom: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <UserOutlined />
+                        申诉人
+                      </div>
+                      <Form.Item
+                        name="complainant"
+                        rules={[{ required: true, message: '请输入申诉人' }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Select
+                          showSearch
+                          allowClear
+                          placeholder="请输入或搜索申诉人"
+                          onSearch={(v) => loadUserOptions(v)}
+                          onInputKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setComplainantTouched(true);
+                            }
+                          }}
+                          onChange={() => setComplainantTouched(true)}
+                          options={userOptions}
+                          filterOption={false}
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div
+                      style={{
+                        background: '#fff2f0',
+                        borderRadius: 8,
+                        padding: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: token.colorTextSecondary,
+                          marginBottom: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <UserOutlined style={{ color: '#ff4d4f' }} />
+                        被诉人
+                      </div>
+                      <Form.Item
+                        name="respondent"
+                        rules={[{ required: true, message: '请输入被诉人' }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Select
+                          showSearch
+                          allowClear
+                          placeholder="请输入或搜索被诉人"
+                          onSearch={(v) => loadUserOptions(v)}
+                          onChange={() => setRespondentTouched(true)}
+                          options={userOptions}
+                          filterOption={false}
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    </div>
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* ③ 争议详情 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid #eb2f96` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <Tag color="magenta">¥</Tag>
+                    <span>③ 争议详情</span>
+                  </Space>
+                }
+              >
+                <Form.Item
+                  name="amount"
+                  label="争议金额(¥)"
+                  rules={[{ required: true, message: '请输入争议金额' }]}
+                >
+                  <InputNumber
+                    min={0}
+                    step={100}
+                    precision={2}
+                    style={{ width: '100%' }}
+                    placeholder="请输入争议金额"
+                    formatter={(v) => `¥ ${v}`}
+                    parser={((v: string | undefined) => (v ? Number(v.replace(/[^\d.]/g, '')) : 0)) as any}
+                  />
+                </Form.Item>
+                <Form.Item name="description" label="问题描述">
+                  <Input.TextArea
+                    placeholder="请详细描述纠纷情况,包括事件经过、争议焦点等"
+                    autoSize={{ minRows: 4, maxRows: 8 }}
+                    maxLength={1000}
+                    showCount
+                  />
+                </Form.Item>
+              </Card>
+
+              {/* ④ 证据材料 */}
+              <Card
+                size="small"
+                style={{ marginBottom: 16, borderLeft: `3px solid #52c41a` }}
+                styles={{ body: { padding: 16 } }}
+                title={
+                  <Space>
+                    <PictureOutlined style={{ color: '#52c41a' }} />
+                    <span>④ 证据材料</span>
+                    <Tag color="green" style={{ marginLeft: 0 }}>
+                      可选
+                    </Tag>
+                  </Space>
+                }
+              >
+                <div
+                  style={{
+                    background: token.colorFill,
+                    borderRadius: 8,
+                    padding: 16,
+                    marginBottom: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: token.colorTextSecondary,
+                      marginBottom: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <PictureOutlined />
+                    上传证据图片(最多6张)
+                    <Tooltip title="支持上传合同照片、聊天记录截图、交易凭证等证据材料">
+                      <InfoCircleOutlined style={{ color: token.colorTextTertiary }} />
+                    </Tooltip>
+                  </div>
+                  <ImageUploader
+                    value={evidenceImages}
+                    onChange={(urls) => {
+                      if (Array.isArray(urls)) {
+                        setEvidenceImages(urls);
+                      } else if (urls) {
+                        setEvidenceImages([urls]);
+                      } else {
+                        setEvidenceImages([]);
+                      }
+                    }}
+                    maxCount={6}
+                  />
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: token.colorTextTertiary,
+                    display: 'flex',
+                    gap: 16,
+                  }}
+                >
+                  <span>
+                    <FileTextOutlined /> 支持 JPG/PNG/WEBP 格式
+                  </span>
+                  <span>• 单张不超过 5MB</span>
+                  <span>• 最多上传 6 张</span>
+                </div>
+              </Card>
+            </Col>
+
+            {/* 右侧预览 */}
+            <Col span={9}>
+              <div style={{ position: 'sticky', top: 0 }}>
+                <Card
+                  styles={{ body: { padding: 0 } }}
+                  variant="borderless"
+                  style={{
+                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorInfoBg} 100%)`,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  }}
+                  title={
+                    <Space>
+                      <EyeOutlined style={{ color: token.colorPrimary }} />
+                      <span>案件预览</span>
+                    </Space>
+                  }
+                >
+                  <div style={{ padding: 16 }}>
+                    <Form.Item noStyle shouldUpdate={(prev, cur) =>
+                      prev.type !== cur.type
+                      || prev.complainant !== cur.complainant
+                      || prev.respondent !== cur.respondent
+                      || prev.amount !== cur.amount
+                    }>
+                      {({ getFieldValue }) => {
+                        const type = getFieldValue('type');
+                        const complainant = getFieldValue('complainant') || '待填写';
+                        const respondent = getFieldValue('respondent') || '待填写';
+                        const amount = getFieldValue('amount') ?? 0;
+
+                        return (
+                          <>
+                            {/* 案件标题区 */}
+                            <div
+                              style={{
+                                background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorLink} 100%)`,
+                                borderRadius: 8,
+                                padding: 16,
+                                color: '#fff',
+                                marginBottom: 12,
+                              }}
+                            >
+                              <div style={{ fontSize: 14, marginBottom: 4, opacity: 0.9 }}>
+                                仲裁案件
+                              </div>
+                              <Space size={8}>
+                                <Tag
+                                  style={{
+                                    background: 'rgba(255,255,255,0.2)',
+                                    color: '#fff',
+                                    border: 'none',
+                                  }}
+                                >
+                                  {TYPE_LABEL[type as string] || '待定纠纷类型'}
+                                </Tag>
+                                <Tag
+                                  style={{
+                                    background: 'rgba(255,255,255,0.2)',
+                                    color: '#fff',
+                                    border: 'none',
+                                  }}
+                                >
+                                  争议 ¥{Number(amount).toLocaleString()}
+                                </Tag>
+                              </Space>
+                            </div>
+
+                            {/* 双方当事人对比 */}
+                            <div style={{ marginBottom: 12 }}>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: token.colorTextSecondary,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                双方当事人
+                              </div>
+                              <Row gutter={8}>
+                                <Col span={12}>
+                                  <div
+                                    style={{
+                                      background: token.colorInfoBg,
+                                      borderRadius: 6,
+                                      padding: 10,
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: 11,
+                                        color: token.colorTextTertiary,
+                                        marginBottom: 4,
+                                      }}
+                                    >
+                                      <UserOutlined /> 申诉人
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {complainant}
+                                    </div>
+                                  </div>
+                                </Col>
+                                <Col span={12}>
+                                  <div
+                                    style={{
+                                      background: '#fff2f0',
+                                      borderRadius: 6,
+                                      padding: 10,
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: 11,
+                                        color: token.colorTextTertiary,
+                                        marginBottom: 4,
+                                      }}
+                                    >
+                                      <UserOutlined style={{ color: '#ff4d4f' }} /> 被诉人
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        color: '#cf1322',
+                                      }}
+                                    >
+                                      {respondent}
+                                    </div>
+                                  </div>
+                                </Col>
+                              </Row>
+                            </div>
+
+                            <Divider style={{ margin: '8px 0' }} />
+
+                            {/* 争议金额 */}
+                            <Row gutter={8} style={{ marginBottom: 12 }}>
+                              <Col span={24}>
+                                <div
+                                  style={{
+                                    textAlign: 'center',
+                                    padding: 12,
+                                    background: token.colorFill,
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: 24,
+                                      fontWeight: 700,
+                                      color: token.colorPrimary,
+                                    }}
+                                  >
+                                    ¥{Number(amount).toLocaleString()}
+                                  </div>
+                                  <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                                    争议金额
+                                  </div>
+                                </div>
+                              </Col>
+                            </Row>
+
+                            {/* 证据材料预览 */}
+                            {evidenceImages.length > 0 && (
+                              <>
+                                <Divider style={{ margin: '8px 0' }} />
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: token.colorTextSecondary,
+                                      marginBottom: 8,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                    }}
+                                  >
+                                    <PictureOutlined /> 证据材料 ({evidenceImages.length})
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: 6,
+                                    }}
+                                  >
+                                    {evidenceImages.slice(0, 4).map((url, idx) => (
+                                      <img
+                                        key={idx}
+                                        src={url}
+                                        alt={`证据 ${idx + 1}`}
+                                        style={{
+                                          width: 48,
+                                          height: 48,
+                                          objectFit: 'cover',
+                                          borderRadius: 4,
+                                          border: '1px solid ' + token.colorBorderSecondary,
+                                        }}
+                                      />
+                                    ))}
+                                    {evidenceImages.length > 4 && (
+                                      <div
+                                        style={{
+                                          width: 48,
+                                          height: 48,
+                                          borderRadius: 4,
+                                          background: token.colorFill,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: 12,
+                                          color: token.colorTextTertiary,
+                                        }}
+                                      >
+                                        +{evidenceImages.length - 4}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </>
+                        );
+                      }}
+                    </Form.Item>
+                  </div>
+                </Card>
+              </div>
+            </Col>
+          </Row>
+        </Form>
+      </Drawer>
 
       {/* 详情抽屉 */}
       <Drawer

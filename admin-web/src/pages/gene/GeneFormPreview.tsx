@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Card, Typography, Divider } from 'antd';
 
 const { Text } = Typography;
@@ -78,6 +79,11 @@ const FieldRow = ({
 const GeneFormPreview = ({ formData }: GeneFormPreviewProps) => {
   const { ring_number, name, breed, bloodline, owner_name, photo_url } =
     formData;
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [photo_url]);
 
   return (
     <Card
@@ -100,10 +106,11 @@ const GeneFormPreview = ({ formData }: GeneFormPreviewProps) => {
           overflow: 'hidden',
         }}
       >
-        {photo_url ? (
+        {photo_url && !imgError ? (
           <img
             src={photo_url}
             alt="鸽只照片"
+            onError={() => setImgError(true)}
             style={{
               maxWidth: '100%',
               maxHeight: '100%',

@@ -31,7 +31,7 @@ import {
 
 const { TextArea } = Input;
 
-const RING_NUMBER_PATTERN = /^CN-\d{4}-\d{2}-[A-Za-z0-9]{2,10}$/;
+const RING_NUMBER_PATTERN = /^[A-Za-z]{2,3}-\d{4}(-[A-Za-z0-9]+){1,3}$/;
 
 interface SearchSelectOption {
   value: string | number;
@@ -162,7 +162,7 @@ const GeneForm: React.FC<GeneFormProps> = ({
 
   const validateRingNumberFormat = useCallback((val: string): string | null => {
     if (!val) return '请输入足环号';
-    if (!RING_NUMBER_PATTERN.test(val)) return '格式错误,应为 CN-XXXX-XX-XXXXXX';
+    if (!RING_NUMBER_PATTERN.test(val)) return '格式错误,应为 XX-XXXX-XXX 或 XX-XXXX-XX-XXXX 格式';
     return null;
   }, []);
 
@@ -208,7 +208,7 @@ const GeneForm: React.FC<GeneFormProps> = ({
   }, []);
 
   const handleOwnerChange = useCallback((value: string | number | null | undefined, option?: SearchSelectOption) => {
-    if (value === undefined) {
+    if (value === undefined || value === null) {
       setFormValues((prev) => ({
         ...prev,
         owner_id: null,
@@ -217,12 +217,25 @@ const GeneForm: React.FC<GeneFormProps> = ({
       }));
       return;
     }
-    setFormValues((prev) => ({
-      ...prev,
-      owner_id: value,
-      owner_name: option?.label || '',
-      owner_phone: (option?.phone as string) || '',
-    }));
+
+    const strValue = String(value);
+    const isExistingOwner = !!option;
+
+    if (isExistingOwner) {
+      setFormValues((prev) => ({
+        ...prev,
+        owner_id: option!.value as number,
+        owner_name: option!.label,
+        owner_phone: (option!.phone as string) || '',
+      }));
+    } else {
+      setFormValues((prev) => ({
+        ...prev,
+        owner_id: null,
+        owner_name: strValue,
+        owner_phone: '',
+      }));
+    }
     setErrors((prev) => ({ ...prev, owner_name: '' }));
   }, []);
 
@@ -250,7 +263,7 @@ const GeneForm: React.FC<GeneFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formValues.ring_number) newErrors.ring_number = '请输入足环号';
-    else if (!RING_NUMBER_PATTERN.test(formValues.ring_number)) newErrors.ring_number = '格式错误,应为 CN-XXXX-XX-XXXXXX';
+    else if (!RING_NUMBER_PATTERN.test(formValues.ring_number)) newErrors.ring_number = '格式错误,应为 XX-XXXX-XXX 或 XX-XXXX-XX-XXXX 格式';
     else if (ringCheckStatus === 'invalid') newErrors.ring_number = '该足环号已存在';
 
     if (!formValues.name) newErrors.name = '请输入鸽名';
@@ -473,10 +486,11 @@ const GeneForm: React.FC<GeneFormProps> = ({
                 required
               >
                 <SearchSelect
-                  value={formValues.owner_id || undefined}
+                  value={formValues.owner_id ?? formValues.owner_name ?? undefined}
                   onChange={handleOwnerChange}
                   onSearch={handleOwnerSearch}
-                  placeholder="搜索并选择鸽主"
+                  allowCreate
+                  placeholder="搜索或输入鸽主姓名"
                   optionLabel={(o) => {
                     const phone = o.phone as string | undefined;
                     return (
@@ -497,8 +511,9 @@ const GeneForm: React.FC<GeneFormProps> = ({
               <Form.Item label="鸽主电话">
                 <Input
                   value={formValues.owner_phone}
-                  placeholder="选择鸽主后自动填充"
-                  disabled
+                  placeholder={formValues.owner_id ? '选择鸽主后自动填充' : '请输入鸽主电话'}
+                  disabled={!!formValues.owner_id}
+                  onChange={(e) => updateField('owner_phone', e.target.value)}
                 />
               </Form.Item>
             </Col>

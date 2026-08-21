@@ -1,11 +1,11 @@
-﻿import {
+import {
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
 import { App, Button, Drawer, Popconfirm, Space, Tag } from 'antd';
 import { PlusOutlined, QrcodeOutlined, EyeOutlined } from '@ant-design/icons';
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,6 +25,35 @@ import {
 } from '../../services/gene';
 
 const GENDER_MAP: Record<string, string> = { male: '雄', female: '雌', unknown: '未知' };
+
+const PhotoThumb: React.FC<{ url?: string | null }> = ({ url }) => {
+  const [errored, setErrored] = useState(false);
+  if (!url || errored) {
+    return (
+      <div
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 4,
+          background: '#f5f5f5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span style={{ fontSize: 12, color: '#bfbfbf' }}>无</span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt="鸽只照片"
+      style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, display: 'block' }}
+      onError={() => setErrored(true)}
+    />
+  );
+};
 
 const GeneList = () => {
   const { message } = App.useApp();
@@ -107,6 +136,13 @@ const GeneList = () => {
 
   const columns: ProColumns<GeneProfile>[] = [
     { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
+    {
+      title: '照片',
+      dataIndex: 'photo_url',
+      width: 100,
+      hideInSearch: true,
+      render: (_, record) => <PhotoThumb url={record.photo_url} />,
+    },
     { title: '足环号', dataIndex: 'ring_number', width: 160, ellipsis: true },
     { title: '鸽名', dataIndex: 'name', width: 120, ellipsis: true, hideInSearch: true },
     {
@@ -197,7 +233,7 @@ const GeneList = () => {
         rowKey="id"
         columns={columns}
         options={{ density: false, reload: false }}
-        scroll={{ x: 1300 }}
+        scroll={{ x: 1400 }}
         search={{ labelWidth: 'auto' }}
         request={async (params) => {
           const { current, pageSize, ring_number, owner_name, bloodline, status } = params;

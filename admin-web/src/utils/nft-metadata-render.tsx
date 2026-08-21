@@ -571,8 +571,10 @@ export function renderStructuredInfoGrid(
             key={key}
             span={span}
             label=" "
-            labelStyle={{ display: 'none', border: 'none' }}
-            contentStyle={{ border: 'none', color: 'transparent' }}
+            styles={{
+              label: { display: 'none', border: 'none' },
+              content: { border: 'none', color: 'transparent' },
+            }}
           >
             <span style={{ visibility: 'hidden' }}>.</span>
           </Descriptions.Item>

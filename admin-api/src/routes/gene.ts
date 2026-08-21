@@ -221,6 +221,26 @@ geneRouter.get(
       }
     >;
 
+    let activeAuctionMap = new Map<number, string>();
+    try {
+      const auctionRows = db
+        .prepare(
+          `SELECT DISTINCT na.gene_profile_id, s.name AS session_name
+           FROM nft_assets na
+           JOIN auction_items ai ON ai.nft_asset_id = na.id
+           JOIN auction_sessions s ON s.id = ai.session_id
+           WHERE s.status IN ('pending', 'ongoing')
+           AND na.gene_profile_id IS NOT NULL`
+        )
+        .all() as Array<{ gene_profile_id: number; session_name: string }>;
+      auctionRows.forEach((r) => {
+        if (!activeAuctionMap.has(r.gene_profile_id)) {
+          activeAuctionMap.set(r.gene_profile_id, r.session_name);
+        }
+      });
+    } catch {
+    }
+
     const list = rows.map((r) => ({
       id: r.id,
       ring_number: r.ring_number,
@@ -245,6 +265,8 @@ geneRouter.get(
       sire_name: r.sire_name,
       dam_ring: r.dam_ring,
       dam_name: r.dam_name,
+      auction_status: activeAuctionMap.has(r.id) ? 'active' : 'idle',
+      active_session_name: activeAuctionMap.get(r.id) || null,
     }));
 
     return ok(res, { list, total });

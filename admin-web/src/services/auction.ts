@@ -13,8 +13,16 @@ export interface AuctionSession {
   description: string | null; // 场次描述
   created_at: number;
   updated_at: number;
-  item_count?: number; // 拍品数(列表/详情返回)
-  deal_count?: number; // 成交数
+  item_count?: number;
+  deal_count?: number;
+  session_code?: string | null;
+  auction_type?: string | null;
+  deposit?: number | null;
+  default_start_price?: number | null;
+  default_bid_step?: number | null;
+  allow_entrusted_bid?: number | null;
+  allow_auto_bid?: number | null;
+  publish_time?: number | null;
 }
 
 export interface AuctionSessionListParams {
@@ -31,6 +39,13 @@ export interface AuctionSessionCreateParams {
   end_time?: number | null;
   location?: string;
   description?: string;
+  auction_type?: string;
+  deposit?: number | null;
+  default_start_price?: number | null;
+  default_bid_step?: number | null;
+  allow_entrusted_bid?: boolean | null;
+  allow_auto_bid?: boolean | null;
+  publish_time?: number | null;
 }
 
 export interface AuctionSessionUpdateParams {
@@ -39,6 +54,13 @@ export interface AuctionSessionUpdateParams {
   end_time?: number | null;
   location?: string;
   description?: string;
+  auction_type?: string;
+  deposit?: number | null;
+  default_start_price?: number | null;
+  default_bid_step?: number | null;
+  allow_entrusted_bid?: boolean | null;
+  allow_auto_bid?: boolean | null;
+  publish_time?: number | null;
 }
 
 // ==================== 拍品(关联 NFT 资产)====================

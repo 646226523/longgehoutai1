@@ -556,7 +556,7 @@ const DetectionOrg = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width="min(95vw, 1100px)"
-        destroyOnClose={true}
+        destroyOnHidden={true}
         maskClosable={false}
         extra={
           <Space>

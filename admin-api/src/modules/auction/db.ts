@@ -9,13 +9,21 @@ import type { Database } from '../../sqlite-compat';
 export interface AuctionSessionRow {
   id: number;
   name: string; // 场次名称
-  status: string; // draft/pending/ongoing/ended/cancelled 草稿/未开始/进行中/已结束/已取消
-  start_time: number | null; // 开始时间(毫秒时间戳)
-  end_time: number | null; // 结束时间
-  location: string | null; // 拍卖地点
-  description: string | null; // 场次描述
+  status: string; // draft/pending/ongoing/ended/cancelled
+  start_time: number | null;
+  end_time: number | null;
+  location: string | null;
+  description: string | null;
   created_at: number;
   updated_at: number;
+  session_code?: string | null;
+  auction_type?: string | null; // online/offline/hybrid
+  deposit?: number | null;
+  default_start_price?: number | null;
+  default_bid_step?: number | null;
+  allow_entrusted_bid?: number | null;
+  allow_auto_bid?: number | null;
+  publish_time?: number | null;
 }
 
 // 拍品(关联 NFT 资产)
@@ -93,14 +101,22 @@ export function initAuctionDb(db: Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS auction_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL DEFAULT '',                       -- 场次名称
-      status TEXT NOT NULL DEFAULT 'draft',                -- draft/pending/ongoing/ended/cancelled
-      start_time INTEGER,                                  -- 开始时间(毫秒时间戳)
-      end_time INTEGER,                                    -- 结束时间
-      location TEXT,                                       -- 拍卖地点
-      description TEXT,                                    -- 场次描述
+      name TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'draft',
+      start_time INTEGER,
+      end_time INTEGER,
+      location TEXT,
+      description TEXT,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
-      updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+      session_code TEXT,
+      auction_type TEXT DEFAULT 'online',
+      deposit REAL DEFAULT 5000,
+      default_start_price REAL DEFAULT 5000,
+      default_bid_step REAL DEFAULT 500,
+      allow_entrusted_bid INTEGER DEFAULT 1,
+      allow_auto_bid INTEGER DEFAULT 1,
+      publish_time INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS auction_items (
@@ -157,6 +173,28 @@ export function initAuctionDb(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_auction_deals_item ON auction_deals(item_id);
   `);
 
+  // ============ 迁移:为已有 auction_sessions 表添加新列(容错)============
+  const sessionColumns = [
+    { name: 'session_code', def: 'TEXT' },
+    { name: 'auction_type', def: "TEXT DEFAULT 'online'" },
+    { name: 'deposit', def: 'REAL DEFAULT 5000' },
+    { name: 'default_start_price', def: 'REAL DEFAULT 5000' },
+    { name: 'default_bid_step', def: 'REAL DEFAULT 500' },
+    { name: 'allow_entrusted_bid', def: 'INTEGER DEFAULT 1' },
+    { name: 'allow_auto_bid', def: 'INTEGER DEFAULT 1' },
+    { name: 'publish_time', def: 'INTEGER' },
+  ];
+  for (const col of sessionColumns) {
+    try {
+      const cols = (db.prepare("PRAGMA table_info('auction_sessions')").all() as Array<{ name: string }>);
+      if (!cols.some((c) => c.name === col.name)) {
+        db.exec('ALTER TABLE auction_sessions ADD COLUMN ' + col.name + ' ' + col.def);
+      }
+    } catch {
+      // 表不存在或其他错误,静默跳过
+    }
+  }
+
   // ============ 初始示例数据(仅首次建库时写入)============
   const count = (db.prepare('SELECT COUNT(*) AS c FROM auction_sessions').get() as { c: number }).c;
   if (count > 0) return;
@@ -183,27 +221,19 @@ export function initAuctionDb(db: Database): void {
   const day = 86400000;
 
   const insertSession = db.prepare(
-    `INSERT INTO auction_sessions
-      (name, status, start_time, end_time, location, description)
-     VALUES (@name, @status, @start_time, @end_time, @location, @description)`
+    'INSERT INTO auction_sessions (name, status, start_time, end_time, location, description) VALUES (@name, @status, @start_time, @end_time, @location, @description)'
   );
 
   const insertItem = db.prepare(
-    `INSERT INTO auction_items
-      (session_id, nft_asset_id, name, description, start_price, increment,
-       current_price, current_bidder, status, sort_order)
-     VALUES (@session_id, @nft_asset_id, @name, @description, @start_price, @increment,
-             @current_price, @current_bidder, @status, @sort_order)`
+    'INSERT INTO auction_items (session_id, nft_asset_id, name, description, start_price, increment, current_price, current_bidder, status, sort_order) VALUES (@session_id, @nft_asset_id, @name, @description, @start_price, @increment, @current_price, @current_bidder, @status, @sort_order)'
   );
 
   const insertBid = db.prepare(
-    `INSERT INTO auction_bids (item_id, bidder, bid_amount) VALUES (@item_id, @bidder, @bid_amount)`
+    'INSERT INTO auction_bids (item_id, bidder, bid_amount) VALUES (@item_id, @bidder, @bid_amount)'
   );
 
   const insertDeal = db.prepare(
-    `INSERT INTO auction_deals
-      (session_id, item_id, nft_asset_id, seller, buyer, final_price, status, deal_time, paid_time, delivered_at)
-     VALUES (@session_id, @item_id, @nft_asset_id, @seller, @buyer, @final_price, @status, @deal_time, @paid_time, @delivered_at)`
+    'INSERT INTO auction_deals (session_id, item_id, nft_asset_id, seller, buyer, final_price, status, deal_time, paid_time, delivered_at) VALUES (@session_id, @item_id, @nft_asset_id, @seller, @buyer, @final_price, @status, @deal_time, @paid_time, @delivered_at)'
   );
 
   const tx = db.transaction(() => {

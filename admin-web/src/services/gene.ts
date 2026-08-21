@@ -27,6 +27,8 @@ export interface GeneProfile {
   sire_name: string | null;
   dam_ring: string | null;
   dam_name: string | null;
+  auction_status?: 'idle' | 'active';
+  active_session_name?: string | null;
 }
 
 // 档案详情(含检测记录与父母简要)

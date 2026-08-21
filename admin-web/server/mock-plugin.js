@@ -98,70 +98,15 @@ export function mockApiPlugin() {
   return {
     name: 'mock-api',
     configureServer(server) {
+      // 认证相关接口转发到真实后端
       // POST /api/auth/login
-      server.middlewares.use('/api/auth/login', (req, res, next) => {
-        if (req.method !== 'POST') { next(); return; }
-        let body = '';
-        req.on('data', (chunk) => (body += chunk));
-        req.on('end', () => {
-          try {
-            const { username, password } = JSON.parse(body);
-            if (username === 'admin' && password === 'admin123') {
-              const accessToken = generateToken();
-              const refreshToken = generateToken();
-              tokenStore.set(accessToken, { userId: 1, expireAt: Date.now() + 24 * 60 * 60 * 1000 });
-              tokenStore.set(refreshToken, { userId: 1, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ code: 0, message: '登录成功', data: { accessToken, refreshToken, expiresIn: 86400, user: MOCK_USER } }));
-            } else {
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ code: 1001, message: '用户名或密码错误', data: null }));
-            }
-          } catch {
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = 400;
-            res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
-          }
-        });
-      });
+      server.middlewares.use('/api/auth/login', (req, res, next) => { next(); });
 
       // GET /api/auth/profile
-      server.middlewares.use('/api/auth/profile', (req, res, next) => {
-        if (req.method !== 'GET') { next(); return; }
-        const authHeader = req.headers.authorization || '';
-        const token = authHeader.replace('Bearer ', '');
-        if (!token || !tokenStore.has(token)) {
-          res.statusCode = 401;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ code: 401, message: '未授权或Token已过期', data: null }));
-          return;
-        }
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_USER }));
-      });
+      server.middlewares.use('/api/auth/profile', (req, res, next) => { next(); });
 
       // POST /api/auth/refresh
-      server.middlewares.use('/api/auth/refresh', (req, res, next) => {
-        if (req.method !== 'POST') { next(); return; }
-        let body = '';
-        req.on('data', (chunk) => (body += chunk));
-        req.on('end', () => {
-          try {
-            const { refreshToken: oldToken } = JSON.parse(body);
-            if (tokenStore.has(oldToken)) tokenStore.delete(oldToken);
-            const newAccessToken = generateToken();
-            const newRefreshToken = generateToken();
-            tokenStore.set(newAccessToken, { userId: 1, expireAt: Date.now() + 24 * 60 * 60 * 1000 });
-            tokenStore.set(newRefreshToken, { userId: 1, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ code: 0, message: '刷新成功', data: { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresIn: 86400 } }));
-          } catch {
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = 400;
-            res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
-          }
-        });
-      });
+      server.middlewares.use('/api/auth/refresh', (req, res, next) => { next(); });
 
       // GET /api/admin/dashboard/overview
       server.middlewares.use('/api/admin/dashboard/overview', (req, res, next) => {
@@ -215,33 +160,8 @@ export function mockApiPlugin() {
         }));
       });
 
-      // POST /api/upload - 文件上传接口
-      server.middlewares.use('/api/upload', (req, res, next) => {
-        if (req.method !== 'POST') { next(); return; }
-
-        // 收集请求体以获取原始文件名
-        const chunks = [];
-        req.on('data', (chunk) => chunks.push(chunk));
-        req.on('end', () => {
-          try {
-            const bodyStr = Buffer.concat(chunks).toString('latin1');
-            // 从 multipart/form-data 中提取原始文件名
-            const match = bodyStr.match(/filename="([^"]+)"/);
-            const originalName = match ? match[1] : 'upload.jpg';
-            // 提取文件扩展名
-            const dotIdx = originalName.lastIndexOf('.');
-            const ext = dotIdx >= 0 ? originalName.slice(dotIdx).toLowerCase() : '.jpg';
-
-            const mockUrl = `/uploads/mock_${Date.now()}${ext}`;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ code: 0, message: 'success', data: { url: mockUrl } }));
-          } catch {
-            const mockUrl = `/uploads/mock_${Date.now()}.jpg`;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ code: 0, message: 'success', data: { url: mockUrl } }));
-          }
-        });
-      });
+      // POST /api/upload - 文件上传接口(转发到真实后端)
+      server.middlewares.use('/api/upload', (req, res, next) => { next(); });
 
       // GET /api/system/audit-logs/modules - 审计模块下拉
       server.middlewares.use('/api/system/audit-logs/modules', (req, res, next) => {
@@ -920,7 +840,7 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
 
 // Catch-all for other /api routes
 server.middlewares.use('/api', (req, res, next) => {
-  const skip = req.url?.startsWith('/api/auth') || req.url?.startsWith('/api/admin/dashboard') || req.url?.startsWith('/api/system/audit-logs') || req.url?.startsWith('/api/system/dictionaries') || req.url?.startsWith('/api/system/configs') || req.url?.startsWith('/api/detection');
+  const skip = req.url?.startsWith('/auth') || req.url?.startsWith('/admin/dashboard') || req.url?.startsWith('/system/audit-logs') || req.url?.startsWith('/system/dictionaries') || req.url?.startsWith('/system/configs') || req.url?.startsWith('/detection') || req.url?.startsWith('/gene') || req.url?.startsWith('/auction') || req.url?.startsWith('/nft') || req.url?.startsWith('/competition') || req.url?.startsWith('/loft') || req.url?.startsWith('/arbitration') || req.url?.startsWith('/user') || req.url?.startsWith('/content') || req.url?.startsWith('/race') || req.url?.startsWith('/medias') || req.url?.startsWith('/upload') || req.url?.startsWith('/statistics');
   if (skip) { next(); return; }
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'mock', data: null }));

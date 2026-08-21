@@ -97,6 +97,7 @@ const GeneDetail = () => {
   const { tableLoading, handleRefresh } = useTableRefresh(testActionRef, { messageApi: message });
   const [testModalVisible, setTestModalVisible] = useState(false);
   const [editingTest, setEditingTest] = useState<GeneTest | null>(null);
+  const [photoError, setPhotoError] = useState(false);
 
   const loadDetail = () => {
     setLoading(true);
@@ -123,6 +124,10 @@ const GeneDetail = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
+
+  useEffect(() => {
+    setPhotoError(false);
+  }, [detail?.photo_url]);
 
   // 重新生成二维码
   const handleRegenQrcode = async () => {
@@ -238,6 +243,20 @@ const GeneDetail = () => {
     { key: 'bloodline', label: '血统', children: detail.bloodline || '-' },
     { key: 'owner_name', label: '鸽主', children: detail.owner_name || '-' },
     { key: 'owner_phone', label: '鸽主电话', children: detail.owner_phone || '-' },
+    {
+      key: 'photo_url',
+      label: '照片',
+      children: detail.photo_url && !photoError ? (
+        <img
+          src={detail.photo_url}
+          alt="鸽子照片"
+          style={{ maxWidth: 120, maxHeight: 80, objectFit: 'cover', borderRadius: 4 }}
+          onError={() => setPhotoError(true)}
+        />
+      ) : (
+        <span style={{ color: '#999' }}>暂无照片</span>
+      ),
+    },
     { key: 'color', label: '羽色', children: detail.color || '-' },
     { key: 'eye_color', label: '眼砂', children: detail.eye_color || '-' },
     { key: 'birth_date', label: '出生日期', children: detail.birth_date || '-' },
@@ -274,6 +293,32 @@ const GeneDetail = () => {
       {/* 档案信息卡 */}
       <Card title="档案信息" style={{ marginBottom: 16 }}>
         <Descriptions items={descriptionItems} column={3} bordered size="small" />
+      </Card>
+
+      {/* 鸽子照片卡 */}
+      <Card title="鸽子照片" style={{ marginBottom: 16 }}>
+        {detail.photo_url && !photoError ? (
+          <img
+            src={detail.photo_url}
+            alt="鸽子照片"
+            style={{ maxWidth: 400, maxHeight: 300, objectFit: 'contain', borderRadius: 8 }}
+            onError={() => setPhotoError(true)}
+          />
+        ) : (
+          <div
+            style={{
+              width: 300,
+              height: 200,
+              lineHeight: '200px',
+              textAlign: 'center',
+              color: '#999',
+              border: '1px dashed #d9d9d9',
+              borderRadius: 8,
+            }}
+          >
+            暂无照片
+          </div>
+        )}
       </Card>
 
       {/* 溯源二维码卡 */}

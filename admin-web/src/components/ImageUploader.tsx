@@ -55,14 +55,20 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [previewList, setPreviewList] = useState<string[]>(toArr(value));
+  const [loadErrors, setLoadErrors] = useState<Record<number, boolean>>({});
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     setPreviewList(toArr(value));
+    setLoadErrors({});
+    setLoadError(false);
   }, [value]);
 
   const emitChange = useCallback(
     (next: string[]) => {
       setPreviewList(next);
+      setLoadErrors({});
+      setLoadError(false);
       queueMicrotask(() => {
         onChange?.(toEmit(next, multi));
       });
@@ -348,6 +354,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     lineHeight: 1.4,
   };
 
+  const brokenImgStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    color: '#999',
+    fontSize: 12,
+    textAlign: 'center',
+    padding: 8,
+    boxSizing: 'border-box',
+    userSelect: 'none',
+  };
+
   if (multi) {
     return (
       <div>
@@ -368,7 +389,18 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 opacity: 1,
               }}
             >
-              <img src={url} alt={`上传预览 ${idx + 1}`} style={imgStyle} />
+              {loadErrors[idx] ? (
+                <div style={brokenImgStyle}>⚠️ 图片加载失败</div>
+              ) : (
+                <img
+                  src={url}
+                  alt={`上传预览 ${idx + 1}`}
+                  style={imgStyle}
+                  onError={() =>
+                    setLoadErrors((prev) => ({ ...prev, [idx]: true }))
+                  }
+                />
+              )}
               {idx === 0 && (
                 <div style={indexBadgeStyle}>主图</div>
               )}
@@ -412,6 +444,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   src={PLUS_ICON_SVG}
                   alt="点击上传"
                   style={{ width: 80, height: 80, opacity: 0.55 }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   点击/拖拽/粘贴
@@ -455,7 +490,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
         {previewUrl ? (
           <>
-            <img src={previewUrl} alt="上传预览" style={imgStyle} />
+            {loadError ? (
+              <div style={brokenImgStyle}>⚠️ 图片加载失败</div>
+            ) : (
+              <img
+                src={previewUrl}
+                alt="上传预览"
+                style={imgStyle}
+                onError={() => setLoadError(true)}
+              />
+            )}
             {!disabled && (
               <button
                 type="button"
@@ -473,6 +517,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               src={PLUS_ICON_SVG}
               alt="点击上传"
               style={{ width: 80, height: 80, opacity: 0.55 }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>
               点击/拖拽/粘贴 上传
