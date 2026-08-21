@@ -727,11 +727,51 @@ server.middlewares.use('/api/detection/orders', (req, res, next) => {
 let detectionReportIdSeq = 1;
 const detectionReportStore = new Map();
 
+// 鸽只基因档案查询（与 mock.ts 中的 GENE_PROFILES_STORE 保持一致的简化版本）
+const geneProfileLookup = new Map();
+(function initGeneProfileLookup() {
+  geneProfileLookup.set(1, {
+    id: 1, ring_number: 'CN-2024-01-123456', name: '灰精灵',
+    owner_name: '北京赵氏铭家', breed: '詹森', bloodline: '詹森 × 凡龙',
+    gender: 'male',
+  });
+  geneProfileLookup.set(2, {
+    id: 2, ring_number: 'CN-2024-02-234567', name: '闪电侠',
+    owner_name: '上海李记鸽舍', breed: '贺尔梅斯', bloodline: '贺尔梅斯 × 詹森',
+    gender: 'male',
+  });
+  geneProfileLookup.set(3, {
+    id: 3, ring_number: 'CN-2026-01-000001', name: '冠军号',
+    owner_name: '广州鹏程鸽业', breed: '盖比', bloodline: '盖比 × 贺尔梅斯',
+    gender: 'male',
+  });
+})();
+
+// 根据报告的 order_id 查询订单信息（返回订单简要）
+function lookupOrder(orderId) {
+  if (!orderId) return null;
+  const order = detectionOrderStore.get(orderId);
+  if (!order) return null;
+  return {
+    order_no: order.order_no,
+    user_name: order.user_name,
+    ring_number: order.ring_number,
+    project: order.project,
+    status: order.status,
+  };
+}
+
+// 根据报告的 gene_profile_id 查询鸽只档案
+function lookupGeneProfile(profileId) {
+  if (!profileId) return null;
+  return geneProfileLookup.get(profileId) || null;
+}
+
 // 预置示例报告数据
 (function initDetectionReports() {
   const now = Date.now();
   detectionReportStore.set(1, {
-    id: 1, order_id: 1, gene_profile_id: null,
+    id: 1, order_id: 1, gene_profile_id: 1,
     report_no: 'REP-2026-0815-001',
     test_org: '信鸽DNA检测中心', project: 'DNA亲子鉴定',
     result: '确认该样本与所提供的父母样本存在亲缘关系，亲权概率 99.99%。',
@@ -763,8 +803,8 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
   const total = all.length;
   const list = all.slice((page - 1) * pageSize, page * pageSize).map(r => ({
     ...r,
-    gene_profile: null,
-    order: r.order_id ? { order_no: '' } : null,
+    gene_profile: lookupGeneProfile(r.gene_profile_id),
+    order: lookupOrder(r.order_id),
   }));
 
   res.setHeader('Content-Type', 'application/json');
@@ -786,7 +826,14 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
     return;
   }
   res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify({ code: 0, message: 'success', data: { ...report, gene_profile: null } }));
+  res.end(JSON.stringify({
+    code: 0, message: 'success',
+    data: {
+      ...report,
+      gene_profile: lookupGeneProfile(report.gene_profile_id),
+      order: lookupOrder(report.order_id),
+    }
+  }));
 });
 
 // POST /api/detection/reports - 新增报告
