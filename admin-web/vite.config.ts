@@ -11,6 +11,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3014,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3015',
+        changeOrigin: true,
+      },
+    },
     hmr: {
       host: 'localhost',
       port: 3014,
