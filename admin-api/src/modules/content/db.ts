@@ -8,6 +8,37 @@ function now(): number {
   return Date.now();
 }
 
+function generateBannerSvg(text: string, width: number = 750, height: number = 300): string {
+  const colors = [
+    ['#667eea', '#764ba2'],
+    ['#11998e', '#38ef7d'],
+    ['#f093fb', '#f5576c'],
+    ['#4facfe', '#00f2fe'],
+    ['#fa709a', '#fee140'],
+    ['#30cfd0', '#330867'],
+  ];
+  const colorIndex = Math.abs(text.length) % colors.length;
+  const [c1, c2] = colors[colorIndex];
+  const displayText = text.replace(/\+/g, ' ');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><defs><linearGradient id="bg${colorIndex}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><rect width="${width}" height="${height}" fill="url(#bg${colorIndex})"/><text x="${width/2}" y="${height/2}" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="${Math.floor(height/5)}" font-weight="bold" fill="white" opacity="0.9">${displayText}</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+function generateNewsCoverSvg(text: string, width: number = 400, height: number = 240): string {
+  const colors = [
+    ['#ff6b6b', '#ee5a52'],
+    ['#43cea2', '#185a9d'],
+    ['#f7971e', '#ffd200'],
+    ['#667eea', '#764ba2'],
+    ['#11998e', '#38ef7d'],
+  ];
+  const colorIndex = Math.abs(text.length) % colors.length;
+  const [c1, c2] = colors[colorIndex];
+  const displayText = text.replace(/\+/g, ' ');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><defs><linearGradient id="cover${colorIndex}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><rect width="${width}" height="${height}" fill="url(#cover${colorIndex})" rx="8"/><text x="${width/2}" y="${height/2}" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="${Math.floor(height/4)}" font-weight="bold" fill="white" opacity="0.85">${displayText}</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
 // 初始化内容运营管理模块:建表 + 初始示例数据(幂等)
 export function initContentDb(db: Database): void {
   // ============ 表结构 ============
@@ -63,44 +94,81 @@ export function initContentDb(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_notices_type ON notices(type);
   `);
 
+  // ============ 字段迁移:确保 banners 表包含新增字段 ============
+  const columns = db.prepare("PRAGMA table_info(banners)").all() as Array<{ name: string }>;
+  const existingFields = new Set(columns.map(c => c.name));
+  const newColumns = [
+    { name: 'jump_type', def: "TEXT DEFAULT 'external'" },
+    { name: 'jump_target', def: "TEXT DEFAULT ''" },
+    { name: 'is_draft', def: 'INTEGER DEFAULT 0' },
+    { name: 'impressions', def: 'INTEGER DEFAULT 0' },
+    { name: 'clicks', def: 'INTEGER DEFAULT 0' },
+    { name: 'created_by', def: "TEXT DEFAULT ''" },
+  ];
+  for (const col of newColumns) {
+    if (!existingFields.has(col.name)) {
+      db.prepare(`ALTER TABLE banners ADD COLUMN ${col.name} ${col.def}`).run();
+    }
+  }
+
   // ============ 初始示例数据(仅首次建库时写入)============
   const bannerCount = (db.prepare('SELECT COUNT(*) AS c FROM banners').get() as { c: number }).c;
   if (bannerCount === 0) {
     const insertBanner = db.prepare(
-      `INSERT INTO banners (title, image_url, link_url, position, sort_order, status, start_time, end_time)
-       VALUES (@title, @image_url, @link_url, @position, @sort_order, @status, @start_time, @end_time)`
+      `INSERT INTO banners (title, image_url, link_url, position, sort_order, status, start_time, end_time,
+        jump_type, jump_target, is_draft, impressions, clicks, created_by)
+       VALUES (@title, @image_url, @link_url, @position, @sort_order, @status, @start_time, @end_time,
+        @jump_type, @jump_target, @is_draft, @impressions, @clicks, @created_by)`
     );
     const ts = now();
     const banners = [
       {
         title: '春季大赛报名开启',
-        image_url: 'https://via.placeholder.com/750x300.png?text=Spring+Race',
+        image_url: generateBannerSvg('Spring Race'),
         link_url: '/competition/list',
         position: 'home_top',
         sort_order: 1,
         status: 1,
         start_time: ts,
         end_time: ts + 30 * 24 * 60 * 60 * 1000,
+        jump_type: 'race',
+        jump_target: 'R2026001',
+        is_draft: 0,
+        impressions: 45200,
+        clicks: 2100,
+        created_by: 'admin',
       },
       {
         title: '基因溯源服务上线',
-        image_url: 'https://via.placeholder.com/750x300.png?text=Gene+Trace',
+        image_url: generateBannerSvg('Gene Trace'),
         link_url: '/gene/list',
         position: 'home_top',
         sort_order: 2,
         status: 1,
         start_time: ts,
         end_time: ts + 90 * 24 * 60 * 60 * 1000,
+        jump_type: 'gene',
+        jump_target: 'G001',
+        is_draft: 0,
+        impressions: 28700,
+        clicks: 1800,
+        created_by: 'admin',
       },
       {
         title: '会员尊享权益',
-        image_url: 'https://via.placeholder.com/750x300.png?text=VIP',
+        image_url: generateBannerSvg('VIP'),
         link_url: '/user-member/level',
         position: 'home_mid',
         sort_order: 1,
         status: 0,
         start_time: null,
         end_time: null,
+        jump_type: 'page',
+        jump_target: '/pages/vip',
+        is_draft: 1,
+        impressions: 0,
+        clicks: 0,
+        created_by: 'admin',
       },
     ];
     banners.forEach((b) => insertBanner.run(b));
@@ -117,7 +185,7 @@ export function initContentDb(db: Database): void {
       {
         title: '2024 年春季信鸽大赛圆满落幕',
         category: '赛事资讯',
-        cover_url: 'https://via.placeholder.com/400x240.png?text=Race',
+        cover_url: generateNewsCoverSvg('Race'),
         summary: '为期两周的春季信鸽大赛于近日圆满落幕,百余名鸽友参与角逐。',
         content: '<h2>赛事回顾</h2><p>2024 年春季信鸽大赛于 4 月 15 日开笼,共有来自全国各地的 320 羽赛鸽参赛。</p><p>经过激烈角逐,冠军由李建国的"苍穹一号"摘得。</p>',
         author: '平台运营',
@@ -128,7 +196,7 @@ export function initContentDb(db: Database): void {
       {
         title: '信鸽基因溯源技术白皮书发布',
         category: '行业资讯',
-        cover_url: 'https://via.placeholder.com/400x240.png?text=Gene',
+        cover_url: generateNewsCoverSvg('Gene'),
         summary: '本平台联合多家检测机构发布信鸽基因溯源技术白皮书,推动行业标准化。',
         content: '<h2>技术白皮书</h2><p>本白皮书系统阐述了信鸽基因检测的标准流程、数据存储规范及隐私保护原则。</p>',
         author: '技术团队',
@@ -139,7 +207,7 @@ export function initContentDb(db: Database): void {
       {
         title: '夏季养鸽注意事项(草稿)',
         category: '养鸽知识',
-        cover_url: 'https://via.placeholder.com/400x240.png?text=Care',
+        cover_url: generateNewsCoverSvg('Care'),
         summary: '夏季高温多湿,信鸽饲养需要特别注意防暑降温与疾病预防。',
         content: '<p>本文正在编辑中...</p>',
         author: '平台运营',
@@ -185,6 +253,28 @@ export function initContentDb(db: Database): void {
       },
     ];
     notices.forEach((n) => insertNotice.run(n));
+  }
+
+  const placeholderBanners = db.prepare("SELECT id, image_url FROM banners WHERE image_url LIKE '%via.placeholder.com%'").all() as Array<{ id: number; image_url: string }>;
+  if (placeholderBanners.length > 0) {
+    const updateBanner = db.prepare("UPDATE banners SET image_url = @image_url WHERE id = @id");
+    placeholderBanners.forEach((row) => {
+      const match = row.image_url.match(/text=([^&]+)/);
+      const text = match ? match[1].replace(/\+/g, ' ') : 'Banner';
+      updateBanner.run({ id: row.id, image_url: generateBannerSvg(text) });
+    });
+    console.log(`[DB] 已更新 ${placeholderBanners.length} 条 banner 占位图 URL`);
+  }
+
+  const placeholderNews = db.prepare("SELECT id, cover_url FROM news WHERE cover_url LIKE '%via.placeholder.com%'").all() as Array<{ id: number; cover_url: string }>;
+  if (placeholderNews.length > 0) {
+    const updateNews = db.prepare("UPDATE news SET cover_url = @cover_url WHERE id = @id");
+    placeholderNews.forEach((row) => {
+      const match = row.cover_url.match(/text=([^&]+)/);
+      const text = match ? match[1].replace(/\+/g, ' ') : 'News';
+      updateNews.run({ id: row.id, cover_url: generateNewsCoverSvg(text) });
+    });
+    console.log(`[DB] 已更新 ${placeholderNews.length} 条 news 封面图 URL`);
   }
 
   // eslint-disable-next-line no-console
