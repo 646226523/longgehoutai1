@@ -19,6 +19,12 @@ export interface BannerItem {
   end_time: number | null;
   created_at: number;
   updated_at: number;
+  jump_type?: string;
+  jump_target?: string;
+  is_draft?: number;
+  impressions?: number;
+  clicks?: number;
+  created_by?: string;
 }
 
 export interface BannerListParams {
@@ -27,6 +33,7 @@ export interface BannerListParams {
   title?: string;
   status?: number | string;
   position?: string;
+  is_draft?: number | string;
 }
 
 export interface BannerSaveParams {
@@ -38,6 +45,9 @@ export interface BannerSaveParams {
   status?: number;
   start_time?: number | null;
   end_time?: number | null;
+  jump_type?: string;
+  jump_target?: string;
+  is_draft?: number;
 }
 
 // Banner 分页列表
@@ -216,4 +226,47 @@ export async function publishNotice(id: number): Promise<void> {
 // 删除公告
 export async function deleteNotice(id: number): Promise<void> {
   await http.delete(`/content/notices/${id}`);
+}
+
+// ==================== Banner 统计 ====================
+export interface BannerPositionStats {
+  total: number;
+  active: number;
+}
+
+export interface BannerStats {
+  total: number;
+  active: number;
+  pending: number;
+  expired: number;
+  drafts: number;
+  total_impressions: number;
+  total_clicks: number;
+  ctr: number;
+  positions: {
+    home_top: BannerPositionStats;
+    home_mid: BannerPositionStats;
+    home_bottom: BannerPositionStats;
+  };
+}
+
+// Banner 统计数据
+export async function getBannerStats(): Promise<BannerStats> {
+  const data = await http.get<BannerStats>('/content/banners/stats');
+  return data;
+}
+
+// ==================== 资讯统计 ====================
+export interface NewsStats {
+  total: number;
+  published: number;
+  draft: number;
+  offline: number;
+  top: number;
+}
+
+// 资讯统计数据
+export async function getNewsStats(): Promise<NewsStats> {
+  const data = await http.get<NewsStats>('/content/news/stats');
+  return data;
 }
