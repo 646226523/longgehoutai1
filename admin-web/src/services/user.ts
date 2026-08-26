@@ -17,6 +17,9 @@ export interface UserItem {
   phone: string | null;
   real_name: string | null;
   id_card: string | null;
+  id_card_front: string | null;
+  id_card_back: string | null;
+  id_card_handheld: string | null;
   status: number; // 1 正常 / 0 封禁
   growth_value: number;
   member_level_id: number | null;
@@ -36,6 +39,39 @@ export interface UserListParams {
   keyword?: string; // 用户名/昵称/手机号
   status?: number | string;
   cert_status?: string;
+}
+
+// 审核列表项(用于认证审核页面)
+export interface AuditItem {
+  id: number;
+  username: string;
+  nickname: string;
+  avatar: string | null;
+  phone: string | null;
+  real_name: string | null;
+  id_card: string | null;
+  id_card_front: string | null;
+  id_card_back: string | null;
+  id_card_handheld: string | null;
+  status: number;
+  growth_value: number;
+  member_level_id: number | null;
+  level_name: string | null;
+  level_code: string | null;
+  cert_status: string;
+  real_name_status: string;
+  loft_owner_status: string;
+  audit_remark: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AuditListParams {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  audit_type?: string; // real_name / loft_owner
+  audit_status?: string; // pending / approved / rejected
 }
 
 export interface UserUpdateParams {
@@ -98,6 +134,7 @@ export interface MemberLevelItem {
   icon: string | null;
   benefits: string | null;
   status: number;
+  theme_color?: string;
   benefit_count: number;
   user_count: number;
   created_at: number;
@@ -116,6 +153,7 @@ export interface MemberLevelCreateParams {
   icon?: string;
   benefits?: string;
   status?: number;
+  theme_color?: string;
 }
 
 export interface MemberLevelUpdateParams {
@@ -125,6 +163,7 @@ export interface MemberLevelUpdateParams {
   icon?: string;
   benefits?: string;
   status?: number;
+  theme_color?: string;
 }
 
 // 等级列表
@@ -224,4 +263,10 @@ export async function updateMemberBenefit(
 // 删除权益
 export async function deleteMemberBenefit(id: number): Promise<void> {
   await http.delete(`/user/benefits/${id}`);
+}
+
+// 审核列表(实名认证+鸽主认证)
+export async function getAuditList(params: AuditListParams): Promise<PageResult<AuditItem>> {
+  const data = await http.get<PageResult<AuditItem>>('/user/audits', { params });
+  return data;
 }
