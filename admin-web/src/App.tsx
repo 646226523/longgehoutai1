@@ -35,6 +35,7 @@ import AuctionItems from './pages/auction/Items';
 import ArbitrationCase from './pages/arbitration/Case';
 import UserList from './pages/user-member/UserList';
 import MemberLevel from './pages/user-member/MemberLevel';
+import AuditList from './pages/user-member/AuditList';
 import ContentBanner from './pages/content/Banner';
 import ContentNews from './pages/content/News';
 import StatisticsOverview from './pages/statistics/Overview';
@@ -190,6 +191,7 @@ function Bootstrap() {
         {/* 用户与会员体系 */}
         <Route path="user-member/user" element={<UserList />} />
         <Route path="user-member/level" element={<MemberLevel />} />
+        <Route path="user-member/audit" element={<AuditList />} />
 
         {/* 内容运营管理 */}
         <Route path="content/banner" element={<ContentBanner />} />
