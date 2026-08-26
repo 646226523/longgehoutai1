@@ -54,7 +54,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const multi = maxCount > 1;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [previewList, setPreviewList] = useState<string[]>(toArr(value));
+  const [previewList, setPreviewList] = useState<string[]>([]);
   const [loadErrors, setLoadErrors] = useState<Record<number, boolean>>({});
   const [loadError, setLoadError] = useState(false);
 
