@@ -64,7 +64,9 @@ router.get('/banners', requirePermission('content:view'), (req: AuthedRequest, r
 
   const rows = db
     .prepare(
-      `SELECT id, title, image_url, link_url, position, sort_order, status, start_time, end_time, created_at, updated_at
+      `SELECT id, title, image_url, link_url, position, sort_order, status, start_time, end_time,
+              jump_type, jump_target, is_draft, impressions, clicks, created_by,
+              created_at, updated_at
        FROM banners
        ${whereSql}
        ORDER BY sort_order ASC, id DESC
@@ -80,11 +82,98 @@ router.get('/banners', requirePermission('content:view'), (req: AuthedRequest, r
       status: number;
       start_time: number | null;
       end_time: number | null;
+      jump_type: string;
+      jump_target: string;
+      is_draft: number;
+      impressions: number;
+      clicks: number;
+      created_by: string;
       created_at: number;
       updated_at: number;
     }>;
 
   return ok(res, { list: rows, total });
+});
+
+// GET /api/content/banners/stats - 统计数据
+router.get('/banners/stats', requirePermission('content:view'), (_req: AuthedRequest, res: Response) => {
+  const total = (db.prepare('SELECT COUNT(*) AS c FROM banners').get() as { c: number }).c;
+  const now = Date.now();
+
+  const active = (db.prepare(`
+    SELECT COUNT(*) AS c FROM banners
+    WHERE status = 1
+    AND is_draft = 0
+    AND (start_time IS NULL OR start_time <= ?)
+    AND (end_time IS NULL OR end_time >= ?)
+  `).get(now, now) as { c: number }).c;
+
+  const pending = (db.prepare(`
+    SELECT COUNT(*) AS c FROM banners
+    WHERE status = 1 AND start_time > ? AND is_draft = 0
+  `).get(now) as { c: number }).c;
+
+  const expired = (db.prepare(`
+    SELECT COUNT(*) AS c FROM banners WHERE end_time < ? AND is_draft = 0
+  `).get(now) as { c: number }).c;
+
+  const drafts = (db.prepare(`SELECT COUNT(*) AS c FROM banners WHERE is_draft = 1`).get() as { c: number }).c;
+
+  const totalImpressions = (db.prepare(`SELECT COALESCE(SUM(impressions), 0) AS s FROM banners`).get() as { s: number }).s;
+  const totalClicks = (db.prepare(`SELECT COALESCE(SUM(clicks), 0) AS s FROM banners`).get() as { s: number }).s;
+
+  // 按位置统计
+  const positionStats = db.prepare(`
+    SELECT position, COUNT(*) AS count
+    FROM banners
+    WHERE is_draft = 0
+    GROUP BY position
+  `).all() as { position: string; count: number }[];
+
+  // 按位置-状态统计（已投放）
+  const activeByPosition = db.prepare(`
+    SELECT position, COUNT(*) AS count
+    FROM banners
+    WHERE status = 1
+    AND is_draft = 0
+    AND (start_time IS NULL OR start_time <= ?)
+    AND (end_time IS NULL OR end_time >= ?)
+    GROUP BY position
+  `).all(now, now) as { position: string; count: number }[];
+
+  // 构建位置统计映射
+  const positionMap: Record<string, { total: number; active: number }> = {
+    home_top: { total: 0, active: 0 },
+    home_mid: { total: 0, active: 0 },
+    home_bottom: { total: 0, active: 0 },
+  };
+
+  positionStats.forEach(item => {
+    if (positionMap[item.position]) {
+      positionMap[item.position].total = item.count;
+    }
+  });
+
+  activeByPosition.forEach(item => {
+    if (positionMap[item.position]) {
+      positionMap[item.position].active = item.count;
+    }
+  });
+
+  // 计算点击率
+  const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00';
+
+  return ok(res, {
+    total,
+    active,
+    pending,
+    expired,
+    drafts,
+    total_impressions: totalImpressions,
+    total_clicks: totalClicks,
+    ctr: parseFloat(ctr),
+    positions: positionMap,
+  });
 });
 
 // GET /api/content/banners/:id - 详情
@@ -111,14 +200,21 @@ router.post(
       status?: number;
       start_time?: number | null;
       end_time?: number | null;
+      jump_type?: string;
+      jump_target?: string;
+      is_draft?: number;
+      impressions?: number;
+      clicks?: number;
+      created_by?: string;
     };
     if (!body.title || !body.image_url) {
       return fail(res, 400, '标题和图片 URL 不能为空');
     }
     const result = db
       .prepare(
-        `INSERT INTO banners (title, image_url, link_url, position, sort_order, status, start_time, end_time)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO banners (title, image_url, link_url, position, sort_order, status, start_time, end_time,
+          jump_type, jump_target, is_draft, impressions, clicks, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         body.title,
@@ -128,7 +224,13 @@ router.post(
         body.sort_order ?? 0,
         body.status ?? 1,
         body.start_time ?? null,
-        body.end_time ?? null
+        body.end_time ?? null,
+        body.jump_type ?? 'external',
+        body.jump_target ?? '',
+        body.is_draft ?? 0,
+        body.impressions ?? 0,
+        body.clicks ?? 0,
+        body.created_by ?? ''
       );
     return ok(res, { id: result.lastInsertRowid }, '新增成功');
   }
@@ -154,10 +256,14 @@ router.put(
       status?: number;
       start_time?: number | null;
       end_time?: number | null;
+      jump_type?: string;
+      jump_target?: string;
+      is_draft?: number;
     };
     db.prepare(
       `UPDATE banners SET title = ?, image_url = ?, link_url = ?, position = ?, sort_order = ?, status = ?,
-              start_time = ?, end_time = ?, updated_at = ? WHERE id = ?`
+              start_time = ?, end_time = ?, jump_type = ?, jump_target = ?, is_draft = ?,
+              updated_at = ? WHERE id = ?`
     ).run(
       body.title ?? '',
       body.image_url ?? '',
@@ -167,6 +273,9 @@ router.put(
       body.status ?? 1,
       body.start_time ?? null,
       body.end_time ?? null,
+      body.jump_type ?? 'external',
+      body.jump_target ?? '',
+      body.is_draft ?? 0,
       Date.now(),
       id
     );
@@ -277,6 +386,17 @@ router.get('/news', requirePermission('content:view'), (req: AuthedRequest, res:
     }>;
 
   return ok(res, { list: rows, total });
+});
+
+// GET /api/content/news/stats - 资讯统计数据
+router.get('/news/stats', requirePermission('content:view'), (_req: AuthedRequest, res: Response) => {
+  const total = (db.prepare('SELECT COUNT(*) AS c FROM news').get() as { c: number }).c;
+  const published = (db.prepare("SELECT COUNT(*) AS c FROM news WHERE status = 'published'").get() as { c: number }).c;
+  const draft = (db.prepare("SELECT COUNT(*) AS c FROM news WHERE status = 'draft'").get() as { c: number }).c;
+  const offline = (db.prepare("SELECT COUNT(*) AS c FROM news WHERE status = 'offline'").get() as { c: number }).c;
+  const top = (db.prepare('SELECT COUNT(*) AS c FROM news WHERE is_top = 1').get() as { c: number }).c;
+
+  return ok(res, { total, published, draft, offline, top });
 });
 
 // GET /api/content/news/:id - 详情(含 content 富文本)
@@ -460,8 +580,7 @@ router.delete(
     if (!exists) return fail(res, 404, '资讯不存在');
     db.prepare('DELETE FROM news WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
-  }
-);
+});
 
 // ====================== 公告与推送管理 ======================
 
