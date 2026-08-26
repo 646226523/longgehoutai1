@@ -1,12 +1,8 @@
-﻿// 用户与会员体系 - 会员等级与权益配置
-// 功能:等级 ProTable(新增/编辑/删除/调整排序)、每行可进入权益配置(抽屉内 ProTable)、
-//      成长值重算按钮(按各等级 min_growth 重新匹配所有用户 member_level_id)
 import {
   ModalForm,
-  ProFormDigit,
-  ProFormSelect,
   ProFormText,
   ProFormTextArea,
+  ProFormSelect,
   ProTable,
   type ActionType,
   type ProColumns,
@@ -14,11 +10,18 @@ import {
 import {
   App,
   Button,
+  Card,
+  Form,
   Drawer,
+  Input,
+  InputNumber,
+  Modal,
   Popconfirm,
+  Select,
   Space,
   Switch,
   Tag,
+  Typography,
 } from 'antd';
 import {
   PlusOutlined,
@@ -26,12 +29,15 @@ import {
   ArrowDownOutlined,
   GiftOutlined,
   ReloadOutlined,
+  StarFilled,
+  TrophyFilled,
 } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import RefreshButton from '../../components/RefreshButton';
+import IconPicker from '../../components/IconPicker';
 import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   createMemberBenefit,
@@ -48,19 +54,65 @@ import {
   type MemberLevelItem,
 } from '../../services/user';
 
-// 权益类型标签映射
+const { Text } = Typography;
+
 const BENEFIT_TYPE_MAP: Record<string, { text: string; color: string }> = {
   discount: { text: '折扣', color: 'orange' },
   count: { text: '次数', color: 'blue' },
   privilege: { text: '特权', color: 'gold' },
 };
 
-// 等级图标映射(展示用)
 const LEVEL_ICON_MAP: Record<string, string> = {
   bronze: '🥉',
   silver: '🥈',
   gold: '🥇',
   diamond: '💎',
+};
+
+const THEME_PRESETS = [
+  { key: 'auto', label: '自动(跟随图标)', from: '#1677ff', to: '#096dd9', accent: '#1677ff' },
+  { key: 'gold', label: '尊贵金', from: '#ffd700', to: '#daa520', accent: '#ffd700' },
+  { key: 'silver', label: '典雅银', from: '#c0c0c0', to: '#808080', accent: '#c0c0c0' },
+  { key: 'bronze', label: '青铜褐', from: '#cd7f32', to: '#a0522d', accent: '#cd7f32' },
+  { key: 'emerald', label: '翡翠绿', from: '#52c41a', to: '#389e0d', accent: '#52c41a' },
+  { key: 'ocean', label: '深海蓝', from: '#1890ff', to: '#096dd9', accent: '#1890ff' },
+  { key: 'sunset', label: '日落橙', from: '#fa8c16', to: '#d46b08', accent: '#fa8c16' },
+  { key: 'violet', label: '紫罗兰', from: '#722ed1', to: '#531dab', accent: '#722ed1' },
+  { key: 'rose', label: '玫瑰粉', from: '#eb2f96', to: '#c41d7f', accent: '#eb2f96' },
+  { key: 'midnight', label: '深夜黑', from: '#262626', to: '#000000', accent: '#595959' },
+  { key: 'crimson', label: '赤焰红', from: '#ff4d4f', to: '#cf1322', accent: '#ff4d4f' },
+  { key: 'teal', label: '孔雀青', from: '#13c2c2', to: '#006d75', accent: '#13c2c2' },
+];
+
+const getLevelColor = (icon?: string, themeKey?: string): { from: string; to: string; accent: string } => {
+  if (themeKey && themeKey !== 'auto') {
+    const theme = THEME_PRESETS.find((t) => t.key === themeKey);
+    if (theme) return { from: theme.from, to: theme.to, accent: theme.accent };
+  }
+  const colorMap: Record<string, { from: string; to: string; accent: string }> = {
+    '🥉': { from: '#cd7f32', to: '#a0522d', accent: '#cd7f32' },
+    '🥈': { from: '#b8b8b8', to: '#808080', accent: '#b8b8b8' },
+    '🥇': { from: '#ffd700', to: '#daa520', accent: '#ffd700' },
+    '💎': { from: '#00ced1', to: '#1890ff', accent: '#1890ff' },
+    '👑': { from: '#faad14', to: '#d48806', accent: '#faad14' },
+    '🏆': { from: '#ffd700', to: '#b8860b', accent: '#ffd700' },
+    '🎖️': { from: '#ff7a45', to: '#d4380d', accent: '#ff7a45' },
+    '⭐': { from: '#ffc53d', to: '#fa8c16', accent: '#ffc53d' },
+    '🌟': { from: '#ffd666', to: '#ffa940', accent: '#ffd666' },
+    '✨': { from: '#e6f7ff', to: '#91d5ff', accent: '#1890ff' },
+    '🔥': { from: '#ff4d4f', to: '#cf1322', accent: '#ff4d4f' },
+    '⚡': { from: '#722ed1', to: '#531dab', accent: '#722ed1' },
+    '🚀': { from: '#52c41a', to: '#389e0d', accent: '#52c41a' },
+    '💫': { from: '#eb2f96', to: '#c41d7f', accent: '#eb2f96' },
+    '🦅': { from: '#fa8c16', to: '#d46b08', accent: '#fa8c16' },
+    '🕊️': { from: '#8c8c8c', to: '#595959', accent: '#8c8c8c' },
+    '🔰': { from: '#13c2c2', to: '#08979c', accent: '#13c2c2' },
+    '⚔️': { from: '#595959', to: '#262626', accent: '#595959' },
+    '🌸': { from: '#ffadd2', to: '#ff85c0', accent: '#ff85c0' },
+    '🌙': { from: '#262626', to: '#000000', accent: '#595959' },
+    '☀️': { from: '#faad14', to: '#d48806', accent: '#faad14' },
+  };
+  return colorMap[icon || ''] || THEME_PRESETS[0];
 };
 
 const MemberLevel = () => {
@@ -70,89 +122,107 @@ const MemberLevel = () => {
   const actionRef = useRef<ActionType>();
   const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
 
-  // 等级新增/编辑弹窗
   const [levelModal, setLevelModal] = useState<{
     visible: boolean;
     record: MemberLevelItem | null;
   }>({ visible: false, record: null });
 
-  // 权益配置抽屉
   const [benefitDrawer, setBenefitDrawer] = useState<{
     visible: boolean;
     level: MemberLevelItem | null;
   }>({ visible: false, level: null });
   const benefitActionRef = useRef<ActionType>();
 
-  // 权益新增/编辑弹窗
   const [benefitModal, setBenefitModal] = useState<{
     visible: boolean;
     record: MemberBenefitItem | null;
   }>({ visible: false, record: null });
 
-  // 等级提交
-  const handleLevelSubmit = async (values: Record<string, unknown>) => {
-    const payload = {
-      code: values.code as string,
-      name: values.name as string,
-      min_growth: (values.min_growth as number) ?? 0,
-      sort: (values.sort as number) ?? 0,
-      icon: values.icon as string,
-      benefits: values.benefits as string,
-      status: (values.status as number) ?? 1,
-    };
-    if (levelModal.record) {
-      await updateMemberLevel(levelModal.record.id, {
-        name: payload.name,
-        min_growth: payload.min_growth,
-        sort: payload.sort,
-        icon: payload.icon,
-        benefits: payload.benefits,
-        status: payload.status,
-      });
-      message.success('更新成功');
-    } else {
-      await createMemberLevel(payload);
-      message.success('新增成功');
+  const [form] = Form.useForm();
+  const [formValues, setFormValues] = useState<Record<string, any>>({});
+
+  const getInitialValues = (record: MemberLevelItem | null) => {
+    if (record) {
+      return {
+        code: record.code,
+        name: record.name,
+        min_growth: record.min_growth,
+        sort: record.sort,
+        icon: record.icon,
+        benefits: record.benefits,
+        status: record.status,
+        theme_color: (record as any).theme_color || 'auto',
+      };
     }
-    setLevelModal({ visible: false, record: null });
-    handleRefresh();
-    return true;
+    return { min_growth: 0, sort: 0, status: 1, theme_color: 'auto' };
   };
 
-  // 调整排序(上移/下移)
+  const handleLevelSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      const payload = {
+        code: values.code as string,
+        name: values.name as string,
+        min_growth: (values.min_growth as number) ?? 0,
+        sort: (values.sort as number) ?? 0,
+        icon: values.icon as string,
+        benefits: values.benefits as string,
+        status: (values.status as number) ?? 1,
+        theme_color: (values.theme_color as string) || 'auto',
+      };
+      if (levelModal.record) {
+        await updateMemberLevel(levelModal.record.id, {
+          name: payload.name,
+          min_growth: payload.min_growth,
+          sort: payload.sort,
+          icon: payload.icon,
+          benefits: payload.benefits,
+          status: payload.status,
+          theme_color: payload.theme_color,
+        });
+        message.success('更新成功');
+      } else {
+        await createMemberLevel(payload);
+        message.success('新增成功');
+      }
+      setLevelModal({ visible: false, record: null });
+      form.resetFields();
+      handleRefresh();
+    } catch {
+      // validation failed
+    }
+  };
+
   const handleSort = async (record: MemberLevelItem, delta: number) => {
     try {
       await updateMemberLevelSort(record.id, record.sort + delta);
       message.success('排序已更新');
       handleRefresh();
     } catch {
-      // 拦截器已提示错误
+      // interceptor handled
     }
   };
 
-  // 删除等级
   const handleDeleteLevel = async (record: MemberLevelItem) => {
     try {
       await deleteMemberLevel(record.id);
       message.success('删除成功');
       handleRefresh();
     } catch {
-      // 拦截器已提示错误
+      // interceptor handled
     }
   };
 
-  // 成长值重算
   const handleRecompute = async () => {
     try {
       const res = await recomputeUserLevels();
       message.success(`已重算 ${res.affected} 个用户的会员等级`);
       handleRefresh();
     } catch {
-      // 拦截器已提示错误
+      // interceptor handled
     }
   };
 
-  // 权益提交
   const handleBenefitSubmit = async (values: Record<string, unknown>) => {
     if (!benefitDrawer.level) return true;
     const payload = {
@@ -171,12 +241,10 @@ const MemberLevel = () => {
     }
     setBenefitModal({ visible: false, record: null });
     benefitActionRef.current?.reload();
-    // 同步刷新等级表(权益数量变化)
     handleRefresh();
     return true;
   };
 
-  // 删除权益
   const handleDeleteBenefit = async (record: MemberBenefitItem) => {
     try {
       await deleteMemberBenefit(record.id);
@@ -184,11 +252,10 @@ const MemberLevel = () => {
       benefitActionRef.current?.reload();
       handleRefresh();
     } catch {
-      // 拦截器已提示错误
+      // interceptor handled
     }
   };
 
-  // 切换权益启用状态
   const handleToggleBenefitStatus = async (record: MemberBenefitItem, next: number) => {
     try {
       await updateMemberBenefit(record.id, {
@@ -201,11 +268,10 @@ const MemberLevel = () => {
       message.success(next === 1 ? '已启用' : '已禁用');
       benefitActionRef.current?.reload();
     } catch {
-      // 拦截器已提示错误
+      // interceptor handled
     }
   };
 
-  // 等级表列定义
   const levelColumns: ProColumns<MemberLevelItem>[] = [
     {
       title: '排序',
@@ -334,7 +400,6 @@ const MemberLevel = () => {
     },
   ];
 
-  // 权益表列定义
   const benefitColumns: ProColumns<MemberBenefitItem>[] = [
     { title: '权益名称', dataIndex: 'name', width: 160, ellipsis: true },
     {
@@ -415,9 +480,15 @@ const MemberLevel = () => {
     },
   ];
 
+  const currentIcon = formValues.icon || levelModal.record?.icon || '🥉';
+  const currentName = formValues.name || levelModal.record?.name || '等级名称';
+  const currentGrowth = formValues.min_growth ?? levelModal.record?.min_growth ?? 0;
+  const currentStatus = formValues.status ?? levelModal.record?.status ?? 1;
+  const currentTheme = formValues.theme_color || 'auto';
+  const colors = getLevelColor(currentIcon, currentTheme);
+
   return (
     <>
-      {/* 会员等级 ProTable */}
       <ProTable<MemberLevelItem>
         headerTitle="会员等级配置"
         actionRef={actionRef}
@@ -452,7 +523,10 @@ const MemberLevel = () => {
                   key="create"
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => setLevelModal({ visible: true, record: null })}
+                  onClick={() => {
+                    setLevelModal({ visible: true, record: null });
+                    setFormValues({ min_growth: 0, sort: 0, status: 1, theme_color: 'auto' });
+                  }}
                 >
                   新增等级
                 </Button>,
@@ -464,79 +538,500 @@ const MemberLevel = () => {
         }
       />
 
-      {/* 等级新增/编辑弹窗 */}
-      <ModalForm
+      <Modal
         title={levelModal.record ? '编辑会员等级' : '新增会员等级'}
         open={levelModal.visible}
-        onOpenChange={(v) => setLevelModal({ visible: v, record: v ? levelModal.record : null })}
-        onFinish={handleLevelSubmit}
-        modalProps={{ destroyOnHidden: true, maskClosable: false }}
-        width={560}
-        initialValues={
-          levelModal.record
-            ? {
-                code: levelModal.record.code,
-                name: levelModal.record.name,
-                min_growth: levelModal.record.min_growth,
-                sort: levelModal.record.sort,
-                icon: levelModal.record.icon,
-                benefits: levelModal.record.benefits,
-                status: levelModal.record.status,
-              }
-            : { min_growth: 0, sort: 0, status: 1 }
-        }
+        afterOpenChange={(open) => {
+          if (open) {
+            const values = getInitialValues(levelModal.record);
+            form.setFieldsValue(values);
+          } else {
+            form.resetFields();
+          }
+        }}
+        onCancel={() => {
+          setLevelModal({ visible: false, record: null });
+        }}
+        width={820}
+        destroyOnHidden
+        maskClosable={false}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setLevelModal({ visible: false, record: null });
+            }}
+          >
+            取消
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleLevelSubmit}>
+            {levelModal.record ? '保存修改' : '确认新增'}
+          </Button>,
+        ]}
       >
-        <ProFormText
-          name="code"
-          label="等级编码"
-          placeholder="如 bronze/silver/gold/diamond"
-          rules={[{ required: true, message: '请输入等级编码' }]}
-          disabled={!!levelModal.record}
-          extra={levelModal.record ? '编码创建后不可修改' : '唯一标识,建议与字典 member_level 对齐'}
-        />
-        <ProFormText
-          name="name"
-          label="等级名称"
-          placeholder="请输入等级名称"
-          rules={[{ required: true, message: '请输入等级名称' }]}
-        />
-        <ProFormDigit
-          name="min_growth"
-          label="最低成长值"
-          min={0}
-          fieldProps={{ precision: 0 }}
-          placeholder="达到该成长值自动升级"
-          rules={[{ required: true, message: '请输入最低成长值' }]}
-        />
-        <ProFormDigit
-          name="sort"
-          label="排序"
-          min={0}
-          fieldProps={{ precision: 0 }}
-          placeholder="数值越小等级越低(升序)"
-        />
-        <ProFormText
-          name="icon"
-          label="等级图标"
-          placeholder="图标 URL 或 emoji 标识(如 💎)"
-        />
-        <ProFormTextArea
-          name="benefits"
-          label="权益概要"
-          placeholder="该等级权益概要描述"
-          fieldProps={{ rows: 3 }}
-        />
-        <ProFormSelect
-          name="status"
-          label="状态"
-          options={[
-            { label: '启用', value: 1 },
-            { label: '禁用', value: 0 },
-          ]}
-        />
-      </ModalForm>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 320px',
+            gap: 20,
+            maxHeight: '70vh',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              overflowY: 'auto',
+              maxHeight: '70vh',
+              paddingRight: 4,
+            }}
+          >
+            <Form
+              form={form}
+              layout="vertical"
+              onValuesChange={(_, allValues) => setFormValues(allValues)}
+            >
+              <Card
+                variant="borderless"
+                styles={{ body: { padding: 16 } }}
+                style={{
+                  borderRadius: 12,
+                  border: '1px solid #f0f0f0',
+                  marginBottom: 16,
+                  borderLeft: '4px solid #1677ff',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 12,
+                  }}
+                >
+                  <StarFilled style={{ color: '#1677ff' }} />
+                  <Text strong style={{ fontSize: 14 }}>
+                    基本信息
+                  </Text>
+                </div>
 
-      {/* 权益配置抽屉 */}
+                <Form.Item
+                  name="code"
+                  label="等级编码"
+                  rules={[{ required: true, message: '请输入等级编码' }]}
+                  extra={
+                    levelModal.record
+                      ? '编码创建后不可修改'
+                      : '唯一标识,建议与字典 member_level 对齐'
+                  }
+                >
+                  <Input
+                    placeholder="如 bronze/silver/gold/diamond"
+                    disabled={!!levelModal.record}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="name"
+                  label="等级名称"
+                  rules={[{ required: true, message: '请输入等级名称' }]}
+                >
+                  <Input placeholder="请输入等级名称" maxLength={20} showCount />
+                </Form.Item>
+
+                <Form.Item name="status" label="状态">
+                  <Select
+                    options={[
+                      { label: '启用', value: 1 },
+                      { label: '禁用', value: 0 },
+                    ]}
+                  />
+                </Form.Item>
+              </Card>
+
+              <Card
+                variant="borderless"
+                styles={{ body: { padding: 16 } }}
+                style={{
+                  borderRadius: 12,
+                  border: '1px solid #f0f0f0',
+                  marginBottom: 16,
+                  borderLeft: '4px solid #faad14',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 12,
+                  }}
+                >
+                  <TrophyFilled style={{ color: '#faad14' }} />
+                  <Text strong style={{ fontSize: 14 }}>
+                    图标与排序
+                  </Text>
+                </div>
+
+                <Form.Item
+                  name="icon"
+                  label="等级图标"
+                  tooltip="从图标库中选择,点击即可切换"
+                  extra="从预置图标库中选择等级徽章图标"
+                >
+                  <IconPicker placeholder="请选择等级图标" />
+                </Form.Item>
+
+                <Form.Item
+                  name="theme_color"
+                  label="主题配色"
+                  tooltip="选择等级徽章的主题颜色,自动模式根据图标自动配色"
+                  extra="选择后右侧预览区将实时更新等级样式"
+                >
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {THEME_PRESETS.map((theme) => {
+                      const isActive = currentTheme === theme.key;
+                      return (
+                        <div
+                          key={theme.key}
+                          onClick={() => {
+                            form.setFieldValue('theme_color', theme.key);
+                            setFormValues((prev) => ({ ...prev, theme_color: theme.key }));
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '6px 10px',
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                            border: isActive ? '2px solid ' + theme.from : '2px solid #f0f0f0',
+                            background: isActive ? theme.from + '15' : '#fff',
+                            transition: 'all 0.2s ease',
+                            fontSize: 12,
+                            color: isActive ? theme.from : '#595959',
+                            fontWeight: isActive ? 600 : 400,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isActive) {
+                              (e.currentTarget as HTMLDivElement).style.borderColor = theme.from;
+                              (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActive) {
+                              (e.currentTarget as HTMLDivElement).style.borderColor = '#f0f0f0';
+                              (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
+                            }
+                          }}
+                        >
+                          {theme.key !== 'auto' && (
+                            <div
+                              style={{
+                                width: 14,
+                                height: 14,
+                                borderRadius: '50%',
+                                background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)`,
+                                border: '1px solid rgba(0,0,0,0.08)',
+                              }}
+                            />
+                          )}
+                          {theme.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Form.Item>
+
+                <Form.Item
+                  name="min_growth"
+                  label="最低成长值"
+                  rules={[{ required: true, message: '请输入最低成长值' }]}
+                >
+                  <InputNumber
+                    min={0}
+                    precision={0}
+                    placeholder="达到该成长值自动升级"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+
+                <Form.Item name="sort" label="排序">
+                  <InputNumber
+                    min={0}
+                    precision={0}
+                    placeholder="数值越小等级越低(升序)"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Card>
+
+              <Card
+                variant="borderless"
+                styles={{ body: { padding: 16 } }}
+                style={{
+                  borderRadius: 12,
+                  border: '1px solid #f0f0f0',
+                  borderLeft: '4px solid #52c41a',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 12,
+                  }}
+                >
+                    <GiftOutlined style={{ color: '#52c41a' }} />
+                    <Text strong style={{ fontSize: 14 }}>
+                      权益描述
+                    </Text>
+                  </div>
+
+                  <Form.Item name="benefits" label="权益概要">
+                    <Input.TextArea
+                      placeholder="该等级权益概要描述,如:赛事报名9折优惠、每月专属客服、优先参与活动等"
+                      rows={4}
+                      maxLength={200}
+                      showCount
+                    />
+                  </Form.Item>
+              </Card>
+            </Form>
+          </div>
+
+          <div
+            style={{
+              position: 'sticky',
+              top: 0,
+              alignSelf: 'start',
+              maxHeight: '70vh',
+              overflowY: 'auto',
+            }}
+          >
+            <Card
+              variant="borderless"
+              styles={{
+                body: {
+                  padding: 0,
+                },
+              }}
+              style={{
+                overflow: 'hidden',
+                borderRadius: 12,
+                border: '1px solid #f0f0f0',
+              }}
+            >
+              <div
+                style={{
+                  padding: '24px 16px 28px',
+                  background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,
+                  color: '#fff',
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: -30,
+                    right: -30,
+                    width: 100,
+                    height: 100,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.08)',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -20,
+                    left: -20,
+                    width: 70,
+                    height: 70,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.06)',
+                  }}
+                />
+                <div
+                  style={{
+                    width: 84,
+                    height: 84,
+                    margin: '0 auto 14px',
+                    background: 'rgba(255,255,255,0.22)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(6px)',
+                    fontSize: 44,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    position: 'relative',
+                    zIndex: 1,
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  {currentIcon}
+                </div>
+                <div
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    marginBottom: 6,
+                    textShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
+                  {currentName || '等级名称'}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 6,
+                    justifyContent: 'center',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      opacity: 0.92,
+                      background: 'rgba(0,0,0,0.18)',
+                      padding: '4px 12px',
+                      borderRadius: 12,
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    成长值 ≥ {currentGrowth}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      opacity: 0.92,
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '4px 10px',
+                      borderRadius: 12,
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    {THEME_PRESETS.find((t) => t.key === currentTheme)?.label || '自动'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ padding: '16px 20px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 0',
+                    borderBottom: '1px dashed #f0f0f0',
+                  }}
+                >
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    状态
+                  </Text>
+                  <Tag color={currentStatus === 1 ? 'green' : 'default'}>
+                    {currentStatus === 1 ? '已启用' : '已禁用'}
+                  </Tag>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 0',
+                    borderBottom: '1px dashed #f0f0f0',
+                  }}
+                >
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    等级编码
+                  </Text>
+                  <Text strong style={{ fontSize: 13 }}>
+                    {formValues.code || levelModal.record?.code || '自动生成'}
+                  </Text>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 0',
+                    borderBottom: '1px dashed #f0f0f0',
+                  }}
+                >
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    排序权重
+                  </Text>
+                  <Text strong style={{ fontSize: 13 }}>
+                    {formValues.sort ?? levelModal.record?.sort ?? 0}
+                  </Text>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 0',
+                    borderBottom: '1px dashed #f0f0f0',
+                  }}
+                >
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    主题配色
+                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,
+                        border: '1px solid rgba(0,0,0,0.08)',
+                      }}
+                    />
+                    <Text strong style={{ fontSize: 13 }}>
+                      {THEME_PRESETS.find((t) => t.key === currentTheme)?.label || '自动'}
+                    </Text>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '10px 12px',
+                    background: '#fafafa',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    color: '#8c8c8c',
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {formValues.benefits || levelModal.record?.benefits || '暂无权益描述'}
+                </div>
+              </div>
+            </Card>
+
+            <div
+              style={{
+                marginTop: 12,
+                padding: '12px 14px',
+                background: '#fffbe6',
+                borderRadius: 8,
+                border: '1px solid #ffe58f',
+                fontSize: 12,
+                color: '#ad6800',
+              }}
+            >
+              💡 选择图标后可在此预览等级样式。图标将在用户端作为徽章展示。
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       <Drawer
         title={`权益配置 - ${benefitDrawer.level?.name ?? ''}`}
         width={960}
@@ -579,7 +1074,6 @@ const MemberLevel = () => {
         />
       </Drawer>
 
-      {/* 权益新增/编辑弹窗 */}
       <ModalForm
         title={benefitModal.record ? '编辑权益' : '新增权益'}
         open={benefitModal.visible}
