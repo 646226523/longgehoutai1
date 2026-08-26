@@ -130,6 +130,7 @@ const menuData: MenuItem[] = [
     children: [
       { path: '/user-member/user', name: '用户管理', permission: 'user:view' },
       { path: '/user-member/level', name: '会员等级', permission: 'member:view' },
+      { path: '/user-member/audit', name: '认证审核', permission: 'user:view' },
     ],
   },
   {
