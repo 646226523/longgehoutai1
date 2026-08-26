@@ -124,6 +124,113 @@ userRouter.get('/users', requirePermission('user:view'), (req: AuthedRequest, re
   return ok(res, { list, total });
 });
 
+// GET /api/user/audits - 审核列表(实名认证+鸽主认证)
+userRouter.get('/audits', requirePermission('user:view'), (req: AuthedRequest, res: Response) => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
+  const pageSize = Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);
+  const keyword = String(req.query.keyword ?? '').trim();
+  const auditType = String(req.query.audit_type ?? '').trim(); // real_name / loft_owner
+  const auditStatus = String(req.query.audit_status ?? '').trim(); // pending / approved / rejected
+
+  const where: string[] = [];
+  const params: Array<string | number> = [];
+
+  // 关键字搜索
+  if (keyword) {
+    where.push('(u.username LIKE ? OR u.nickname LIKE ? OR u.phone LIKE ? OR u.real_name LIKE ?)');
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+  }
+
+  // 审核类型筛选
+  if (auditType === 'real_name') {
+    where.push("u.real_name_status != 'none'");
+  } else if (auditType === 'loft_owner') {
+    where.push("u.loft_owner_status != 'none'");
+  } else {
+    // 默认显示所有有审核记录的用户
+    where.push("(u.real_name_status != 'none' OR u.loft_owner_status != 'none')");
+  }
+
+  // 审核状态筛选
+  if (auditStatus === 'pending') {
+    where.push("(u.real_name_status = 'pending' OR u.loft_owner_status = 'pending')");
+  } else if (auditStatus === 'approved') {
+    where.push("(u.real_name_status = 'approved' OR u.loft_owner_status = 'approved')");
+  } else if (auditStatus === 'rejected') {
+    where.push("(u.real_name_status = 'rejected' OR u.loft_owner_status = 'rejected')");
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  const total = (
+    db.prepare(`SELECT COUNT(*) AS c FROM users u ${whereSql}`).get(...params) as { c: number }
+  ).c;
+
+  const rows = db
+    .prepare(
+      `SELECT u.id, u.username, u.nickname, u.avatar, u.phone, u.real_name, u.id_card,
+              u.id_card_front, u.id_card_back, u.id_card_handheld,
+              u.status, u.growth_value, u.member_level_id,
+              ml.name AS level_name, ml.code AS level_code,
+              u.cert_status, u.real_name_status, u.loft_owner_status, u.audit_remark,
+              u.created_at, u.updated_at
+       FROM users u
+       LEFT JOIN member_levels ml ON ml.id = u.member_level_id
+       ${whereSql}
+       ORDER BY u.updated_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(...params, pageSize, (page - 1) * pageSize) as Array<{
+    id: number;
+    username: string;
+    nickname: string;
+    avatar: string | null;
+    phone: string | null;
+    real_name: string | null;
+    id_card: string | null;
+    id_card_front: string | null;
+    id_card_back: string | null;
+    id_card_handheld: string | null;
+    status: number;
+    growth_value: number;
+    member_level_id: number | null;
+    level_name: string | null;
+    level_code: string | null;
+    cert_status: string;
+    real_name_status: string;
+    loft_owner_status: string;
+    audit_remark: string | null;
+    created_at: number;
+    updated_at: number;
+  }>;
+
+  const list = rows.map((r) => ({
+    id: r.id,
+    username: r.username,
+    nickname: r.nickname,
+    avatar: r.avatar,
+    phone: r.phone,
+    real_name: r.real_name,
+    id_card: r.id_card,
+    id_card_front: r.id_card_front,
+    id_card_back: r.id_card_back,
+    id_card_handheld: r.id_card_handheld,
+    status: r.status,
+    growth_value: r.growth_value,
+    member_level_id: r.member_level_id,
+    level_name: r.level_name,
+    level_code: r.level_code,
+    cert_status: r.cert_status,
+    real_name_status: r.real_name_status,
+    loft_owner_status: r.loft_owner_status,
+    audit_remark: r.audit_remark,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  }));
+
+  return ok(res, { list, total });
+});
+
 // GET /api/user/users/:id - 用户详情
 userRouter.get('/users/:id', requirePermission('user:view'), (req: AuthedRequest, res: Response) => {
   const id = parseInt(req.params.id, 10);
