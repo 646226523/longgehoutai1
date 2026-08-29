@@ -62,7 +62,7 @@ admin-web/register_port.png
 admin-web/register_port_hover.png
 admin-web/MainChart.story.html
 admin-web/SubChart.story.html
-admin-web/index.html
+# admin-web/index.html 曾被错误忽略，导致应用无法启动 — 已恢复跟踪
 admin-web/smoke-press.cjs
 admin-web/recon_dashboard.py
 admin-web/verify_*.cjs
