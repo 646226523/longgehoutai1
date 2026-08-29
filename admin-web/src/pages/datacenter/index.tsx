@@ -1002,8 +1002,8 @@ const DataCenter = () => {
   const toggleFlightExpand = () => setFlightExpanded((prev) => !prev);
 
   return (
-    <div style={{ background: COLORS.bgPrimary, height: '100vh', padding: '12px 16px', color: COLORS.textPrimary, fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif", display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: `linear-gradient(90deg, ${COLORS.accentCyan}15 0%, transparent 50%, ${COLORS.accentGold}15 100%)`, borderRadius: 6, border: `1px solid ${COLORS.border}`, marginBottom: 12 }}>
+    <div className="dc-root" style={{ background: COLORS.bgPrimary, height: '100vh', padding: '12px 16px', color: COLORS.textPrimary, fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif", display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="dc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: `linear-gradient(90deg, ${COLORS.accentCyan}15 0%, transparent 50%, ${COLORS.accentGold}15 100%)`, borderRadius: 6, border: `1px solid ${COLORS.border}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{ width: 4, height: 28, background: `linear-gradient(180deg, ${COLORS.accentCyan}, ${COLORS.accentGold})`, borderRadius: 2, marginRight: 12 }} />
           <h1 style={{ fontSize: 20, fontWeight: 700, background: `linear-gradient(90deg, ${COLORS.accentCyan}, ${COLORS.accentGold})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>赛鸽基因溯源平台 - 数据中控</h1>
@@ -1025,8 +1025,8 @@ const DataCenter = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr 320px', gap: 12, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden', width: '400px' }}>
+      <div className="dc-main-grid" style={{ display: 'grid', gridTemplateColumns: '400px 1fr 320px', gap: 12, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+        <div className="dc-left" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden', width: '400px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, width: '400px' }}>
             <MetricCard title={`${selectedProvince ? selectedProvince + ' · ' : ''}在线公棚数`} value={provinceMetrics.online} unit="个" change={selectedProvince ? 3.8 : 5.2} trend={[Math.round(provinceMetrics.online * 0.9), Math.round(provinceMetrics.online * 0.92), Math.round(provinceMetrics.online * 0.94), Math.round(provinceMetrics.online * 0.96), Math.round(provinceMetrics.online * 0.97), Math.round(provinceMetrics.online * 0.99), provinceMetrics.online]} progress={selectedProvince ? Math.round(provinceMetrics.online / provinceMetrics.lofts * 100) : 73} progressLabel="在线率" icon={<CheckCircleOutlined />} color={COLORS.flying} extra={<div style={{ fontSize: 10, color: COLORS.textSecondary, marginTop: 2 }}>总 {provinceMetrics.lofts} · 在棚 {provinceMetrics.online}</div>} />
             <MetricCard title="鸽子总数" value={provinceMetrics.pigeons} unit="羽" change={selectedProvince ? 8.2 : 12.3} trend={[Math.round(provinceMetrics.pigeons * 0.88), Math.round(provinceMetrics.pigeons * 0.9), Math.round(provinceMetrics.pigeons * 0.92), Math.round(provinceMetrics.pigeons * 0.94), Math.round(provinceMetrics.pigeons * 0.96), Math.round(provinceMetrics.pigeons * 0.98), provinceMetrics.pigeons]} progress={85} progressLabel="同比去年" icon={<TrophyOutlined />} color={COLORS.accentGold} />
@@ -1085,7 +1085,7 @@ const DataCenter = () => {
           </div>
         </div>
 
-        <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', minWidth: '1200px' }}>
+        <div className="dc-center" style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', minWidth: '1200px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ width: 3, height: 12, background: selectedProvince ? COLORS.accentGold : COLORS.accentCyan, borderRadius: 2, marginRight: 6 }} />
             <span style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: 600 }}>
@@ -1114,7 +1114,7 @@ const DataCenter = () => {
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{mapContent}</div>
         </div>
 
-        <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', minHeight: 0, width: '320px' }}>
+        <div className="dc-right" style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', minHeight: 0, width: '320px' }}>
           <Tabs activeKey={activeTab} onChange={setActiveTab} destroyOnHidden tabBarStyle={{ color: COLORS.textSecondary, flexShrink: 0 }} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} items={[
             {
               key: 'auction',
@@ -1130,7 +1130,7 @@ const DataCenter = () => {
         </div>
       </div>
 
-      <div style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, marginTop: 10, flexShrink: 0, overflow: 'hidden' }}>
+      <div className="dc-flight-bar" style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, marginTop: 10, flexShrink: 0, overflow: 'hidden' }}>
         <div onClick={toggleFlightExpand} style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', userSelect: 'none', background: `linear-gradient(90deg, ${COLORS.accentCyan}10, transparent)` }}>
           <div style={{ width: 3, height: 12, background: COLORS.accentCyan, borderRadius: 2, marginRight: 6 }} />
           <span style={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: 600 }}>鸽子实时飞行数据</span>
@@ -1173,6 +1173,82 @@ const DataCenter = () => {
         .ant-table-tbody > tr { background: transparent !important; }
         .ant-table-tbody > tr:hover > td { background: ${COLORS.accentCyan}10 !important; }
         .ant-table-tbody > tr > td { border-bottom: 1px solid ${COLORS.border}40 !important; color: ${COLORS.textPrimary} !important; }
+
+        /* ===== P2 Responsive: 移动端适配 ===== */
+        @media (max-width: 768px) {
+          .dc-root {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: visible !important;
+            padding: 8px !important;
+          }
+          .dc-header {
+            flex-wrap: wrap !important;
+            padding: 8px 10px !important;
+            gap: 8px !important;
+            margin-bottom: 8px !important;
+          }
+          .dc-header h1 {
+            font-size: 16px !important;
+          }
+          /* header 右侧: 时钟 + 按钮缩小 */
+          .dc-header > div:last-child {
+            gap: 8px !important;
+            font-size: 11px !important;
+          }
+
+          /* 3 栏 grid → 单列堆叠 */
+          .dc-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+            flex: none !important;
+            min-height: unset !important;
+          }
+
+          /* 左栏 */
+          .dc-left {
+            width: 100% !important;
+            overflow: visible !important;
+            height: auto !important;
+          }
+          .dc-left > div:first-child { width: 100% !important; }
+          .dc-left > div:nth-child(2) { overflow-y: visible !important; overflow-x: visible !important; }
+          .dc-left > div:nth-child(2) > div { width: 100% !important; }
+
+          /* 地图居中栏 */
+          .dc-center {
+            min-width: unset !important;
+            width: 100% !important;
+            height: 340px !important;
+            min-height: 340px !important;
+            flex: none !important;
+          }
+          .dc-center > div:first-child {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+
+          /* 右栏 tab */
+          .dc-right {
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* 底部飞行数据栏 */
+          .dc-flight-bar {
+            margin-top: 8px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .dc-header h1 { font-size: 14px !important; }
+          /* KPI 卡片: 2 列 → 1 列 */
+          .dc-left > div:first-child {
+            grid-template-columns: repeat(1, 1fr) !important;
+          }
+          .dc-center { height: 280px !important; min-height: 280px !important; }
+        }
       `}</style>
 
       {/* Race Detail Modal - Redesigned */}

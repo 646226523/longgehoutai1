@@ -377,10 +377,62 @@ const Login = () => {
           .login-right {
             width: 100%;
             min-height: 100vh;
+            padding: 24px 16px;
           }
           .login-glass-card {
             width: 100%;
-            padding: 32px 24px;
+            padding: 28px 20px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+          }
+          .login-brand-title {
+            font-size: 22px;
+          }
+          .login-welcome-title {
+            font-size: 20px;
+          }
+        }
+        @media (max-width: 480px) {
+          .login-right {
+            padding: 16px 12px;
+          }
+          .login-glass-card {
+            padding: 22px 16px;
+            border-radius: 12px;
+          }
+          .login-brand-title {
+            font-size: 18px;
+          }
+          .login-brand-subtitle {
+            font-size: 12px;
+          }
+          .login-logo-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+          }
+          .login-welcome-title {
+            font-size: 18px;
+          }
+          .login-welcome-sub {
+            font-size: 12px;
+          }
+          .login-submit-btn {
+            height: 44px;
+            font-size: 15px;
+          }
+          .forgot-option-card {
+            padding: 16px;
+            gap: 12px;
+          }
+          .forgot-option-icon {
+            font-size: 26px;
+          }
+          .forgot-option-title {
+            font-size: 14px;
+          }
+          .forgot-option-desc {
+            font-size: 12px;
           }
         }
       `}</style>

@@ -11,3 +11,59 @@ body {
     Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   background-color: #f0f2f5;
 }
+
+/* ===== 移动端响应式基础层 ===== */
+/* 防止某些浏览器下 header/footer 地址栏引起的 vh 跳动 */
+@supports (height: 100dvh) {
+  .adm-vh-fix {
+    height: 100dvh;
+  }
+}
+
+/* 小屏触摸更友好: 降低按钮字号下限, 增加触控区域 */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* 让 pro-layout 的 header 不被挤压 */
+  .ant-pro-layout .ant-pro-layout-header {
+    padding: 0 8px !important;
+  }
+
+  /* 顶栏里的用户头像下拉缩小 */
+  .ant-pro-layout-header-actions {
+    gap: 4px !important;
+  }
+
+  /* ProComponents 的 PageContainer 在小屏上去掉多余 padding */
+  .ant-pro-page-container {
+    padding: 12px !important;
+  }
+  .ant-pro-page-container-children-container {
+    padding: 0 !important;
+  }
+
+  /* antd Modal 小屏自适应 */
+  .ant-modal {
+    max-width: calc(100vw - 24px) !important;
+    margin: 12px auto !important;
+    top: 12px !important;
+  }
+  .ant-modal-content {
+    max-height: calc(100vh - 24px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* 表格横向滚动 */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+}
