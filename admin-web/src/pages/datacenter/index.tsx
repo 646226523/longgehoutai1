@@ -1010,16 +1010,16 @@ const DataCenter = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.flying, boxShadow: `0 0 6px ${COLORS.flying}`, animation: 'pulse 2s infinite' }} />
+            <div role="status" aria-live="polite" aria-label="系统运行正常" style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.flying, boxShadow: `0 0 6px ${COLORS.flying}`, animation: 'pulse 2s infinite' }} />
             <span style={{ color: COLORS.textSecondary, fontSize: 12 }}>系统运行正常</span>
           </div>
-          <div style={{ color: COLORS.textPrimary, fontSize: 13, fontFamily: 'monospace' }}>{currentTime.format('YYYY-MM-DD HH:mm:ss')}</div>
+          <div aria-label="当前系统时间" style={{ color: COLORS.textPrimary, fontSize: 13, fontFamily: 'monospace' }}>{currentTime.format('YYYY-MM-DD HH:mm:ss')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Tooltip title="刷新数据">
-              <Button size="small" icon={<ReloadOutlined spin={refreshing} />} loading={refreshing} onClick={handleRefresh} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />
+              <Button aria-label="刷新数据" size="small" icon={<ReloadOutlined spin={refreshing} />} loading={refreshing} onClick={handleRefresh} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />
             </Tooltip>
             <Tooltip title={isFullscreen ? '退出全屏' : '全屏显示'}>
-              <Button size="small" icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} onClick={handleToggleFullscreen} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />
+              <Button aria-label={isFullscreen ? '退出全屏' : '全屏显示'} size="small" icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} onClick={handleToggleFullscreen} style={{ background: 'transparent', borderColor: COLORS.border, color: COLORS.textSecondary }} />
             </Tooltip>
           </div>
         </div>
@@ -1103,10 +1103,10 @@ const DataCenter = () => {
             )}
             <div style={{ flex: 1 }} />
             <div style={{ display: 'flex', gap: 8 }}>
-              <Tag color={mapMode === 'nodes' ? 'cyan' : 'default'} style={{ cursor: 'pointer', borderColor: mapMode === 'nodes' ? COLORS.accentCyan : COLORS.border, color: mapMode === 'nodes' ? COLORS.accentCyan : COLORS.textSecondary, background: mapMode === 'nodes' ? `${COLORS.accentCyan}20` : 'transparent' }} onClick={() => setMapMode('nodes')}>
+              <Tag role="button" tabIndex={0} aria-pressed={mapMode === 'nodes'} aria-label="切换到公棚节点模式" color={mapMode === 'nodes' ? 'cyan' : 'default'} style={{ cursor: 'pointer', borderColor: mapMode === 'nodes' ? COLORS.accentCyan : COLORS.border, color: mapMode === 'nodes' ? COLORS.accentCyan : COLORS.textSecondary, background: mapMode === 'nodes' ? `${COLORS.accentCyan}20` : 'transparent' }} onClick={() => setMapMode('nodes')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMapMode('nodes'); } }}>
                 <CloudOutlined /> 公棚节点
               </Tag>
-              <Tag color={mapMode === 'trails' ? 'gold' : 'default'} style={{ cursor: 'pointer', borderColor: mapMode === 'trails' ? COLORS.accentGold : COLORS.border, color: mapMode === 'trails' ? COLORS.accentGold : COLORS.textSecondary, background: mapMode === 'trails' ? `${COLORS.accentGold}20` : 'transparent' }} onClick={() => setMapMode('trails')}>
+              <Tag role="button" tabIndex={0} aria-pressed={mapMode === 'trails'} aria-label="切换到飞线轨迹模式" color={mapMode === 'trails' ? 'gold' : 'default'} style={{ cursor: 'pointer', borderColor: mapMode === 'trails' ? COLORS.accentGold : COLORS.border, color: mapMode === 'trails' ? COLORS.accentGold : COLORS.textSecondary, background: mapMode === 'trails' ? `${COLORS.accentGold}20` : 'transparent' }} onClick={() => setMapMode('trails')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMapMode('trails'); } }}>
                 <FireOutlined /> 飞线轨迹
               </Tag>
             </div>
@@ -1131,7 +1131,7 @@ const DataCenter = () => {
       </div>
 
       <div className="dc-flight-bar" style={{ background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: 6, marginTop: 10, flexShrink: 0, overflow: 'hidden' }}>
-        <div onClick={toggleFlightExpand} style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', userSelect: 'none', background: `linear-gradient(90deg, ${COLORS.accentCyan}10, transparent)` }}>
+        <div role="button" tabIndex={0} aria-expanded={flightExpanded} aria-label={flightExpanded ? '收起鸽子实时飞行数据面板' : '展开鸽子实时飞行数据面板'} onClick={toggleFlightExpand} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFlightExpand(); } }} style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', userSelect: 'none', background: `linear-gradient(90deg, ${COLORS.accentCyan}10, transparent)` }}>
           <div style={{ width: 3, height: 12, background: COLORS.accentCyan, borderRadius: 2, marginRight: 6 }} />
           <span style={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: 600 }}>鸽子实时飞行数据</span>
           <div style={{ flex: 1 }} />

@@ -67,3 +67,61 @@ body {
     font-size: 13px;
   }
 }
+
+/* ===== P3 Accessibility ===== */
+
+/* 1) focus-visible: 键盘导航可见焦点 —— 不用 outline:none 干掉 */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* antd Button/Input 自带 focused 样式, 覆盖我们上面的 outline-none */
+.ant-btn:focus-visible,
+.ant-input-affix-wrapper:focus-within,
+.ant-input:focus,
+.ant-select-focused .ant-select-selector,
+.ant-tabs-tab-btn:focus-visible,
+.ant-dropdown-trigger:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+}
+/* 暗黑背景 DataCenter 的 focus-visible 改亮色 */
+.dc-root :focus-visible {
+  outline-color: #40d9ff;
+}
+
+/* 2) prefers-reduced-motion: 关掉所有动画和过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* antd ProForm / Modal / Message 等自带过渡 */
+  .ant-modal,
+  .ant-modal-content,
+  .ant-message-notice-content,
+  .ant-notification-notice-content,
+  .ant-dropdown,
+  .ant-tabs-content-holder {
+    transition: none !important;
+    animation: none !important;
+  }
+  /* ECharts 图表进入动画 */
+  .echarts-for-react {
+    transition: none !important;
+  }
+}
+
+/* 3) 禁用 / aria-disabled 的元素不要能被聚焦 */
+[aria-disabled='true'] {
+  pointer-events: none;
+  cursor: not-allowed;
+}

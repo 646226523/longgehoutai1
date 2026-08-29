@@ -556,7 +556,16 @@ const Login = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
           <div
             className="forgot-option-card option-a"
+            role="button"
+            tabIndex={0}
+            aria-label="记得密码,点击返回登录页"
             onClick={handleBackToLogin}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleBackToLogin();
+              }
+            }}
           >
             <CheckCircleOutlined className="forgot-option-icon icon-check" />
             <div className="forgot-option-content">
@@ -577,7 +586,16 @@ const Login = () => {
 
           <div
             className="forgot-option-card option-b"
+            role="button"
+            tabIndex={0}
+            aria-label="完全不记得密码,点击进入密码找回"
             onClick={handleRecoverPassword}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleRecoverPassword();
+              }
+            }}
           >
             <WarningOutlined className="forgot-option-icon icon-warning" />
             <div className="forgot-option-content">
