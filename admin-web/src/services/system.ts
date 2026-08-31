@@ -94,7 +94,7 @@ export async function resetAdminPassword(id: number, password?: string): Promise
 // 角色下拉选项
 export async function getAdminRoleOptions(): Promise<RoleOption[]> {
   const data = await http.get<RoleOption[]>('/system/admins/roles/select');
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 // ==================== 角色与权限 ====================
@@ -166,7 +166,7 @@ export async function deleteRole(id: number): Promise<void> {
 // 查询角色权限
 export async function getRolePermissions(id: number): Promise<number[]> {
   const data = await http.get<number[]>(`/system/roles/${id}/permissions`);
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 // 分配权限
@@ -177,7 +177,7 @@ export async function assignRolePermissions(id: number, permission_ids: number[]
 // 全部权限列表(按模块分组)
 export async function getAllPermissions(): Promise<PermissionGroup[]> {
   const data = await http.get<PermissionGroup[]>('/system/permissions');
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 // ==================== 操作日志 ====================
@@ -259,7 +259,7 @@ export interface MapConfig {
   tencent_key: string;
 }
 
-// 获取地图服务配置（服务商 + 各家 Key）
+// 获取地图服务配置
 export async function getMapConfig(): Promise<MapConfig> {
   const data = await http.get<MapConfig>('/system/map-config');
   return data;
