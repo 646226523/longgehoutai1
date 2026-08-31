@@ -178,8 +178,8 @@ const Login = () => {
         }
 
         .login-glass-card {
-          width: 100%;
-          max-width: 420px;
+          width: 420px;
+          max-width: 100%;
           background: rgba(255,255,255,0.85);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
@@ -377,62 +377,10 @@ const Login = () => {
           .login-right {
             width: 100%;
             min-height: 100vh;
-            padding: 24px 16px;
           }
           .login-glass-card {
             width: 100%;
-            padding: 28px 20px;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-          }
-          .login-brand-title {
-            font-size: 22px;
-          }
-          .login-welcome-title {
-            font-size: 20px;
-          }
-        }
-        @media (max-width: 480px) {
-          .login-right {
-            padding: 16px 12px;
-          }
-          .login-glass-card {
-            padding: 22px 16px;
-            border-radius: 12px;
-          }
-          .login-brand-title {
-            font-size: 18px;
-          }
-          .login-brand-subtitle {
-            font-size: 12px;
-          }
-          .login-logo-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 24px;
-          }
-          .login-welcome-title {
-            font-size: 18px;
-          }
-          .login-welcome-sub {
-            font-size: 12px;
-          }
-          .login-submit-btn {
-            height: 44px;
-            font-size: 15px;
-          }
-          .forgot-option-card {
-            padding: 16px;
-            gap: 12px;
-          }
-          .forgot-option-icon {
-            font-size: 26px;
-          }
-          .forgot-option-title {
-            font-size: 14px;
-          }
-          .forgot-option-desc {
-            font-size: 12px;
+            padding: 32px 24px;
           }
         }
       `}</style>
@@ -556,16 +504,7 @@ const Login = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
           <div
             className="forgot-option-card option-a"
-            role="button"
-            tabIndex={0}
-            aria-label="记得密码,点击返回登录页"
             onClick={handleBackToLogin}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleBackToLogin();
-              }
-            }}
           >
             <CheckCircleOutlined className="forgot-option-icon icon-check" />
             <div className="forgot-option-content">
@@ -586,16 +525,7 @@ const Login = () => {
 
           <div
             className="forgot-option-card option-b"
-            role="button"
-            tabIndex={0}
-            aria-label="完全不记得密码,点击进入密码找回"
             onClick={handleRecoverPassword}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleRecoverPassword();
-              }
-            }}
           >
             <WarningOutlined className="forgot-option-icon icon-warning" />
             <div className="forgot-option-content">
