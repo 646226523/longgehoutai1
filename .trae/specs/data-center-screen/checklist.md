@@ -1,9 +1,0 @@
-- [x] Checkpoint 1: 左侧导航栏显示"中控数据中台"菜单项
-- [x] Checkpoint 2: 菜单位置在"工作台"上方
-- [x] Checkpoint 3: 页面采用暗色科技风格
-- [x] Checkpoint 4: 顶部标题栏显示标题、时间、状态
-- [x] Checkpoint 5: 左侧显示公棚统计指标卡
-- [x] Checkpoint 6: 中间显示中国地图，有公棚标注点
-- [x] Checkpoint 7: 右侧可切换拍卖信息/赛事实时
-- [x] Checkpoint 8: 底部显示鸽子飞行数据列表
-- [x] Checkpoint 9: `npm run build` 构建成功

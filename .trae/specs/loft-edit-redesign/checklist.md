@@ -1,9 +1,0 @@
-- [x] Checkpoint 1: 后端 lofts 表包含 description、status 字段，PUT 接口支持更新
-- [x] Checkpoint 2: 已关联赛事接口 GET /api/loft/lofts/:id/competitions 可用
-- [x] Checkpoint 3: LoftMapPicker 组件实现地图点击/拖拽/搜索三种选点方式
-- [x] Checkpoint 4: 地址与经纬度双向联动正常
-- [x] Checkpoint 5: 编辑弹窗采用左右分栏布局（左表单+右地图）
-- [x] Checkpoint 6: 新增字段（简介、状态）正确显示和提交
-- [x] Checkpoint 7: 容量使用率进度条按阈值显示对应颜色
-- [x] Checkpoint 8: npm run build 构建成功
-- [x] Checkpoint 9: 浏览器自动化测试验证通过（打开弹窗→编辑→保存）

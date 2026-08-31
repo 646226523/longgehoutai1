@@ -1,9 +1,0 @@
-- [x] Checkpoint 1: `useTableRefresh` hook 实现，返回 refreshing/tableLoading 状态和 handleRefresh 方法
-- [x] Checkpoint 2: `RefreshIndicator` 组件实现，显示最后刷新时间戳
-- [x] Checkpoint 3: `RefreshButton` 组件实现，点击有 loading 状态，完成后显示成功提示
-- [x] Checkpoint 4: 所有 ProTable 页面接入刷新优化功能（28 个页面）
-- [x] Checkpoint 5: 刷新完成后显示"刷新成功"Toast 提示
-- [x] Checkpoint 6: 刷新失败时显示错误 Toast 提示
-- [x] Checkpoint 7: ProTable 表格加载状态正确
-- [x] Checkpoint 8: `npm run build` 构建成功
-- [x] Checkpoint 9: 浏览器验证典型页面刷新功能反馈清晰（赛事列表、管理员管理、公棚列表）

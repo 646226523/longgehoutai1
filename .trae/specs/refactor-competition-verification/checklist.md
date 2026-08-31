@@ -1,7 +1,0 @@
-- [x] Checkpoint 1: 后端新增 `/api/competition/verify-list` 和 `/api/competition/batch-verify` 接口并可用。
-- [x] Checkpoint 2: 前端核验列表页重构完成，展示赛事进度、状态、支持筛选和批量选择。
-- [x] Checkpoint 3: 核验详情页实现，支持单羽核验和状态查看。
-- [x] Checkpoint 4: 扫码设备联动 UI 实现，支持模拟扫码核验。
-- [x] Checkpoint 5: 路由配置更新，入口跳转正确。
-- [x] Checkpoint 6: `npm run build` 构建成功。
-- [x] Checkpoint 7: 浏览器自动化测试验证通过（批量核验、详情核验、模拟扫码）。

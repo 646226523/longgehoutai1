@@ -1,8 +1,0 @@
-- [ ] Checkpoint 1: 后端 POST /api/upload 可正确接收 base64 并返回 url
-- [ ] Checkpoint 2: 点击基因档案新增页面的图片上传区域可弹出文件选择
-- [ ] Checkpoint 3: 选择图片后显示压缩预览并触发上传请求
-- [ ] Checkpoint 4: 上传成功后预览替换为服务器 URL 且 onChange 回写正确
-- [ ] Checkpoint 5: 保存档案后 photo_url 字段持久化到数据库
-- [ ] Checkpoint 6: 基因档案详情页可正常显示保存的照片
-- [ ] Checkpoint 7: 上传失败时有清晰错误提示且允许重试
-- [ ] Checkpoint 8: 前后端 `npm run build` 构建通过无错误

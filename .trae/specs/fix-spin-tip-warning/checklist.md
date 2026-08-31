@@ -1,5 +1,0 @@
-- [x] Checkpoint 1: LoftMapPicker.tsx 第 450 行的 Spin 组件已改为嵌套模式
-- [x] Checkpoint 2: LoftMapPicker.tsx 第 531 行的 Spin 组件已改为嵌套模式
-- [x] Checkpoint 3: 两处加载提示文字功能保留
-- [x] Checkpoint 4: `npm run build` 构建成功
-- [x] Checkpoint 5: 浏览器控制台无 Spin tip 警告

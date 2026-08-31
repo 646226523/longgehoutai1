@@ -1,6 +1,0 @@
-- [x] Checkpoint 1: `GET /api/gene/owners` 接口返回正确数据
-- [x] Checkpoint 2: `GET /api/gene/profiles/check-ring` 接口返回正确数据
-- [x] Checkpoint 3: `GET /api/gene/profiles/search` 接口返回正确数据
-- [x] Checkpoint 4: 后端服务重启成功
-- [x] Checkpoint 5: 前端在鸽主输入框输入时无"接口不存在"错误
-- [x] Checkpoint 6: 鸽主搜索下拉能显示历史鸽主选项

@@ -1,7 +1,0 @@
-- [ ] Checkpoint 1: 后端 /api/upload 接口实现，POST 请求返回 { url: string }
-- [ ] Checkpoint 2: 上传文件保存到服务器 uploads/ 目录，文件名唯一
-- [ ] Checkpoint 3: 静态文件服务配置正确，可通过 URL 访问上传的图片
-- [ ] Checkpoint 4: 前端 ImageUploader 组件压缩后调用 uploadImage 接口
-- [ ] Checkpoint 5: onChange 传递服务器 URL 而非 base64
-- [ ] Checkpoint 6: 构建通过（前后端无错误）
-- [ ] Checkpoint 7: 端到端流程正常：上传 → 保存 → 列表/详情页显示

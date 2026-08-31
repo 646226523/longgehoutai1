@@ -1,7 +1,0 @@
-- [x] Checkpoint 1: 赛事列表由 Table 转为卡片列表布局。
-- [x] Checkpoint 2: 每张卡片包含赛事名称、状态 Tag。
-- [x] Checkpoint 3: 每张卡片包含可视化进度条。
-- [x] Checkpoint 4: 每张卡片展示总羽数、归巢数、地点等关键数据。
-- [x] Checkpoint 5: 卡片采用现代化样式（渐变背景、圆角、一致的间距）。
-- [x] Checkpoint 6: 在 320px 宽度下无横向滚动，内容自适应。
-- [x] Checkpoint 7: `npm run build` 构建成功。
