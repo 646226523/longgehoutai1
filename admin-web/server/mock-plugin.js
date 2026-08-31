@@ -98,99 +98,15 @@ export function mockApiPlugin() {
   return {
     name: 'mock-api',
     configureServer(server) {
-      // ===== 认证相关接口 Mock（无需真实后端即可登录） =====
+      // 认证相关接口转发到真实后端
       // POST /api/auth/login
-      server.middlewares.use('/api/auth/login', (req, res, next) => {
-        if (req.method !== 'POST') { next(); return; }
-        let body = '';
-        req.on('data', (chunk) => (body += chunk));
-        req.on('end', () => {
-          try {
-            const data = JSON.parse(body || '{}');
-            const username = (data.username || '').trim();
-            const password = data.password || '';
-            // 模拟管理员账号（前端提示的默认账号）
-            if ((username === 'admin') && (password === 'admin123' || password === '123456' || password === 'admin')) {
-              const token = generateToken();
-              tokenStore.set(token, { ...MOCK_USER });
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({
-                code: 0,
-                message: '登录成功',
-                data: {
-                  access_token: token,
-                  refresh_token: token + '_refresh',
-                  token_type: 'Bearer',
-                  expires_in: 86400,
-                  user: MOCK_USER,
-                },
-              }));
-            } else {
-              res.statusCode = 401;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ code: 401, message: '用户名或密码错误', data: null }));
-            }
-          } catch {
-            res.statusCode = 400;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
-          }
-        });
-      });
+      server.middlewares.use('/api/auth/login', (req, res, next) => { next(); });
 
-      // GET /api/auth/profile - 也作为 getCurrentUser 的兜底路由
-      server.middlewares.use('/api/auth/profile', (req, res, next) => {
-        if (req.method !== 'GET') { next(); return; }
-        const authHeader = req.headers.authorization || '';
-        const token = authHeader.replace('Bearer ', '');
-        if (!token) {
-          res.statusCode = 401;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ code: 401, message: '未登录', data: null }));
-          return;
-        }
-        tokenStore.set(token, { ...MOCK_USER });
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_USER }));
-      });
+      // GET /api/auth/profile
+      server.middlewares.use('/api/auth/profile', (req, res, next) => { next(); });
 
       // POST /api/auth/refresh
-      server.middlewares.use('/api/auth/refresh', (req, res, next) => {
-        if (req.method !== 'POST') { next(); return; }
-        let body = '';
-        req.on('data', (chunk) => (body += chunk));
-        req.on('end', () => {
-          try {
-            const data = JSON.parse(body || '{}');
-            const newToken = generateToken();
-            tokenStore.set(newToken, { ...MOCK_USER });
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({
-              code: 0, message: 'success',
-              data: { access_token: newToken, refresh_token: newToken + '_refresh' },
-            }));
-          } catch {
-            res.statusCode = 400;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
-          }
-        });
-      });
-
-      // GET /api/admin/auth/me (备用路径)
-      server.middlewares.use('/api/admin/auth/me', (req, res, next) => {
-        if (req.method !== 'GET') { next(); return; }
-        const authHeader = req.headers.authorization || '';
-        const token = authHeader.replace('Bearer ', '');
-        if (!token) {
-          res.statusCode = 401;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ code: 401, message: '未登录', data: null }));
-          return;
-        }
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: 'success', data: MOCK_USER }));
-      });
+      server.middlewares.use('/api/auth/refresh', (req, res, next) => { next(); });
 
       // GET /api/admin/dashboard/overview
       server.middlewares.use('/api/admin/dashboard/overview', (req, res, next) => {
@@ -924,7 +840,7 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
 
 // Catch-all for other /api routes
 server.middlewares.use('/api', (req, res, next) => {
-  const skip = req.url?.startsWith('/auth') || req.url?.startsWith('/admin/dashboard') || req.url?.startsWith('/system/audit-logs') || req.url?.startsWith('/system/dictionaries') || req.url?.startsWith('/system/configs') || req.url?.startsWith('/detection') || req.url?.startsWith('/gene') || req.url?.startsWith('/auction') || req.url?.startsWith('/nft') || req.url?.startsWith('/competition') || req.url?.startsWith('/loft') || req.url?.startsWith('/arbitration') || req.url?.startsWith('/user') || req.url?.startsWith('/content') || req.url?.startsWith('/race') || req.url?.startsWith('/medias') || req.url?.startsWith('/upload') || req.url?.startsWith('/statistics');
+  const skip = req.url?.startsWith('/auth') || req.url?.startsWith('/admin/dashboard') || req.url?.startsWith('/system') || req.url?.startsWith('/detection') || req.url?.startsWith('/gene') || req.url?.startsWith('/auction') || req.url?.startsWith('/nft') || req.url?.startsWith('/competition') || req.url?.startsWith('/loft') || req.url?.startsWith('/arbitration') || req.url?.startsWith('/user') || req.url?.startsWith('/content') || req.url?.startsWith('/race') || req.url?.startsWith('/medias') || req.url?.startsWith('/upload') || req.url?.startsWith('/statistics');
   if (skip) { next(); return; }
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ code: 0, message: 'mock', data: null }));

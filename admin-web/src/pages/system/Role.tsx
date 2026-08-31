@@ -1,4 +1,4 @@
-﻿import {
+import {
   ModalForm,
   ProFormText,
   ProFormSelect,
@@ -55,10 +55,10 @@ const SystemRole = () => {
   }, [permDrawer.visible, permGroups.length]);
 
   // 将权限分组转为 Tree 数据(按模块分组 -> 权限项)
-  const treeData = permGroups.map((g) => ({
+  const treeData = (permGroups ?? []).map((g) => ({
     key: `module:${g.module}`,
-    title: `${g.module}(${g.permissions.length})`,
-    children: g.permissions.map((p) => ({
+    title: `${g.module}(${(g.permissions ?? []).length})`,
+    children: (g.permissions ?? []).map((p) => ({
       key: `perm:${p.id}`,
       title: (
         <Space size={4}>
@@ -80,8 +80,9 @@ const SystemRole = () => {
     try {
       const [checked] = await Promise.all([getRolePermissions(role.id)]);
       // 展开所有模块节点
-      const expandedKeys = permGroups.length
-        ? permGroups.map((g) => `module:${g.module}`)
+      const pg = permGroups ?? [];
+      const expandedKeys = pg.length
+        ? pg.map((g) => `module:${g.module}`)
         : [];
       setPermDrawer((s) => ({ ...s, checked, expanded: expandedKeys }));
     } catch {

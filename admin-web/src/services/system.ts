@@ -259,7 +259,7 @@ export interface MapConfig {
   tencent_key: string;
 }
 
-// 获取地图服务配置
+// 获取地图服务配置（服务商 + 各家 Key）
 export async function getMapConfig(): Promise<MapConfig> {
   const data = await http.get<MapConfig>('/system/map-config');
   return data;

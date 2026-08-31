@@ -62,7 +62,7 @@ admin-web/register_port.png
 admin-web/register_port_hover.png
 admin-web/MainChart.story.html
 admin-web/SubChart.story.html
-# admin-web/index.html 曾被错误忽略，导致应用无法启动 — 已恢复跟踪
+admin-web/index.html
 admin-web/smoke-press.cjs
 admin-web/recon_dashboard.py
 admin-web/verify_*.cjs
@@ -122,3 +122,68 @@ admin-web/.tmp-helpers-test.cjs
 admin-web/agent-browser.json
 admin-web/debug-cp7.mjs
 admin-web/patch-v5.mjs
+
+# ====== 上传文件 & 静态资源（运行时生成，不进仓库）======
+admin-api/uploads/
+
+# ====== 根目录临时截图 & 测试脚本 ======
+*.png
+*.jpg
+!admin-web/public/*.png
+!admin-web/public/*.jpg
+!admin-api/public/*.png
+!admin-api/public/*.jpg
+check_api*.ps1
+check_db.py
+do-git.ps1
+fix-lock.ps1
+push*.ps1
+push*.bat
+push_to_github.js
+git-error.txt
+git-output.txt
+push_error.txt
+push_output.txt
+audit-expanded-*.png
+audit-image-preview.png
+audit-page-full.png
+banner-page*.png
+check_api.ps1
+check_api2.ps1
+check_api3.ps1
+
+# ====== 测试脚本（非项目核心代码）======
+admin-api/check_db.js
+admin-api/check_owners.js
+admin-api/test_avatar.js
+admin-api/test_db_flow.js
+admin-api/test_exact_flow.js
+admin-api/test_regex.js
+admin-api/test_tsx.ts
+admin-web/e2e-*.mjs
+admin-web/test-arbitration-autofill.mjs
+admin-web/test_audit.py
+admin-web/test_compare.py
+admin-web/test_pdf_export.py
+admin-web/test_report_print.py
+admin-web/test-editor-fix.py
+admin-web/test_image_upload.py
+admin-web/test_userlist.py
+admin-web/vite.config.js
+test-avatar.js
+test-frontend.ps1
+test-proxy.ps1
+test-upload.ps1
+test_editor_fix.py
+test_image_upload.py
+test_userlist.py
+verify_audit*.mjs
+
+# ====== 临时截图目录 ======
+admin-web/screenshots-arbitration/
+admin-web/screenshots-e2e-image-test/
+admin-web/screenshots-e2e-test-v2/
+admin-web/screenshots-e2e-test-v3/
+admin-web/screenshots-e2e-test-v4/
+admin-web/screenshots-e2e-test-v5/
+screenshots_verify/

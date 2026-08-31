@@ -1,6 +1,6 @@
 import { ProLayout } from '@ant-design/pro-components';
 import type { MenuDataItem, ProLayoutProps } from '@ant-design/pro-components';
-import { App, Dropdown, Spin, Grid } from 'antd';
+import { App, Dropdown, Spin } from 'antd';
 import {
   ApiOutlined,
   AppstoreOutlined,
@@ -191,11 +191,6 @@ const AdminLayout = () => {
   // 过滤后的菜单
   const filteredMenu = useMemo(() => filterMenuByPermission(menuData, currentUser), [currentUser]);
 
-  // 响应式: 小屏自动折叠 sider, 极窄屏切换为顶部导航
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md; // < 768px: 折叠 sider
-  const isTiny = !screens.sm;   // < 576px: 切换顶部导航
-
   // 头像下拉菜单
   const handleMenuClick = (key: string) => {
     if (key === 'logout') {
@@ -209,12 +204,9 @@ const AdminLayout = () => {
   const layoutProps: ProLayoutProps = {
     title: '赛鸽基因后台',
     logo: false,
-    layout: isTiny ? 'top' : 'mix',
+    layout: 'mix',
     fixedHeader: true,
-    fixSiderbar: !isMobile,
-    collapsed: isMobile,
-    breakpoint: false,
-    defaultCollapsed: false,
+    fixSiderbar: true,
     route: {
       path: '/',
       routes: filteredMenu,

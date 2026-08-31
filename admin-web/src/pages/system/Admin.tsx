@@ -1,4 +1,4 @@
-﻿import { ModalForm, ProFormText, ProFormSelect, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+import { ModalForm, ProFormText, ProFormSelect, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Popconfirm, Space, Switch, Tag, Modal, Select } from 'antd';
 import { PlusOutlined, KeyOutlined, TeamOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
@@ -155,8 +155,8 @@ const SystemAdmin = () => {
       ellipsis: true,
       hideInSearch: true,
       render: (_, record) =>
-        record.role_names.length
-          ? record.role_names.map((n, i) => (
+        (record.role_names ?? []).length
+          ? (record.role_names ?? []).map((n, i) => (
               <Tag color="blue" key={i} style={{ marginBottom: 4 }}>
                 {n}
               </Tag>
@@ -337,7 +337,7 @@ const SystemAdmin = () => {
           label="关联角色"
           mode="multiple"
           placeholder="请选择角色(可多选)"
-          options={roleOptions.map((r) => ({ label: r.name, value: r.id, disabled: r.status !== 1 }))}
+          options={(roleOptions ?? []).map((r) => ({ label: r.name, value: r.id, disabled: r.status !== 1 }))}
         />
       </ModalForm>
 
@@ -358,7 +358,7 @@ const SystemAdmin = () => {
           placeholder="请选择角色"
           value={roleModal.selected}
           onChange={(val) => setRoleModal((s) => ({ ...s, selected: val as number[] }))}
-          options={roleOptions.map((r) => ({ label: r.name, value: r.id, disabled: r.status !== 1 }))}
+          options={(roleOptions ?? []).map((r) => ({ label: r.name, value: r.id, disabled: r.status !== 1 }))}
         />
       </Modal>
 
