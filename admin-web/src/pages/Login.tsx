@@ -178,8 +178,8 @@ const Login = () => {
         }
 
         .login-glass-card {
-          width: 420px;
-          max-width: 100%;
+          width: 100%;
+          max-width: 420px;
           background: rgba(255,255,255,0.85);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);

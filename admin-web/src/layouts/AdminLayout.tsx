@@ -213,6 +213,8 @@ const AdminLayout = () => {
     fixedHeader: true,
     fixSiderbar: !isMobile,
     collapsed: isMobile,
+    breakpoint: false,
+    defaultCollapsed: false,
     route: {
       path: '/',
       routes: filteredMenu,
