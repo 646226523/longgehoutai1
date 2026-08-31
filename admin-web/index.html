@@ -2,9 +2,46 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>龙鸽后台 - 赛鸽基因溯源平台</title>
+    <title>赛鸽基因溯源平台 - 后台管理系统</title>
+    <script>
+      // Suppress Vite HMR network errors before Vite client loads
+      (function() {
+        var originalConsoleError = console.error.bind(console);
+        console.error = function() {
+          var msg = Array.prototype.slice.call(arguments).join(' ');
+          if (
+            msg.indexOf('net::ERR_CONNECTION_REFUSED') !== -1 ||
+            msg.indexOf('net::ERR_ABORTED') !== -1 ||
+            (msg.indexOf('@vite/client') !== -1 && msg.indexOf('ping') !== -1)
+          ) {
+            return;
+          }
+          originalConsoleError.apply(console, arguments);
+        };
+
+        window.addEventListener('error', function(e) {
+          if (
+            (e.message && (e.message.indexOf('ERR_CONNECTION_REFUSED') !== -1 || e.message.indexOf('ERR_ABORTED') !== -1)) ||
+            (e.filename && e.filename.indexOf('@vite/client') !== -1)
+          ) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return false;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e.reason;
+          if (reason && reason.code && (reason.code === 'ERR_ABORTED' || reason.code === 'ERR_CONNECTION_REFUSED')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return false;
+          }
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

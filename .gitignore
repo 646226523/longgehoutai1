@@ -187,3 +187,6 @@ admin-web/screenshots-e2e-test-v3/
 admin-web/screenshots-e2e-test-v4/
 admin-web/screenshots-e2e-test-v5/
 screenshots_verify/
+
+# ====== Git 仓库备份 ======
+.git.bak/
