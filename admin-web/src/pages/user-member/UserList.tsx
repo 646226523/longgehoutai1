@@ -939,19 +939,16 @@ const UserList = () => {
               {/* 第三行：KPI 数据横排 */}
               <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {[
-                  { icon: <WalletOutlined />, label: '余额', value: `¥${(record.balance ?? 0).toFixed(2)}`, highlight: '#ffd666' },
-                  { icon: <ThunderboltOutlined />, label: '积分', value: (record.points ?? 0).toLocaleString(), highlight: '#91caff' },
                   { icon: <TrophyFilled />, label: '成长值', value: record.growth_value.toLocaleString(), highlight: '#ffd591' },
                   { icon: <SafetyOutlined />, label: '认证进度', value: `${certProgress.done}/${certProgress.total}`, highlight: '#b7eb8f' },
                 ].map((kpi) => (
                   <div
                     key={kpi.label}
                     style={{
-                      flex: 1,
-                      minWidth: 90,
+                      minWidth: 140,
                       background: 'rgba(255,255,255,0.15)',
                       borderRadius: 12,
-                      padding: '10px 14px',
+                      padding: '10px 18px',
                       border: '1px solid rgba(255,255,255,0.22)',
                       backdropFilter: 'blur(6px)',
                     }}
