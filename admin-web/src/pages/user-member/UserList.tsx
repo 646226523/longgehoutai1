@@ -1998,14 +1998,7 @@ const UserList = () => {
 
       {/* 详情抽屉 */}
       <Drawer
-        title={
-          <Space>
-            <span>用户详情</span>
-            <Text type="secondary" style={{ fontSize: 13, fontWeight: 'normal' }}>
-              {detailDrawer.record ? `${detailDrawer.record.nickname || detailDrawer.record.username} · ID: ${detailDrawer.record.id}` : ''}
-            </Text>
-          </Space>
-        }
+        title="用户详情"
         width={860}
         open={detailDrawer.visible}
         onClose={() => setDetailDrawer({ visible: false, record: null })}
