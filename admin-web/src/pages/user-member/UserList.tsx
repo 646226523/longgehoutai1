@@ -783,7 +783,7 @@ const UserList = () => {
         <div
           style={{
             position: 'relative',
-            margin: '-24px -24px 0',
+            margin: 0,
             padding: '32px 28px 24px',
             background: levelTheme.gradient,
             color: '#fff',
