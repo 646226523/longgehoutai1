@@ -275,7 +275,7 @@ const AuctionDeal = () => {
               status: status as string | undefined,
               keyword: keyword as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

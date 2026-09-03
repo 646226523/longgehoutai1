@@ -309,10 +309,10 @@ auctionRouter.put(
 
     const target = db
       .prepare(
-        'SELECT id, name, status, start_time, end_time, location, description, session_code, auction_type, deposit, default_start_price, default_bid_step, allow_entrusted_bid, allow_auto_bid, publish_time FROM auction_sessions WHERE id = ?'
+        'SELECT * FROM auction_sessions WHERE id = ?'
       )
       .get(id) as
-      | {
+      | Record<string, unknown> & {
           id: number;
           name: string;
           status: string;
@@ -331,6 +331,13 @@ auctionRouter.put(
         }
       | undefined;
     if (!target) return fail(res, 404, '拍卖场次不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.name || `拍卖场次#${id}`,
+      targetId: id,
+      targetType: 'auction_session',
+    };
 
     if (target.status === SESSION_STATUS.CANCELLED || target.status === SESSION_STATUS.ENDED) {
       return fail(
@@ -420,17 +427,24 @@ auctionRouter.post(
       [SESSION_STATUS.CANCELLED]: [],
     };
 
-    const target = db.prepare('SELECT id, status FROM auction_sessions WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const before = db.prepare('SELECT * FROM auction_sessions WHERE id = ?').get(id) as
+      | Record<string, unknown> & { id: number; name: string; status: string }
       | undefined;
-    if (!target) return fail(res, 404, '拍卖场次不存在');
+    if (!before) return fail(res, 404, '拍卖场次不存在');
 
-    const allowed = validNext[target.status] ?? [];
+    res.locals.audit = {
+      before,
+      objectName: before.name || `拍卖场次#${id}`,
+      targetId: id,
+      targetType: 'auction_session',
+    };
+
+    const allowed = validNext[before.status] ?? [];
     if (!allowed.includes(targetStatus)) {
       return fail(
         res,
         400,
-        `当前状态【${SESSION_STATUS_LABEL[target.status]}】不可流转至【${SESSION_STATUS_LABEL[targetStatus] ?? targetStatus}】`
+        `当前状态【${SESSION_STATUS_LABEL[before.status]}】不可流转至【${SESSION_STATUS_LABEL[targetStatus] ?? targetStatus}】`
       );
     }
 
@@ -530,17 +544,24 @@ auctionRouter.delete(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的场次 ID');
 
-    const target = db.prepare('SELECT id, status FROM auction_sessions WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const before = db.prepare('SELECT * FROM auction_sessions WHERE id = ?').get(id) as
+      | Record<string, unknown> & { id: number; name: string; status: string }
       | undefined;
-    if (!target) return fail(res, 404, '拍卖场次不存在');
+    if (!before) return fail(res, 404, '拍卖场次不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: before.name || `拍卖场次#${id}`,
+      targetId: id,
+      targetType: 'auction_session',
+    };
 
     const deletableStatus: string[] = [SESSION_STATUS.DRAFT, SESSION_STATUS.CANCELLED];
-    if (!deletableStatus.includes(target.status)) {
+    if (!deletableStatus.includes(before.status)) {
       return fail(
         res,
         400,
-        `当前状态【${SESSION_STATUS_LABEL[target.status]}】不可删除`
+        `当前状态【${SESSION_STATUS_LABEL[before.status]}】不可删除`
       );
     }
 
@@ -801,12 +822,12 @@ auctionRouter.put(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的拍品 ID');
 
-    const target = db
+    const before = db
       .prepare(
-        'SELECT id, session_id, nft_asset_id, name, description, start_price, increment, status, sort_order FROM auction_items WHERE id = ?'
+        'SELECT * FROM auction_items WHERE id = ?'
       )
       .get(id) as
-      | {
+      | Record<string, unknown> & {
           id: number;
           session_id: number;
           nft_asset_id: number | null;
@@ -818,10 +839,17 @@ auctionRouter.put(
           sort_order: number;
         }
       | undefined;
-    if (!target) return fail(res, 404, '拍品不存在');
+    if (!before) return fail(res, 404, '拍品不存在');
 
-    if (target.status === ITEM_STATUS.DEALT || target.status === ITEM_STATUS.PASSED) {
-      return fail(res, 400, `当前状态【${ITEM_STATUS_LABEL[target.status]}】不可编辑`);
+    res.locals.audit = {
+      before,
+      objectName: before.name || `拍品#${id}`,
+      targetId: id,
+      targetType: 'auction_item',
+    };
+
+    if (before.status === ITEM_STATUS.DEALT || before.status === ITEM_STATUS.PASSED) {
+      return fail(res, 400, `当前状态【${ITEM_STATUS_LABEL[before.status]}】不可编辑`);
     }
 
     const body = req.body as {
@@ -834,19 +862,19 @@ auctionRouter.put(
     };
 
     // 拍卖中状态仅允许编辑描述与排序
-    const limited = target.status === ITEM_STATUS.BIDDING;
+    const limited = before.status === ITEM_STATUS.BIDDING;
     const finalName = limited
-      ? target.name
+      ? before.name
       : body.name !== undefined
       ? String(body.name).trim()
-      : target.name;
+      : before.name;
     if (!limited && !finalName) return fail(res, 400, '拍品名称不能为空');
 
     const finalNftAssetId = limited
-      ? target.nft_asset_id
+      ? before.nft_asset_id
       : body.nft_asset_id !== undefined
       ? body.nft_asset_id
-      : target.nft_asset_id;
+      : before.nft_asset_id;
 
     // 校验 NFT 资产未被同一场次其他拍品占用
     if (!limited && finalNftAssetId) {
@@ -854,34 +882,34 @@ auctionRouter.put(
         .prepare(
           'SELECT id FROM auction_items WHERE session_id = ? AND nft_asset_id = ? AND id != ?'
         )
-        .get(target.session_id, finalNftAssetId, id) as { id: number } | undefined;
+        .get(before.session_id, finalNftAssetId, id) as { id: number } | undefined;
       if (exists) return fail(res, 400, '该 NFT 资产已在本场次其他拍品中关联');
     }
 
     const finalStartPrice = limited
-      ? target.start_price
+      ? before.start_price
       : body.start_price !== undefined
       ? Number(body.start_price)
-      : target.start_price;
+      : before.start_price;
     if (!limited && (!Number.isFinite(finalStartPrice) || finalStartPrice < 0)) {
       return fail(res, 400, '起拍价必须为非负数');
     }
     const finalIncrement = limited
-      ? target.increment
+      ? before.increment
       : body.increment !== undefined
       ? Number(body.increment)
-      : target.increment;
+      : before.increment;
     if (!limited && (!Number.isFinite(finalIncrement) || finalIncrement < 0)) {
       return fail(res, 400, '加价幅度必须为非负数');
     }
     const finalDescription =
-      body.description !== undefined ? body.description : target.description;
+      body.description !== undefined ? body.description : before.description;
     const finalSortOrder =
-      body.sort_order !== undefined ? Number(body.sort_order) : target.sort_order;
+      body.sort_order !== undefined ? Number(body.sort_order) : before.sort_order;
 
     // 起拍价变更时,若拍品仍为待上架且无出价,同步当前价
     const shouldResyncPrice =
-      !limited && target.status === ITEM_STATUS.PENDING && finalStartPrice !== target.start_price;
+      !limited && before.status === ITEM_STATUS.PENDING && finalStartPrice !== before.start_price;
 
     const tx = db.transaction(() => {
       if (shouldResyncPrice) {
@@ -933,9 +961,16 @@ auctionRouter.post(
     if (!Number.isFinite(id)) return fail(res, 400, '无效的拍品 ID');
 
     const target = db
-      .prepare('SELECT id, session_id, status FROM auction_items WHERE id = ?')
-      .get(id) as { id: number; session_id: number; status: string } | undefined;
+      .prepare('SELECT * FROM auction_items WHERE id = ?')
+      .get(id) as { id: number; name: string; session_id: number; status: string } | undefined;
     if (!target) return fail(res, 404, '拍品不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.name || `拍品#${id}`,
+      targetId: id,
+      targetType: 'auction_item',
+    };
 
     if (target.status !== ITEM_STATUS.PENDING) {
       return fail(res, 400, `当前状态【${ITEM_STATUS_LABEL[target.status]}】不可开拍`);
@@ -962,10 +997,17 @@ auctionRouter.post(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的拍品 ID');
 
-    const target = db.prepare('SELECT id, status FROM auction_items WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const target = db.prepare('SELECT * FROM auction_items WHERE id = ?').get(id) as
+      | { id: number; name: string; status: string }
       | undefined;
     if (!target) return fail(res, 404, '拍品不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.name || `拍品#${id}`,
+      targetId: id,
+      targetType: 'auction_item',
+    };
 
     const passableStatus: string[] = [ITEM_STATUS.PENDING, ITEM_STATUS.BIDDING];
     if (!passableStatus.includes(target.status)) {
@@ -986,10 +1028,17 @@ auctionRouter.delete(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的拍品 ID');
 
-    const target = db.prepare('SELECT id, status FROM auction_items WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const target = db.prepare('SELECT * FROM auction_items WHERE id = ?').get(id) as
+      | { id: number; name: string; status: string }
       | undefined;
     if (!target) return fail(res, 404, '拍品不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.name || `拍品#${id}`,
+      targetId: id,
+      targetType: 'auction_item',
+    };
 
     const deletableStatus: string[] = [ITEM_STATUS.PENDING, ITEM_STATUS.PASSED];
     if (!deletableStatus.includes(target.status)) {
@@ -1037,11 +1086,12 @@ auctionRouter.post(
 
     const target = db
       .prepare(
-        'SELECT id, session_id, start_price, increment, current_price, current_bidder, status FROM auction_items WHERE id = ?'
+        'SELECT * FROM auction_items WHERE id = ?'
       )
       .get(id) as
       | {
           id: number;
+          name: string;
           session_id: number;
           start_price: number;
           increment: number;
@@ -1051,6 +1101,13 @@ auctionRouter.post(
         }
       | undefined;
     if (!target) return fail(res, 404, '拍品不存在');
+
+    res.locals.audit = {
+      before: { current_price: target.current_price, current_bidder: target.current_bidder, status: target.status },
+      objectName: target.name || `拍品#${id}`,
+      targetId: id,
+      targetType: 'auction_item',
+    };
 
     if (target.status !== ITEM_STATUS.BIDDING) {
       return fail(res, 400, `当前拍品状态【${ITEM_STATUS_LABEL[target.status]}】不可出价`);
@@ -1212,10 +1269,17 @@ auctionRouter.post(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的成交单 ID');
 
-    const target = db.prepare('SELECT id, status FROM auction_deals WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const target = db.prepare('SELECT * FROM auction_deals WHERE id = ?').get(id) as
+      | { id: number; status: string; buyer: string; seller: string }
       | undefined;
     if (!target) return fail(res, 404, '成交单不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: `成交单#${id}`,
+      targetId: id,
+      targetType: 'auction_deal',
+    };
 
     if (target.status !== DEAL_STATUS.PENDING_PAYMENT) {
       return fail(res, 400, `当前状态【${DEAL_STATUS_LABEL[target.status]}】不可确认付款`);
@@ -1239,10 +1303,17 @@ auctionRouter.post(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的成交单 ID');
 
-    const target = db.prepare('SELECT id, status FROM auction_deals WHERE id = ?').get(id) as
+    const target = db.prepare('SELECT * FROM auction_deals WHERE id = ?').get(id) as
       | { id: number; status: string }
       | undefined;
     if (!target) return fail(res, 404, '成交单不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: `成交单#${id}`,
+      targetId: id,
+      targetType: 'auction_deal',
+    };
 
     let nextStatus: string | null = null;
     if (target.status === DEAL_STATUS.PAID) {
@@ -1281,10 +1352,17 @@ auctionRouter.post(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的成交单 ID');
 
-    const target = db.prepare('SELECT id, status, item_id FROM auction_deals WHERE id = ?').get(
+    const target = db.prepare('SELECT * FROM auction_deals WHERE id = ?').get(
       id
-    ) as { id: number; status: string; item_id: number } | undefined;
+    ) as { id: number; status: string; item_id: number | null } | undefined;
     if (!target) return fail(res, 404, '成交单不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: `成交单#${id}`,
+      targetId: id,
+      targetType: 'auction_deal',
+    };
 
     const cancellableStatus: string[] = [
       DEAL_STATUS.PENDING_PAYMENT,

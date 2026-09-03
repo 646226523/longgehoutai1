@@ -269,7 +269,6 @@ const NewsDrawer = ({
       open={open}
       onClose={onClose}
       width={760}
-      destroyOnHidden
       extra={[
         <Button key="cancel" onClick={onClose}>
           取消
@@ -279,7 +278,7 @@ const NewsDrawer = ({
         </Button>,
       ]}
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical" key={editing?.id ?? 'empty'}>
         <Card title="基础信息" variant="borderless" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={16}>
@@ -967,7 +966,7 @@ const ContentNews = () => {
               category: searchParams.category || undefined,
               status: searchParams.status || undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

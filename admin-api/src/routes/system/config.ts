@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import crypto from 'node:crypto';
 import db from '../../db';
 import { authenticate, requirePermission } from '../../middlewares/auth';
 import { auditMiddleware } from '../../middlewares/audit';
@@ -268,5 +269,113 @@ router.delete(
     return ok(res, null, '删除成功');
   }
 );
+
+// ==================== 七牛云上传 Token ====================
+
+// 读取七牛云配置的辅助函数
+function getQiniuConfig() {
+  const rows = db
+    .prepare(
+      `SELECT config_key, config_value FROM system_config
+       WHERE config_key LIKE 'qiniu_%'`
+    )
+    .all() as Array<{ config_key: string; config_value: string | null }>;
+  const map: Record<string, string> = {};
+  rows.forEach((r) => {
+    map[r.config_key] = r.config_value ?? '';
+  });
+  return {
+    accessKey: map.qiniu_access_key ?? '',
+    secretKey: map.qiniu_secret_key ?? '',
+    bucket: map.qiniu_bucket ?? '',
+    domain: map.qiniu_domain ?? '',
+    uploadUrl: map.qiniu_upload_url ?? 'https://upload.qiniup.com',
+    region: map.qiniu_region ?? 'z0',
+    useHttps: map.qiniu_use_https !== '0',
+  };
+}
+
+// GET /api/system/qiniu/upload-token - 生成七牛云直传 Token
+// 前端携带此 token 可直接上传到七牛云，无需后端中转文件
+router.get(
+  '/qiniu/upload-token',
+  requirePermission('system:config:manage'),
+  (_req: AuthedRequest, res: Response) => {
+    try {
+      const cfg = getQiniuConfig();
+      if (!cfg.accessKey || !cfg.secretKey || !cfg.bucket) {
+        return fail(res, 400, '请先在"云存储"配置七牛云 Access Key / Secret Key / Bucket');
+      }
+
+      // 上传策略 JSON
+      const putPolicy = {
+        scope: cfg.bucket,
+        deadline: Math.floor(Date.now() / 1000) + 3600, // 1 小时有效
+      };
+      const encodedPolicy = Buffer.from(JSON.stringify(putPolicy))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+
+      // HMAC-SHA1 签名
+      const sign = crypto
+        .createHmac('sha1', cfg.secretKey)
+        .update(encodedPolicy)
+        .digest('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+
+      const token = `${cfg.accessKey}:${sign}:${encodedPolicy}`;
+      const protocol = cfg.useHttps ? 'https' : 'http';
+
+      return ok(res, {
+        token,
+        domain: cfg.domain,
+        uploadUrl: cfg.uploadUrl,
+        uploadHost: `${protocol}://${cfg.region === 'z0' ? 'upload' : `upload-${cfg.region}`}.qiniup.com`,
+        bucket: cfg.bucket,
+        expiresIn: 3600,
+      });
+    } catch (err) {
+      return fail(res, 500, `Token 生成失败: ${(err as Error).message}`);
+    }
+  }
+);
+
+// GET /api/system/cloud-config - 云存储公共配置（仅需登录，供前端上传组件读取）
+router.get('/cloud-config', authenticate, (_req: AuthedRequest, res: Response) => {
+  const cfg = getQiniuConfig();
+  // 安全起见，不返回 Secret Key
+  return ok(res, {
+    provider: cfg.accessKey ? 'qiniu' : 'none',
+    hasQiniu: !!cfg.accessKey && !!cfg.secretKey && !!cfg.bucket,
+    bucket: cfg.bucket,
+    domain: cfg.domain,
+    region: cfg.region,
+  });
+});
+
+// GET /api/system/cs-config - 客服公共配置（脱敏，前端 APP/H5 可直接读）
+router.get('/cs-config', authenticate, (_req: AuthedRequest, res: Response) => {
+  const rows = db.prepare(
+    "SELECT config_key, config_value FROM system_config WHERE config_group='customer_service'"
+  ).all() as Array<{ config_key: string; config_value: string }>;
+  const map = new Map(rows.map(r => [r.config_key, r.config_value]));
+  return ok(res, {
+    wechat: {
+      enable: map.get('wx_cs_enable') === '1',
+      appid: map.get('wx_cs_appid') ?? '',
+      link: map.get('wx_cs_link') ?? '',
+      qq: map.get('wx_cs_qq') ?? '',
+      welcome: map.get('wx_cs_welcome') ?? '欢迎咨询',
+    },
+    wecom: {
+      enable: map.get('wecom_cs_enable') === '1',
+      corpId: map.get('wecom_cs_corp_id') ?? '',
+      kfAccount: map.get('wecom_cs_kf_account') ?? '',
+      // corpSecret 不返回
+    },
+  });
+});
 
 export default router;

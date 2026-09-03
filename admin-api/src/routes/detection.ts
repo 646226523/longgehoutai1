@@ -90,7 +90,7 @@ function generateOrderNo(): string {
 // GET /api/detection/orgs - 机构分页列表
 detectionRouter.get(
   '/orgs',
-  requirePermission('detection:view'),
+  requirePermission('detection:org:manage'),
   (req: AuthedRequest, res: Response) => {
     const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
     const pageSize = Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);
@@ -131,7 +131,7 @@ detectionRouter.get(
 // GET /api/detection/orgs/options - 机构下拉选项(仅合作中)
 detectionRouter.get(
   '/orgs/options',
-  requirePermission('detection:view'),
+  requirePermission('detection:org:manage'),
   (_req: AuthedRequest, res: Response) => {
     const rows = db
       .prepare(
@@ -145,7 +145,7 @@ detectionRouter.get(
 // GET /api/detection/orgs/:id - 机构详情
 detectionRouter.get(
   '/orgs/:id',
-  requirePermission('detection:view'),
+  requirePermission('detection:org:manage'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的机构 ID');
@@ -163,7 +163,7 @@ detectionRouter.get(
 // POST /api/detection/orgs - 新增机构
 detectionRouter.post(
   '/orgs',
-  requirePermission('detection:view'),
+  requirePermission('detection:org:manage'),
   auditMiddleware('detection', 'create_org'),
   (req: AuthedRequest, res: Response) => {
     const body = req.body as {
@@ -207,7 +207,7 @@ detectionRouter.post(
 // PUT /api/detection/orgs/:id - 编辑机构
 detectionRouter.put(
   '/orgs/:id',
-  requirePermission('detection:view'),
+  requirePermission('detection:org:manage'),
   auditMiddleware('detection', 'update_org'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -260,7 +260,7 @@ detectionRouter.put(
 // PATCH /api/detection/orgs/:id/status - 切换机构状态
 detectionRouter.patch(
   '/orgs/:id/status',
-  requirePermission('detection:view'),
+  requirePermission('detection:org:manage'),
   auditMiddleware('detection', 'toggle_org_status'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -284,7 +284,7 @@ detectionRouter.patch(
 // GET /api/detection/orders - 订单分页列表(订单号/状态/预约人/时间筛选)
 detectionRouter.get(
   '/orders',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:view'),
   (req: AuthedRequest, res: Response) => {
     const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
     const pageSize = Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);
@@ -347,7 +347,7 @@ detectionRouter.get(
 // GET /api/detection/orders/options - 订单下拉选项(供报告关联选择,按时间倒序最近 200 条)
 detectionRouter.get(
   '/orders/options',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:view'),
   (req: AuthedRequest, res: Response) => {
     const keyword = String(req.query.keyword ?? '').trim();
     let whereSql = '';
@@ -380,7 +380,7 @@ detectionRouter.get(
 // GET /api/detection/orders/:id - 订单详情(含关联基因档案简要 + 报告列表)
 detectionRouter.get(
   '/orders/:id',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:view'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的订单 ID');
@@ -415,7 +415,7 @@ detectionRouter.get(
 // POST /api/detection/orders - 新增订单(后台代录,自动生成订单号)
 detectionRouter.post(
   '/orders',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:edit'),
   auditMiddleware('detection', 'create_order'),
   (req: AuthedRequest, res: Response) => {
     const body = req.body as {
@@ -480,7 +480,7 @@ detectionRouter.post(
 // PUT /api/detection/orders/:id - 编辑订单
 detectionRouter.put(
   '/orders/:id',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:edit'),
   auditMiddleware('detection', 'update_order'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -541,7 +541,7 @@ detectionRouter.put(
 // POST /api/detection/orders/:id/confirm - 确认预约(待确认 → 已确认)
 detectionRouter.post(
   '/orders/:id/confirm',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:confirm'),
   auditMiddleware('detection', 'confirm_order'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -565,7 +565,7 @@ detectionRouter.post(
 // POST /api/detection/orders/:id/schedule - 排期(设置 scheduled_date,已确认 → 已排期)
 detectionRouter.post(
   '/orders/:id/schedule',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:schedule'),
   auditMiddleware('detection', 'schedule_order'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -591,7 +591,7 @@ detectionRouter.post(
 // POST /api/detection/orders/:id/cancel - 取消订单
 detectionRouter.post(
   '/orders/:id/cancel',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:cancel'),
   auditMiddleware('detection', 'cancel_order'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -618,7 +618,7 @@ detectionRouter.post(
 // DELETE /api/detection/orders/:id - 删除订单(同时删除关联报告)
 detectionRouter.delete(
   '/orders/:id',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:delete'),
   auditMiddleware('detection', 'delete_order'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -640,7 +640,7 @@ detectionRouter.delete(
 // 参数:start YYYY-MM-DD,end YYYY-MM-DD
 detectionRouter.get(
   '/calendar',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:view'),
   (req: AuthedRequest, res: Response) => {
     const start = String(req.query.start ?? '').trim();
     const end = String(req.query.end ?? '').trim();
@@ -665,7 +665,7 @@ detectionRouter.get(
 // GET /api/detection/calendar/:date - 按某日查询订单
 detectionRouter.get(
   '/calendar/:date',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:view'),
   (req: AuthedRequest, res: Response) => {
     const date = String(req.params.date ?? '').trim();
     if (!date) return fail(res, 400, '请指定日期');
@@ -689,7 +689,7 @@ detectionRouter.get(
 // GET /api/detection/reports - 报告分页列表(按订单/鸽只/报告编号筛选)
 detectionRouter.get(
   '/reports',
-  requirePermission('detection:report'),
+  requirePermission('detection:report:view'),
   (req: AuthedRequest, res: Response) => {
     const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
     const pageSize = Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);
@@ -749,7 +749,7 @@ detectionRouter.get(
 // GET /api/detection/reports/:id - 报告详情
 detectionRouter.get(
   '/reports/:id',
-  requirePermission('detection:report'),
+  requirePermission('detection:report:view'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的报告 ID');
@@ -770,7 +770,7 @@ detectionRouter.get(
 // POST /api/detection/reports - 新增报告(选择订单或鸽只,录入报告信息,完成后更新订单状态为已完成)
 detectionRouter.post(
   '/reports',
-  requirePermission('detection:report'),
+  requirePermission('detection:report:create'),
   auditMiddleware('detection', 'create_report'),
   (req: AuthedRequest, res: Response) => {
     const body = req.body as {
@@ -843,7 +843,7 @@ detectionRouter.post(
 // PUT /api/detection/reports/:id - 编辑报告
 detectionRouter.put(
   '/reports/:id',
-  requirePermission('detection:report'),
+  requirePermission('detection:report:edit'),
   auditMiddleware('detection', 'update_report'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -888,7 +888,7 @@ detectionRouter.put(
 // DELETE /api/detection/reports/:id - 删除报告
 detectionRouter.delete(
   '/reports/:id',
-  requirePermission('detection:report'),
+  requirePermission('detection:report:delete'),
   auditMiddleware('detection', 'delete_report'),
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -905,7 +905,7 @@ detectionRouter.delete(
 // GET /api/detection/dict/item-types - 查询检测项目类型字典(detection_item_type)
 detectionRouter.get(
   '/dict/item-types',
-  requirePermission('detection:view'),
+  requirePermission('detection:order:view'),
   (_req: AuthedRequest, res: Response) => {
     const rows = db
       .prepare(

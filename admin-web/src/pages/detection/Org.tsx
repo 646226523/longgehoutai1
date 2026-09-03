@@ -528,7 +528,7 @@ const DetectionOrg = () => {
               keyword: keyword as string | undefined,
               status: status as number | string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

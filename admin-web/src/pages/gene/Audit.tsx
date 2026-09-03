@@ -1,4 +1,4 @@
-﻿import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Descriptions, Drawer, Input, Popconfirm, Space, Tag } from 'antd';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
@@ -189,7 +189,7 @@ const GeneAudit = () => {
               status: (status as string | undefined) ?? 'pending',
               keyword: keyword as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

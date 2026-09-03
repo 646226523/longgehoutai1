@@ -442,7 +442,6 @@ const BannerDrawer = ({
       open={open}
       onClose={onClose}
       width={680}
-      destroyOnHidden
       extra={[
         <Button key="cancel" onClick={onClose}>
           取消
@@ -452,7 +451,7 @@ const BannerDrawer = ({
         </Button>,
       ]}
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical" key={editing?.id ?? 'empty'}>
         <Card title="基础信息" variant="borderless" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={16}>
@@ -1458,7 +1457,7 @@ const ContentBanner = () => {
           position: currentFilter.position || undefined,
           status: currentFilter.status || undefined,
         });
-        setTableState({ list: res.list, total: res.total, loading: false });
+        setTableState({ list: res?.list ?? [], total: res?.total ?? 0, loading: false });
       } catch {
         setTableState({ list: [], total: 0, loading: false });
         message.error('加载列表失败');

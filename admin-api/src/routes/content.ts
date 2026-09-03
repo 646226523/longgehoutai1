@@ -244,8 +244,17 @@ router.put(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const exists = db.prepare('SELECT id FROM banners WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, 'Banner 不存在');
+    const before = db.prepare('SELECT * FROM banners WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, 'Banner 不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `Banner#${id}`,
+      targetId: id,
+      targetType: 'banner',
+    };
 
     const body = req.body as {
       title?: string;
@@ -295,8 +304,18 @@ router.patch(
     if (status !== 0 && status !== 1) {
       return fail(res, 400, '状态值非法(0 下架 / 1 上架)');
     }
-    const exists = db.prepare('SELECT id FROM banners WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, 'Banner 不存在');
+    const before = db.prepare('SELECT * FROM banners WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, 'Banner 不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `Banner#${id}`,
+      targetId: id,
+      targetType: 'banner',
+    };
+
     db.prepare('UPDATE banners SET status = ?, updated_at = ? WHERE id = ?').run(status, Date.now(), id);
     return ok(res, null, status === 1 ? '已上架' : '已下架');
   }
@@ -314,8 +333,18 @@ router.patch(
     if (typeof sort_order !== 'number') {
       return fail(res, 400, 'sort_order 必须为数字');
     }
-    const exists = db.prepare('SELECT id FROM banners WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, 'Banner 不存在');
+    const before = db.prepare('SELECT * FROM banners WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, 'Banner 不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `Banner#${id}`,
+      targetId: id,
+      targetType: 'banner',
+    };
+
     db.prepare('UPDATE banners SET sort_order = ?, updated_at = ? WHERE id = ?').run(sort_order, Date.now(), id);
     return ok(res, null, '排序已更新');
   }
@@ -329,8 +358,18 @@ router.delete(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const exists = db.prepare('SELECT id FROM banners WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, 'Banner 不存在');
+    const before = db.prepare('SELECT * FROM banners WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, 'Banner 不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `Banner#${id}`,
+      targetId: id,
+      targetType: 'banner',
+    };
+
     db.prepare('DELETE FROM banners WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
   }
@@ -460,10 +499,17 @@ router.put(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const exists = db.prepare('SELECT id, status FROM news WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const before = db.prepare('SELECT * FROM news WHERE id = ?').get(id) as
+      | Record<string, unknown> & { status: string }
       | undefined;
-    if (!exists) return fail(res, 404, '资讯不存在');
+    if (!before) return fail(res, 404, '资讯不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `资讯#${id}`,
+      targetId: id,
+      targetType: 'news',
+    };
 
     const body = req.body as {
       title?: string;
@@ -496,7 +542,7 @@ router.put(
       body.summary ?? '',
       body.content ?? '',
       body.author ?? '',
-      body.status ?? exists.status,
+      body.status ?? before.status,
       body.is_top ?? 0,
       publishedAt,
       Date.now(),
@@ -514,11 +560,18 @@ router.post(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const row = db.prepare('SELECT id, status FROM news WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const before = db.prepare('SELECT * FROM news WHERE id = ?').get(id) as
+      | Record<string, unknown> & { status: string }
       | undefined;
-    if (!row) return fail(res, 404, '资讯不存在');
-    if (row.status === 'published') return fail(res, 400, '该资讯已是发布状态');
+    if (!before) return fail(res, 404, '资讯不存在');
+    if (before.status === 'published') return fail(res, 400, '该资讯已是发布状态');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `资讯#${id}`,
+      targetId: id,
+      targetType: 'news',
+    };
 
     db.prepare('UPDATE news SET status = ?, published_at = ?, updated_at = ? WHERE id = ?').run(
       'published',
@@ -538,11 +591,18 @@ router.patch(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const row = db.prepare('SELECT id, status FROM news WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const before = db.prepare('SELECT * FROM news WHERE id = ?').get(id) as
+      | Record<string, unknown> & { status: string }
       | undefined;
-    if (!row) return fail(res, 404, '资讯不存在');
-    if (row.status !== 'published') return fail(res, 400, '仅已发布的资讯可下架');
+    if (!before) return fail(res, 404, '资讯不存在');
+    if (before.status !== 'published') return fail(res, 400, '仅已发布的资讯可下架');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `资讯#${id}`,
+      targetId: id,
+      targetType: 'news',
+    };
 
     db.prepare('UPDATE news SET status = ?, updated_at = ? WHERE id = ?').run('offline', Date.now(), id);
     return ok(res, null, '已下架');
@@ -561,8 +621,18 @@ router.patch(
     if (is_top !== 0 && is_top !== 1) {
       return fail(res, 400, 'is_top 值非法(0 取消 / 1 置顶)');
     }
-    const exists = db.prepare('SELECT id FROM news WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, '资讯不存在');
+    const before = db.prepare('SELECT * FROM news WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, '资讯不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `资讯#${id}`,
+      targetId: id,
+      targetType: 'news',
+    };
+
     db.prepare('UPDATE news SET is_top = ?, updated_at = ? WHERE id = ?').run(is_top, Date.now(), id);
     return ok(res, null, is_top === 1 ? '已置顶' : '已取消置顶');
   }
@@ -576,8 +646,18 @@ router.delete(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const exists = db.prepare('SELECT id FROM news WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, '资讯不存在');
+    const before = db.prepare('SELECT * FROM news WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, '资讯不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `资讯#${id}`,
+      targetId: id,
+      targetType: 'news',
+    };
+
     db.prepare('DELETE FROM news WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
 });
@@ -685,10 +765,17 @@ router.put(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const exists = db.prepare('SELECT id, status, published_at FROM notices WHERE id = ?').get(id) as
-      | { id: number; status: string; published_at: number | null }
+    const before = db.prepare('SELECT * FROM notices WHERE id = ?').get(id) as
+      | Record<string, unknown> & { status: string; published_at: number | null }
       | undefined;
-    if (!exists) return fail(res, 404, '公告不存在');
+    if (!before) return fail(res, 404, '公告不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `公告#${id}`,
+      targetId: id,
+      targetType: 'notice',
+    };
 
     const body = req.body as {
       title?: string;
@@ -701,12 +788,12 @@ router.put(
     if (!['system', 'activity', 'maintenance'].includes(type)) {
       return fail(res, 400, '类型值非法(system/activity/maintenance)');
     }
-    const newStatus = body.status ?? exists.status;
+    const newStatus = body.status ?? before.status;
     if (!['draft', 'published'].includes(newStatus)) {
       return fail(res, 400, '状态值非法(draft/published)');
     }
     // 首次发布时补 published_at
-    let publishedAt = exists.published_at;
+    let publishedAt = before.published_at;
     if (newStatus === 'published' && !publishedAt) {
       publishedAt = Date.now();
     }
@@ -736,11 +823,18 @@ router.post(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const row = db.prepare('SELECT id, status FROM notices WHERE id = ?').get(id) as
-      | { id: number; status: string }
+    const before = db.prepare('SELECT * FROM notices WHERE id = ?').get(id) as
+      | Record<string, unknown> & { status: string }
       | undefined;
-    if (!row) return fail(res, 404, '公告不存在');
-    if (row.status === 'published') return fail(res, 400, '该公告已是发布状态');
+    if (!before) return fail(res, 404, '公告不存在');
+    if (before.status === 'published') return fail(res, 400, '该公告已是发布状态');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `公告#${id}`,
+      targetId: id,
+      targetType: 'notice',
+    };
 
     db.prepare('UPDATE notices SET status = ?, published_at = ?, updated_at = ? WHERE id = ?').run(
       'published',
@@ -760,8 +854,18 @@ router.delete(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的 ID');
-    const exists = db.prepare('SELECT id FROM notices WHERE id = ?').get(id);
-    if (!exists) return fail(res, 404, '公告不存在');
+    const before = db.prepare('SELECT * FROM notices WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, '公告不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.title as string) || `公告#${id}`,
+      targetId: id,
+      targetType: 'notice',
+    };
+
     db.prepare('DELETE FROM notices WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
   }

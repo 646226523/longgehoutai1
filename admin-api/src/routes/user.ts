@@ -265,10 +265,20 @@ userRouter.put(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的用户 ID');
     }
-    const target = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    const target = db
+      .prepare('SELECT id, username, nickname, phone, real_name FROM users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null }
+      | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
     const {
       nickname,
       phone,
@@ -327,10 +337,20 @@ userRouter.patch(
     if (status !== 0 && status !== 1) {
       return fail(res, 400, '状态值非法(0 封禁 / 1 正常)');
     }
-    const target = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    const target = db
+      .prepare('SELECT id, username, nickname, phone, real_name FROM users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null }
+      | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
     db.prepare('UPDATE users SET status = ?, updated_at = ? WHERE id = ?').run(
       status,
       Date.now(),
@@ -355,13 +375,19 @@ userRouter.post(
       return fail(res, 400, '审核动作非法(approved / rejected)');
     }
     const target = db
-      .prepare('SELECT id, real_name_status, cert_status FROM users WHERE id = ?')
+      .prepare('SELECT id, username, nickname, phone, real_name, real_name_status, cert_status FROM users WHERE id = ?')
       .get(id) as
-      | { id: number; real_name_status: string; cert_status: string }
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null; real_name_status: string; cert_status: string }
       | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
 
     const tx = db.transaction(() => {
       if (action === 'approved') {
@@ -399,13 +425,19 @@ userRouter.post(
       return fail(res, 400, '审核动作非法(approved / rejected)');
     }
     const target = db
-      .prepare('SELECT id, loft_owner_status, cert_status FROM users WHERE id = ?')
+      .prepare('SELECT id, username, nickname, phone, real_name, loft_owner_status, cert_status FROM users WHERE id = ?')
       .get(id) as
-      | { id: number; loft_owner_status: string; cert_status: string }
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null; loft_owner_status: string; cert_status: string }
       | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
 
     const tx = db.transaction(() => {
       if (action === 'approved') {

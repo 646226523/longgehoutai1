@@ -162,10 +162,21 @@ router.put(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的管理员 ID');
     }
-    const target = db.prepare('SELECT id FROM admin_users WHERE id = ?').get(id);
-    if (!target) {
+    const before = db
+      .prepare('SELECT id, username, nickname, phone, email, status FROM admin_users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string; phone: string | null; email: string | null; status: number }
+      | undefined;
+    if (!before) {
       return fail(res, 404, '管理员不存在');
     }
+    // 注入运行时审计数据（before + objectName）
+    res.locals.audit = {
+      before,
+      objectName: before.nickname || before.username,
+      targetId: id,
+      targetType: 'admin',
+    };
 
     const { nickname, phone, email, status, password } = req.body as {
       nickname?: string;
@@ -208,10 +219,12 @@ router.patch(
       return fail(res, 400, '状态值非法(0 禁用 / 1 启用)');
     }
 
-    const target = db.prepare('SELECT id, username FROM admin_users WHERE id = ?').get(id) as
-      | { id: number; username: string }
+    const before = db
+      .prepare('SELECT id, username, nickname, status FROM admin_users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string; status: number }
       | undefined;
-    if (!target) {
+    if (!before) {
       return fail(res, 404, '管理员不存在');
     }
 
@@ -219,6 +232,14 @@ router.patch(
     if (req.adminUser && req.adminUser.id === id && status === 0) {
       return fail(res, 400, '不能禁用当前登录账号');
     }
+
+    // 注入运行时审计数据
+    res.locals.audit = {
+      before,
+      objectName: before.nickname || before.username,
+      targetId: id,
+      targetType: 'admin',
+    };
 
     db.prepare('UPDATE admin_users SET status = ?, updated_at = ? WHERE id = ?').run(
       status,
@@ -245,8 +266,12 @@ router.delete(
       return fail(res, 400, '不能删除当前登录账号');
     }
 
-    const target = db.prepare('SELECT id FROM admin_users WHERE id = ?').get(id);
-    if (!target) {
+    const before = db
+      .prepare('SELECT id, username, nickname FROM admin_users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string }
+      | undefined;
+    if (!before) {
       return fail(res, 404, '管理员不存在');
     }
 
@@ -261,6 +286,14 @@ router.delete(
     if (isSuper) {
       return fail(res, 400, '不能删除超级管理员账号');
     }
+
+    // 注入运行时审计数据
+    res.locals.audit = {
+      before,
+      objectName: before.nickname || before.username,
+      targetId: id,
+      targetType: 'admin',
+    };
 
     // 删除账号及角色关联(外键级联)
     db.prepare('DELETE FROM admin_users WHERE id = ?').run(id);
@@ -278,12 +311,25 @@ router.put(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的管理员 ID');
     }
-    const target = db.prepare('SELECT id FROM admin_users WHERE id = ?').get(id);
+    const target = db
+      .prepare('SELECT id, username, nickname FROM admin_users WHERE id = ?')
+      .get(id) as { id: number; username: string; nickname: string } | undefined;
     if (!target) {
       return fail(res, 404, '管理员不存在');
     }
     const { role_ids } = req.body as { role_ids?: number[] };
     const roles = Array.isArray(role_ids) ? role_ids : [];
+
+    // 注入运行时审计数据：before 为旧角色列表
+    const beforeRoles = db
+      .prepare('SELECT role_id FROM admin_user_roles WHERE admin_user_id = ?')
+      .all(id) as Array<{ role_id: number }>;
+    res.locals.audit = {
+      before: { roles: beforeRoles.map((r) => r.role_id) },
+      objectName: target.nickname || target.username,
+      targetId: id,
+      targetType: 'admin',
+    };
 
     const tx = db.transaction(() => {
       db.prepare('DELETE FROM admin_user_roles WHERE admin_user_id = ?').run(id);
@@ -310,10 +356,20 @@ router.patch(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的管理员 ID');
     }
-    const target = db.prepare('SELECT id FROM admin_users WHERE id = ?').get(id);
+    const target = db
+      .prepare('SELECT id, username, nickname FROM admin_users WHERE id = ?')
+      .get(id) as { id: number; username: string; nickname: string } | undefined;
     if (!target) {
       return fail(res, 404, '管理员不存在');
     }
+
+    // 注入 objectName（重置密码通常不 capture before password）
+    res.locals.audit = {
+      objectName: target.nickname || target.username,
+      targetId: id,
+      targetType: 'admin',
+    };
+
     // 允许传新密码,不传则使用默认密码
     const { password } = req.body as { password?: string };
     const newPwd = password || 'admin123';
@@ -334,5 +390,97 @@ router.get('/roles/select', requirePermission('system:admin:manage'), (_req: Aut
     .all() as Array<{ id: number; code: string; name: string; status: number }>;
   return ok(res, rows);
 });
+
+// GET /api/system/admins/:id/permissions - 查询管理员直接权限ID列表
+router.get('/:id/permissions', requirePermission('system:admin:manage'), (req: AuthedRequest, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) {
+    return fail(res, 400, '无效的管理员 ID');
+  }
+  const target = db.prepare('SELECT id FROM admin_users WHERE id = ?').get(id);
+  if (!target) {
+    return fail(res, 404, '管理员不存在');
+  }
+  const rows = db
+    .prepare(
+      `SELECT p.id FROM permissions p
+       JOIN admin_permissions ap ON ap.permission_id = p.id
+       WHERE ap.admin_user_id = ?
+       ORDER BY p.module ASC, p.code ASC`
+    )
+    .all(id) as Array<{ id: number }>;
+  const directPermIds = rows.map((r) => r.id);
+
+  // 同时返回角色继承的权限ID，方便前端展示"最终权限"
+  const inheritedRows = db
+    .prepare(
+      `SELECT DISTINCT p.id FROM permissions p
+       JOIN role_permissions rp ON rp.permission_id = p.id
+       JOIN admin_user_roles aur ON aur.role_id = rp.role_id
+       WHERE aur.admin_user_id = ?
+       ORDER BY p.module ASC, p.code ASC`
+    )
+    .all(id) as Array<{ id: number }>;
+  const inheritedPermIds = inheritedRows.map((r) => r.id);
+
+  return ok(res, { direct: directPermIds, inherited: inheritedPermIds });
+});
+
+// PUT /api/system/admins/:id/permissions - 分配管理员直接权限(覆盖式)
+router.put(
+  '/:id/permissions',
+  requirePermission('system:admin:manage'),
+  auditMiddleware('admin', 'assign_permissions'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return fail(res, 400, '无效的管理员 ID');
+    }
+    const target = db
+      .prepare('SELECT id, username, nickname FROM admin_users WHERE id = ?')
+      .get(id) as { id: number; username: string; nickname: string } | undefined;
+    if (!target) {
+      return fail(res, 404, '管理员不存在');
+    }
+    // 超管账号不允许修改直接权限(超管拥有全部权限)
+    const isSuper = db
+      .prepare(
+        `SELECT 1 FROM admin_user_roles aur
+         JOIN roles r ON r.id = aur.role_id
+         WHERE aur.admin_user_id = ? AND r.is_super = 1 LIMIT 1`
+      )
+      .get(id);
+    if (isSuper) {
+      return fail(res, 400, '超级管理员无需分配直接权限');
+    }
+
+    const { permission_ids } = req.body as { permission_ids?: number[] };
+    const perms = Array.isArray(permission_ids) ? permission_ids : [];
+
+    // 注入运行时审计数据：before 为旧直接权限列表
+    const beforePerms = db
+      .prepare('SELECT permission_id FROM admin_permissions WHERE admin_user_id = ?')
+      .all(id) as Array<{ permission_id: number }>;
+    res.locals.audit = {
+      before: { permissions: beforePerms.map((r) => r.permission_id) },
+      objectName: target.nickname || target.username,
+      targetId: id,
+      targetType: 'admin',
+    };
+
+    const tx = db.transaction(() => {
+      db.prepare('DELETE FROM admin_permissions WHERE admin_user_id = ?').run(id);
+      if (perms.length) {
+        const stmt = db.prepare(
+          'INSERT OR IGNORE INTO admin_permissions (admin_user_id, permission_id) VALUES (?, ?)'
+        );
+        perms.forEach((pid) => stmt.run(id, pid));
+      }
+    });
+    tx();
+
+    return ok(res, null, '直接权限分配成功');
+  }
+);
 
 export default router;

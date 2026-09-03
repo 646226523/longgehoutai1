@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>èµé¸½åºå æº¯æºå¹³å° - åå°ç®¡çç³»ç»</title>
+    <script>
+      // Suppress Vite HMR network errors before Vite client loads
+      (function() {
+        var originalConsoleError = console.error.bind(console);
+        console.error = function() {
+          var msg = Array.prototype.slice.call(arguments).join(' ');
+          if (
+            msg.indexOf('net::ERR_CONNECTION_REFUSED') !== -1 ||
+            msg.indexOf('net::ERR_ABORTED') !== -1 ||
+            (msg.indexOf('@vite/client') !== -1 && msg.indexOf('ping') !== -1)
+          ) {
+            return;
+          }
+          originalConsoleError.apply(console, arguments);
+        };
+
+        window.addEventListener('error', function(e) {
+          if (
+            (e.message && (e.message.indexOf('ERR_CONNECTION_REFUSED') !== -1 || e.message.indexOf('ERR_ABORTED') !== -1)) ||
+            (e.filename && e.filename.indexOf('@vite/client') !== -1)
+          ) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return false;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e.reason;
+          if (reason && reason.code && (reason.code === 'ERR_ABORTED' || reason.code === 'ERR_CONNECTION_REFUSED')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return false;
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

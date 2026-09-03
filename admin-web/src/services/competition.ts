@@ -169,7 +169,7 @@ export async function getCompetitionOptions(): Promise<CompetitionOption[]> {
   const data = await http.get<PageResult<CompetitionOption>>('/competition', {
     params: { list: 'all' },
   });
-  return data.list;
+  return data?.list ?? [];
 }
 
 // 赛事详情

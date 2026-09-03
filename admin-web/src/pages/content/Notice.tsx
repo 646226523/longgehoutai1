@@ -1,4 +1,4 @@
-﻿import {
+import {
   ModalForm,
   ProFormText,
   ProFormSelect,
@@ -240,7 +240,7 @@ const ContentNotice = () => {
               type: type as string | undefined,
               status: status as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

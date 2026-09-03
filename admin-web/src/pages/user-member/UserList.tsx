@@ -1565,7 +1565,7 @@ const UserList = () => {
               status: status as number | string | undefined,
               cert_status: cert_status as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }
@@ -1611,7 +1611,6 @@ const UserList = () => {
         width={560}
         open={editModal.visible}
         onClose={handleEditCancel}
-        destroyOnHidden
         extra={
           <Space>
             <Button onClick={handleEditCancel}>取 消</Button>
@@ -1624,7 +1623,7 @@ const UserList = () => {
         <Form
           form={editForm}
           layout="vertical"
-          preserve={false}
+          key={editModal.record?.id ?? 'empty'}
         >
           <Divider orientation="left" plain style={{ fontSize: 14, fontWeight: 600 }}>
             基础信息
