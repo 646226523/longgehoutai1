@@ -201,7 +201,13 @@ const generateActivityLogs = (record: UserItem) => {
   return logs;
 };
 
-// 鸽子Mock数据
+// 鸽子Mock数据（使用内联SVG，避免外部图片被墙）
+const PIGEON_SVG = {
+  gray: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyB2aWV3Qm94PScwIDAgNDAwIDMwMCc+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nYmcnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz48c3RvcCBvZmZzZXQ9JzAlJyBzdG9wLWNvbG9yPScjZThmNGZjJy8-PHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjYjNkOWYyJy8-PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyBmaWxsPSd1cmwoI2JnKScvPgo8ZyB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgyMDAsMTYwKSc-CjxlbGxpcHNlIGN4PScwJyBjeT0nMCcgcng9JzkwJyByeT0nNTUnIGZpbGw9JyM0YTU1NjgnLz4KPGVsbGlwc2UgY3g9JzIwJyBjeT0nLTIwJyByeD0nNDUnIHJ5PSczNScgZmlsbD0nIzJkMzc0OCcvPgo8Y2lyY2xlIGN4PSc0NScgY3k9Jy0yOCcgcj0nMTgnIGZpbGw9JyMyZDM3NDgnLz4KPGNpcmNsZSBjeD0nNTAnIGN5PSctMzInIHI9JzMnIGZpbGw9JyNmNmUwNWUnLz4KPHBhdGggZD0nTTYwLC0yMiBMNzgsLTE1IEw2MCwtMTAgWicgZmlsbD0nI2RkNmIyMCcvPgo8cGF0aCBkPSdNLTYwLC0xMCBRLTEwMCwtNDAgLTEyMCwtMjAgUS05MCwtNSAtNjAsMCBaJyBmaWxsPScjMmQzNzQ4Jy8-CjxwYXRoIGQ9J00tNTAsMTAgUS0xMDAsNTAgLTEzMCw0MCBRLTkwLDIwIC01MCwxNSBaJyBmaWxsPScjMWEyMDJjJy8-CjxwYXRoIGQ9J003MCwyMCBRMTEwLDYwIDEwMCw4MCBRNzAsNTAgNjAsMzAgWicgZmlsbD0nIzJkMzc0OCcvPgo8cGF0aCBkPSdNODAsMzUgUTEzMCw3MCAxMjUsOTUgUTg1LDYwIDc1LDQwIFonIGZpbGw9JyMxYTIwMmMnLz4KPC9nPgo8L3N2Zz4',
+  red: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyB2aWV3Qm94PScwIDAgNDAwIDMwMCc+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nYmcnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz48c3RvcCBvZmZzZXQ9JzAlJyBzdG9wLWNvbG9yPScjZmZmNWY1Jy8+PHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjZmViMmIyJy8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyBmaWxsPSd1cmwoI2JnKScvPgo8ZyB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgyMDAsMTYwKSc+CjxlbGxpcHNlIGN4PScwJyBjeT0nMCcgcng9Jzk1JyByeT0nNTgnIGZpbGw9JyNjNTMwMzAnLz4KPGVsbGlwc2UgY3g9JzIyJyBjeT0nLTIyJyByeD0nNDgnIHJ5PSczOCcgZmlsbD0nIzliMmMyYycvPgo8Y2lyY2xlIGN4PSc0OCcgY3k9Jy0zMCcgcj0nMjAnIGZpbGw9JyM5YjJjMmMnLz4KPGNpcmNsZSBjeD0nNTMnIGN5PSctMzQnIHI9JzMnIGZpbGw9JyNmNmUwNWUnLz4KPHBhdGggZD0nTTY1LC0yMyBMODUsLTE2IEw2NSwtMTAgWicgZmlsbD0nI2Y2YWQ1NScvPgo8cGF0aCBkPSdNLTY1LC04IFEtMTA1LC00NSAtMTI1LC0yMiBRLTk1LC0yIC02NSwzIFonIGZpbGw9JyM5YjJjMmMnLz4KPHBhdGggZD0nTS01NSwxMiBRLTEwNSw1NSAtMTM1LDQyIFEtOTUsMjIgLTU1LDE3IFonIGZpbGw9JyM3NDJhMmEnLz4KPHBhdGggZD0nTTc1LDIyIFExMTUsNjUgMTA1LDg1IFE3NSw1MiA2NSwzMiBaJyBmaWxsPScjOWIyYzJjJy8+CjxwYXRoIGQ9J004NSwzOCBRMTM1LDc1IDEzMCwxMDAgUTg1LDYyIDc4LDQyIFonIGZpbGw9JyM3NDJhMmEnLz4KPC9nPgo8L3N2Zz4=',
+  green: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyB2aWV3Qm94PScwIDAgNDAwIDMwMCc+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nYmcnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz48c3RvcCBvZmZzZXQ9JzAlJyBzdG9wLWNvbG9yPScjZjBmZmY0Jy8+PHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjOWFlNmI0Jy8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyBmaWxsPSd1cmwoI2JnKScvPgo8ZyB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgyMDAsMTYwKSc+CjxlbGxpcHNlIGN4PScwJyBjeT0nMCcgcng9Jzg4JyByeT0nNTMnIGZpbGw9JyMyNzY3NDknLz4KPGVsbGlwc2UgY3g9JzIwJyBjeT0nLTIwJyByeD0nNDInIHJ5PSczMicgZmlsbD0nIzFjNDUzMicvPgo8Y2lyY2xlIGN4PSc0MicgY3k9Jy0yNicgcj0nMTYnIGZpbGw9JyMxYzQ1MzInLz4KPGNpcmNsZSBjeD0nNDYnIGN5PSctMzAnIHI9JzMnIGZpbGw9JyNmNmUwNWUnLz4KPHBhdGggZD0nTTU2LC0yMCBMNzIsLTE0IEw1NiwtOCBaJyBmaWxsPScjZGQ2YjIwJy8+CjxwYXRoIGQ9J00tNTgsLTggUS05OCwtNDAgLTExNSwtMTggUS04OCwtMiAtNTgsMiBaJyBmaWxsPScjMWM0NTMyJy8+CjxwYXRoIGQ9J00tNDgsMTIgUS05NSw1MCAtMTIwLDQwIFEtODUsMjAgLTQ4LDE1IFonIGZpbGw9JyMwZDI4MTgnLz4KPHBhdGggZD0nTTY4LDIwIFExMDUsNTggOTYsNzggUTY4LDQ4IDU4LDI4IFonIGZpbGw9JyMxYzQ1MzInLz4KPHBhdGggZD0nTTc4LDM1IFExMjUsNzAgMTIwLDkyIFE3OCw1OCA3MCwzOCBaJyBmaWxsPScjMGQyODE4Jy8+CjwvZz4KPC9zdmc+',
+};
+
 const generatePigeonList = (_record: UserItem) => {
   return [
     {
@@ -211,7 +217,7 @@ const generatePigeonList = (_record: UserItem) => {
       breed: '詹森',
       gender: '雄',
       status: '参赛中',
-      photo_url: 'https://images.unsplash.com/photo-1551189017-3b50f5f8d7a2?w=800&h=600&fit=crop',
+      photo_url: PIGEON_SVG.gray,
     },
     {
       id: 2,
@@ -220,7 +226,7 @@ const generatePigeonList = (_record: UserItem) => {
       breed: '慕利门',
       gender: '雌',
       status: '休息',
-      photo_url: 'https://images.unsplash.com/photo-1522858547137-f1dcec554f55?w=800&h=600&fit=crop',
+      photo_url: PIGEON_SVG.red,
     },
     {
       id: 3,
@@ -229,7 +235,7 @@ const generatePigeonList = (_record: UserItem) => {
       breed: '盖比',
       gender: '雄',
       status: '训练中',
-      photo_url: 'https://images.unsplash.com/photo-1591608971362-f08b2a75731a?w=800&h=600&fit=crop',
+      photo_url: PIGEON_SVG.green,
     },
   ];
 };
@@ -1084,8 +1090,10 @@ const UserList = () => {
                           column={2}
                           size="small"
                           colon={false}
-                          labelStyle={{ color: '#8c8c8c', width: 90 }}
-                          contentStyle={{ fontWeight: 500 }}
+                          styles={{
+                            label: { color: '#8c8c8c', width: 90 },
+                            content: { fontWeight: 500 },
+                          }}
                         >
                           <Descriptions.Item label="用户ID">#{record.id}</Descriptions.Item>
                           <Descriptions.Item label="用户名">{record.username}</Descriptions.Item>
