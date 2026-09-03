@@ -117,6 +117,18 @@ function maskPhone(phone: string | null): string {
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
 }
 
+/** 生成用户头像 URL — 优先用后端返回的真实图片(http开头)，否则用 DiceBear API 生成独特 SVG 头像 */
+function buildAvatarUrl(record: UserItem): string {
+  const avatar = record.avatar;
+  // 只有 http/https 开头的真实图片(用户上传的 JPG/PNG)才使用
+  if (avatar && typeof avatar === 'string' && avatar.startsWith('http')) {
+    return avatar;
+  }
+  // 其他情况（空字符串、data:SVG占位图等）都用 DiceBear 在线头像
+  const seed = encodeURIComponent(`${record.id}-${record.nickname || record.username || 'user'}`);
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+}
+
 const getLevelTheme = (levelCode: string | null, _levelName: string | null) => {
   if (!levelCode) return { gradient: 'linear-gradient(135deg, #f0f0f0 0%, #d9d9d9 100%)', color: '#8c8c8c' };
   const themes: Record<string, { gradient: string; color: string }> = {
@@ -818,10 +830,10 @@ const UserList = () => {
                 }}
               >
                 <Avatar
-                  src={record.avatar || undefined}
+                  src={buildAvatarUrl(record)}
                   size={106}
                   style={{
-                    background: record.avatar ? 'transparent' : 'rgba(255,255,255,0.35)',
+                    background: 'rgba(255,255,255,0.35)',
                     color: '#fff',
                     fontWeight: 700,
                     fontSize: 44,
@@ -830,20 +842,6 @@ const UserList = () => {
                 >
                   {firstChar}
                 </Avatar>
-                {/* 底部状态点 */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 4,
-                    right: 4,
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: record.status === 1 ? '#52c41a' : '#ff4d4f',
-                    border: '3px solid #fff',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  }}
-                />
               </div>
             </div>
 
