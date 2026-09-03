@@ -818,31 +818,20 @@ const UserList = () => {
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: 28 }}>
             {/* ========= 左：大头像 ========= */}
             <div style={{ flexShrink: 0 }}>
-              <div
+              <Avatar
+                src={buildAvatarUrl(record)}
+                size={112}
                 style={{
-                  width: 112,
-                  height: 112,
-                  borderRadius: '50%',
-                  padding: 3,
-                  background: 'conic-gradient(from 0deg, rgba(255,255,255,0.95), rgba(255,255,255,0.2), rgba(255,255,255,0.95))',
-                  boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
-                  position: 'relative',
+                  background: 'rgba(255,255,255,0.35)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 44,
+                  border: '3px solid rgba(255,255,255,0.5)',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
                 }}
               >
-                <Avatar
-                  src={buildAvatarUrl(record)}
-                  size={106}
-                  style={{
-                    background: 'rgba(255,255,255,0.35)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: 44,
-                    border: '3px solid rgba(255,255,255,0.4)',
-                  }}
-                >
-                  {firstChar}
-                </Avatar>
-              </div>
+                {firstChar}
+              </Avatar>
             </div>
 
             {/* ========= 右：名字/标签/信息/按钮 ========= */}
