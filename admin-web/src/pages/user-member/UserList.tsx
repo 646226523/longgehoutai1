@@ -936,31 +936,6 @@ const UserList = () => {
                 )}
               </div>
 
-              {/* 第三行：KPI 数据横排 */}
-              <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {[
-                  { icon: <TrophyFilled />, label: '成长值', value: record.growth_value.toLocaleString(), highlight: '#ffd591' },
-                  { icon: <SafetyOutlined />, label: '认证进度', value: `${certProgress.done}/${certProgress.total}`, highlight: '#b7eb8f' },
-                ].map((kpi) => (
-                  <div
-                    key={kpi.label}
-                    style={{
-                      minWidth: 140,
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 12,
-                      padding: '10px 18px',
-                      border: '1px solid rgba(255,255,255,0.22)',
-                      backdropFilter: 'blur(6px)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, opacity: 0.82, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                      {kpi.icon} {kpi.label}
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: kpi.highlight }}>{kpi.value}</div>
-                  </div>
-                ))}
-              </div>
-
               {/* 第四行：操作按钮 */}
               <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {canEdit && (
