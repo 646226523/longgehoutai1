@@ -1,4 +1,4 @@
-﻿import {
+import {
   ProTable,
   ModalForm,
   ProFormText,
@@ -200,7 +200,7 @@ const LoftPigeons = () => {
               status: (status as string | undefined) || undefined,
               ring_number: ring_number as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

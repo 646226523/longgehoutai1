@@ -1,0 +1,11 @@
+- [x] TypeScript 编译通过 (tsc --noEmit)
+- [x] 有 avatar 数据时显示真实头像图片（代码已实现，数据层 avatar 为 null 时走 fallback）
+- [x] 无 avatar 时显示 fallback（用户图标）
+- [x] 头像加载失败时有 Avatar 组件内置 fallback
+- [x] 头像尺寸增大至 120px
+- [x] 头像外圈有 conic-gradient 渐变光环
+- [x] 等级徽章显示在头像下方
+- [x] 认证状态显示在等级徽章下方
+- [x] 右侧信息区（姓名/状态/数据卡片）排列紧凑
+- [x] 整体视觉层次清晰美观
+- [x] 控制台无 error 级错误

@@ -1,0 +1,89 @@
+{
+  "login": {
+    "visited_login": true,
+    "logged_in": true,
+    "final_url": "http://127.0.0.1:3014/"
+  },
+  "verification": {
+    "mapContainer": {
+      "check": "地图容器存在",
+      "pass": true,
+      "detail": "找到地图容器: {\"x\":284,\"y\":601.640625,\"width\":390,\"height\":220}",
+      "raw": {
+        "found": true,
+        "canvasCount": 9,
+        "canvasRect": {
+          "x": 284,
+          "y": 601.640625,
+          "width": 390,
+          "height": 220
+        },
+        "parentClass": "",
+        "parentStyle": "position: relative; width: 390px; height: 220px; padding: 0px; margin: 0px; border-width: 0px;"
+      }
+    },
+    "canvasHasContent": {
+      "check": "Canvas 有非透明像素内容",
+      "pass": true,
+      "detail": "非透明像素: 176912, 非深蓝: 95066, 有彩色: true",
+      "raw": {
+        "width": 800,
+        "height": 600,
+        "total": 480000,
+        "nonTransparent": 176912,
+        "nonWhite": 176912,
+        "nonDarkBlue": 95066,
+        "hasColor": true,
+        "nonTransparentRatio": 0.36856666666666665,
+        "canvasRect": {
+          "x": 712.328125,
+          "y": 204.421875,
+          "width": 807,
+          "height": 739
+        }
+      }
+    },
+    "chinaMapOutline": {
+      "check": "中国地图轮廓显示",
+      "pass": true,
+      "detail": "检测到地图特征: hasChinaText=false, longSvgPaths=38, 非深蓝像素=95066",
+      "raw": {
+        "canvasCount": 9,
+        "hasChinaText": false,
+        "svgPathCount": 38,
+        "longSvgPaths": 38,
+        "echartsInstances": []
+      }
+    },
+    "loftMarkers": {
+      "check": "公棚点标记",
+      "pass": true,
+      "detail": "检测到公棚相关内容, 亮彩色像素数: 239",
+      "raw": {
+        "hasLoftText": true,
+        "brightPixelCount": 239
+      }
+    }
+  },
+  "consoleErrors": [
+    {
+      "type": "console",
+      "text": "Warning: [antd: Tabs] `destroyInactiveTabPane` is deprecated. Please use `destroyOnHidden` instead."
+    }
+  ],
+  "summary": {
+    "pass_count": 4,
+    "total_count": 4,
+    "pass_rate": "4/4",
+    "overall_pass": true,
+    "map_displayed": true,
+    "china_outline": true,
+    "loft_markers": true,
+    "checkpoints": {
+      "mapContainer": "[PASS] 地图容器存在 | 找到地图容器: {\"x\":284,\"y\":601.640625,\"width\":390,\"height\":220}",
+      "canvasHasContent": "[PASS] Canvas 有非透明像素内容 | 非透明像素: 176912, 非深蓝: 95066, 有彩色: true",
+      "chinaMapOutline": "[PASS] 中国地图轮廓显示 | 检测到地图特征: hasChinaText=false, longSvgPaths=38, 非深蓝像素=95066",
+      "loftMarkers": "[PASS] 公棚点标记 | 检测到公棚相关内容, 亮彩色像素数: 239"
+    }
+  }
+}

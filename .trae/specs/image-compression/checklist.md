@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: 后端 `npm install sharp` 成功（无 node-gyp 编译错误），tsc --noEmit 零错误
+- [x] Checkpoint 2: 重启后端后 DB 存在 `image_compress_quality` 配置项，默认值 `90`
+- [x] Checkpoint 3: FIELD_META 已注册 `image_compress_quality`，包含 5 个选项（100/90/70/50/20）
+- [x] Checkpoint 4: renderImagePanel 渲染 3 张 Card（缩略图尺寸 / 水印设置 / 图片压缩），风格统一
+- [x] Checkpoint 5: 图片压缩 Card 内含 Select + 独立保存按钮，选中后 PUT 请求正确发送，返回 code=0
+- [x] Checkpoint 6: 保存后刷新页面配置值持久化（刷新后 Select 仍选中之前的选项）
+- [x] Checkpoint 7: 后端 upload 路由读取 image_compress_quality 配置，quality < 100 时调用 sharp 压缩
+- [x] Checkpoint 8: quality=70 上传后文件 size < 原 size（实测 102KB → 35KB）；quality=100 时不压缩
+- [x] Checkpoint 9: 前端 Console 零红色 error / 零黄色 warn
+- [x] Checkpoint 10: 前端 tsc --noEmit 零错误，后端 tsc --noEmit 零错误

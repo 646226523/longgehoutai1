@@ -1,0 +1,5 @@
+- [x] Checkpoint 1: 审核通过按钮可点击，能正常提交表单
+- [x] Checkpoint 2: 审核驳回按钮可点击，能正常提交表单
+- [x] Checkpoint 3: 驳回操作无备注时显示校验错误
+- [x] Checkpoint 4: 审核成功后弹窗关闭，列表自动刷新
+- [x] Checkpoint 5: TypeScript 类型检查通过

@@ -1,0 +1,6 @@
+- [x] Checkpoint 1: 后端 `/api/content/news/stats` 接口返回 200 和正确统计数据
+- [x] Checkpoint 2: 资讯管理页面顶部无"无效的ID"错误提示
+- [x] Checkpoint 3: 统计看板5个卡片显示正确数值
+- [x] Checkpoint 4: 资讯详情查看功能正常（`GET /api/content/news/:id`）
+- [x] Checkpoint 5: 资讯列表、编辑、发布、下架、删除功能不受影响
+- [x] Checkpoint 6: 浏览器控制台无错误信息

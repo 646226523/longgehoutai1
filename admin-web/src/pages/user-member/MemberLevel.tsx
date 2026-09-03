@@ -503,7 +503,7 @@ const MemberLevel = () => {
             const res = await getMemberLevels({
               status: params.status as number | string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }
@@ -553,7 +553,6 @@ const MemberLevel = () => {
           setLevelModal({ visible: false, record: null });
         }}
         width={820}
-        destroyOnHidden
         maskClosable={false}
         footer={[
           <Button
@@ -588,6 +587,7 @@ const MemberLevel = () => {
             <Form
               form={form}
               layout="vertical"
+              key={levelModal.record?.id ?? 'empty'}
               onValuesChange={(_, allValues) => setFormValues(allValues)}
             >
               <Card
@@ -1051,7 +1051,7 @@ const MemberLevel = () => {
             if (!benefitDrawer.level) return { data: [], success: true, total: 0 };
             try {
               const res = await getMemberBenefits(benefitDrawer.level.id);
-              return { data: res.list, success: true, total: res.total };
+              return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
             } catch {
               return { data: [], success: false, total: 0 };
             }

@@ -29,6 +29,12 @@ export interface UserItem {
   real_name_status: string; // none/pending/approved/rejected
   loft_owner_status: string; // none/pending/approved/rejected
   audit_remark: string | null;
+  balance: number;
+  points: number;
+  distributor_id: number | null;
+  distributor_name: string | null;
+  is_blacklisted: number;
+  tags: string[];
   created_at: number;
   updated_at: number;
 }
@@ -269,4 +275,93 @@ export async function deleteMemberBenefit(id: number): Promise<void> {
 export async function getAuditList(params: AuditListParams): Promise<PageResult<AuditItem>> {
   const data = await http.get<PageResult<AuditItem>>('/user/audits', { params });
   return data;
+}
+
+// ==================== 分销商 & 优惠券 ====================
+
+export interface DistributorItem {
+  id: number;
+  name: string;
+  contact: string | null;
+  phone: string | null;
+  level: string;
+  commission_rate: number;
+  status: number;
+}
+
+export interface CouponItem {
+  id: number;
+  name: string;
+  type: string; // amount / percent
+  value: number;
+  min_amount: number;
+  total_count: number;
+  remain_count: number;
+  expire_days: number;
+  description: string | null;
+  status: number;
+}
+
+export interface UserCouponItem {
+  id: number;
+  coupon_id: number;
+  coupon_name: string | null;
+  coupon_type: string | null;
+  coupon_value: number | null;
+  status: string; // unused / used / expired
+  used_at: number | null;
+  expires_at: number | null;
+  created_at: number;
+}
+
+// 分销商列表
+export async function getDistributors(): Promise<PageResult<DistributorItem>> {
+  return http.get('/user/distributors');
+}
+
+// 优惠券模板列表
+export async function getCoupons(): Promise<PageResult<CouponItem>> {
+  return http.get('/user/coupons');
+}
+
+// 用户优惠券列表
+export async function getUserCoupons(userId: number): Promise<PageResult<UserCouponItem>> {
+  return http.get(`/user/users/${userId}/coupons`);
+}
+
+// ==================== 用户更多操作 ====================
+
+// 变更上级分销商
+export async function updateUserDistributor(userId: number, distributorId: number | null): Promise<void> {
+  await http.patch(`/user/users/${userId}/distributor`, { distributor_id: distributorId });
+}
+
+// 设置标签
+export async function updateUserTags(userId: number, tags: string[]): Promise<void> {
+  await http.patch(`/user/users/${userId}/tags`, { tags });
+}
+
+// 重置密码(返回新密码)
+export async function resetUserPassword(userId: number, newPassword?: string): Promise<{ new_password: string }> {
+  return http.post(`/user/users/${userId}/reset-password`, { new_password: newPassword });
+}
+
+// 发放优惠券
+export async function grantUserCoupon(userId: number, couponId: number, count: number = 1): Promise<{ granted: number }> {
+  return http.post(`/user/users/${userId}/coupons`, { coupon_id: couponId, count });
+}
+
+// 调整余额(amount 正数增加/负数扣除)
+export async function adjustUserBalance(userId: number, amount: number, reason?: string): Promise<{ balance: number }> {
+  return http.patch(`/user/users/${userId}/balance`, { amount, reason });
+}
+
+// 调整积分(amount 正数增加/负数扣除)
+export async function adjustUserPoints(userId: number, amount: number, reason?: string): Promise<{ points: number }> {
+  return http.patch(`/user/users/${userId}/points`, { amount, reason });
+}
+
+// 加入/移出黑名单
+export async function toggleUserBlacklist(userId: number, isBlacklisted: number): Promise<{ is_blacklisted: number }> {
+  return http.patch(`/user/users/${userId}/blacklist`, { is_blacklisted: isBlacklisted });
 }

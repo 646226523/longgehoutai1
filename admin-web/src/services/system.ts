@@ -97,6 +97,26 @@ export async function getAdminRoleOptions(): Promise<RoleOption[]> {
   return Array.isArray(data) ? data : [];
 }
 
+// 管理员权限查询结果
+export interface AdminPermissionsResult {
+  direct: number[];      // 直接分配的权限ID
+  inherited: number[];   // 角色继承的权限ID
+}
+
+// 查询管理员的直接权限 + 角色继承权限
+export async function getAdminPermissions(id: number): Promise<AdminPermissionsResult> {
+  const data = await http.get<AdminPermissionsResult>(`/system/admins/${id}/permissions`);
+  return {
+    direct: Array.isArray(data?.direct) ? data.direct : [],
+    inherited: Array.isArray(data?.inherited) ? data.inherited : [],
+  };
+}
+
+// 分配管理员直接权限(覆盖式)
+export async function assignAdminPermissions(id: number, permission_ids: number[]): Promise<void> {
+  await http.put(`/system/admins/${id}/permissions`, { permission_ids });
+}
+
 // ==================== 角色与权限 ====================
 export interface RoleItem {
   id: number;
@@ -181,6 +201,13 @@ export async function getAllPermissions(): Promise<PermissionGroup[]> {
 }
 
 // ==================== 操作日志 ====================
+export interface AuditDiffItem {
+  field: string;
+  label: string;
+  from: unknown;
+  to: unknown;
+}
+
 export interface AuditLogItem {
   id: number;
   admin_user_id: number | null;
@@ -197,6 +224,12 @@ export interface AuditLogItem {
   user_agent: string | null;
   status_code: number | null;
   created_at: number;
+  // 业务视角增强字段
+  summary: string | null;
+  target_type: string | null;
+  target_id: number | null;
+  target_name: string | null;
+  diff_json: string | null;
 }
 
 export interface AuditLogParams {
@@ -205,8 +238,17 @@ export interface AuditLogParams {
   operator?: string;
   module?: string;
   action?: string;
+  keyword?: string;
+  status?: 'success' | 'fail';
   startTime?: number;
   endTime?: number;
+}
+
+export interface AuditLogStats {
+  total: number;
+  todayCount: number;
+  failCount: number;
+  distinctModules: number;
 }
 
 // 审计日志分页查询
@@ -218,6 +260,18 @@ export async function getAuditLogs(params: AuditLogParams): Promise<PageResult<A
 // 审计模块下拉
 export async function getAuditModules(): Promise<string[]> {
   const data = await http.get<string[]>('/system/audit-logs/modules');
+  return data;
+}
+
+// 审计 action 下拉
+export async function getAuditActions(): Promise<string[]> {
+  const data = await http.get<string[]>('/system/audit-logs/actions');
+  return data;
+}
+
+// 审计日志统计
+export async function getAuditStats(): Promise<AuditLogStats> {
+  const data = await http.get<AuditLogStats>('/system/audit-logs/stats');
   return data;
 }
 
@@ -250,6 +304,35 @@ export async function getConfigs(group?: string): Promise<ConfigGroupResult> {
 // 更新配置值
 export async function updateConfig(key: string, config_value: string): Promise<void> {
   await http.put(`/system/configs/${key}`, { config_value });
+}
+
+// 七牛云相关
+export interface QiniuUploadTokenResult {
+  token: string;
+  domain: string;
+  bucket: string;
+  expiresIn: number;
+  uploadHost: string;
+  protocol: string;
+}
+
+// 测试七牛云配置并获取直传 Token
+export async function testQiniuToken(): Promise<QiniuUploadTokenResult> {
+  const data = await http.get<QiniuUploadTokenResult>('/system/qiniu/upload-token');
+  return data;
+}
+
+// 获取云存储公共配置（登录后可读，供前端上传组件）
+export async function getCloudConfig(): Promise<{
+  provider: string;
+  hasQiniu: boolean;
+  domain: string;
+  bucket: string;
+  protocol: string;
+  uploadHost: string;
+}> {
+  const data = await http.get('/system/cloud-config');
+  return data as any;
 }
 
 export interface MapConfig {

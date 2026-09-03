@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: Drawer 宽度已扩展至 900px
+- [x] Checkpoint 2: 左侧区域展示申请人信息和证明材料
+- [x] Checkpoint 3: 右侧区域展示审核操作面板
+- [x] Checkpoint 4: 证明材料以卡片形式展示，支持缩略图预览
+- [x] Checkpoint 5: 点击缩略图可弹出大图查看
+- [x] Checkpoint 6: 审核面板包含步骤引导
+- [x] Checkpoint 7: 审核通过按钮展示预期操作结果
+- [x] Checkpoint 8: 审核历史记录时间线
+- [x] Checkpoint 9: `npm run build` 构建成功
+- [x] Checkpoint 10: 页面功能正常，无控制台错误

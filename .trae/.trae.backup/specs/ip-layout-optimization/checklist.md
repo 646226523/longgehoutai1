@@ -1,0 +1,9 @@
+- [x] Checkpoint 1: IP地址列移除了 `<Text code>` 组件，不再显示灰色代码背景
+- [x] Checkpoint 2: IP地址使用新的样式展示，字体清晰易读
+- [x] Checkpoint 3: IP地址旁有复制功能（点击或copyable属性）
+- [x] Checkpoint 4: 复制IP地址后有成功反馈（message提示或Tooltip）
+- [x] Checkpoint 5: 列宽调整为120-140px，IP地址完整显示
+- [x] Checkpoint 6: TypeScript编译通过（tsc --noEmit无错误）
+- [x] Checkpoint 7: 页面无控制台报错
+- [x] Checkpoint 8: 表格其他列（时间、类型、内容、操作）保持不变
+- [x] Checkpoint 9: 在1440px分辨率下布局整齐协调

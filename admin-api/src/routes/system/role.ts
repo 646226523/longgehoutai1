@@ -96,12 +96,22 @@ router.put(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的角色 ID');
     }
-    const role = db.prepare('SELECT id, is_super FROM roles WHERE id = ?').get(id) as
-      | { id: number; is_super: number }
+    const before = db
+      .prepare('SELECT id, code, name, description, is_super, status FROM roles WHERE id = ?')
+      .get(id) as
+      | { id: number; code: string; name: string; description: string | null; is_super: number; status: number }
       | undefined;
-    if (!role) {
+    if (!before) {
       return fail(res, 404, '角色不存在');
     }
+    // 注入运行时审计数据（before + objectName），供 auditMiddleware 自动生成 diff 和摘要
+    res.locals.audit = {
+      before,
+      objectName: before.name,
+      targetId: id,
+      targetType: 'role',
+    };
+
     const { name, description, status } = req.body as {
       name?: string;
       description?: string;
@@ -129,13 +139,13 @@ router.delete(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的角色 ID');
     }
-    const role = db.prepare('SELECT id, is_super FROM roles WHERE id = ?').get(id) as
-      | { id: number; is_super: number }
-      | undefined;
-    if (!role) {
+    const before = db
+      .prepare('SELECT id, code, name, is_super FROM roles WHERE id = ?')
+      .get(id) as { id: number; code: string; name: string; is_super: number } | undefined;
+    if (!before) {
       return fail(res, 404, '角色不存在');
     }
-    if (role.is_super === 1) {
+    if (before.is_super === 1) {
       return fail(res, 400, '不能删除超级管理员角色');
     }
     // 检查是否有用户关联
@@ -145,6 +155,13 @@ router.delete(
     if (linked.c > 0) {
       return fail(res, 400, `该角色仍有 ${linked.c} 个管理员关联,请先解除关联后再删除`);
     }
+    // 注入运行时审计数据（delete 时 before 为被删对象）
+    res.locals.audit = {
+      before,
+      objectName: before.name,
+      targetId: id,
+      targetType: 'role',
+    };
     // 删除角色及权限关联(外键级联)
     db.prepare('DELETE FROM roles WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
@@ -177,9 +194,9 @@ router.put(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的角色 ID');
     }
-    const role = db.prepare('SELECT id, is_super FROM roles WHERE id = ?').get(id) as
-      | { id: number; is_super: number }
-      | undefined;
+    const role = db
+      .prepare('SELECT id, name, is_super FROM roles WHERE id = ?')
+      .get(id) as { id: number; name: string; is_super: number } | undefined;
     if (!role) {
       return fail(res, 404, '角色不存在');
     }
@@ -189,6 +206,17 @@ router.put(
     }
     const { permission_ids } = req.body as { permission_ids?: number[] };
     const ids = Array.isArray(permission_ids) ? permission_ids : [];
+
+    // 注入运行时审计数据：before 为旧权限列表，after 通过 request body 自动对比
+    const before = db
+      .prepare('SELECT permission_id FROM role_permissions WHERE role_id = ?')
+      .all(id) as Array<{ permission_id: number }>;
+    res.locals.audit = {
+      before: { permissions: before.map((r) => r.permission_id) },
+      objectName: role.name,
+      targetId: id,
+      targetType: 'role',
+    };
 
     const tx = db.transaction(() => {
       db.prepare('DELETE FROM role_permissions WHERE role_id = ?').run(id);

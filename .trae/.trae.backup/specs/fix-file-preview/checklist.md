@@ -1,0 +1,7 @@
+- [x] Checkpoint 1: `parseUrls` 函数支持解析多个 URL
+- [x] Checkpoint 2: 材料卡片支持多图缩略图展示
+- [x] Checkpoint 3: 使用 Image.PreviewGroup 实现预览功能
+- [x] Checkpoint 4: 点击缩略图可打开预览弹窗
+- [x] Checkpoint 5: 弹窗支持左右切换和序号显示（1/N）
+- [x] Checkpoint 6: 非图片文件有合理的预览方式
+- [x] Checkpoint 7: `npm run build` 构建成功

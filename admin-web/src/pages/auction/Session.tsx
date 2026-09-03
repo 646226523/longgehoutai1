@@ -140,7 +140,7 @@ const ItemSelectorModal = ({
     setLoading(true);
     try {
       const res = await getGeneProfiles({ page: 1, pageSize: 200, ring_number: kw });
-      setAllPigeons(res.list || []);
+      setAllPigeons(res?.list ?? []);
     } catch {
       setAllPigeons([]);
     } finally {
@@ -1341,7 +1341,7 @@ const AuctionSession = () => {
               name: name as string | undefined,
               status: status as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

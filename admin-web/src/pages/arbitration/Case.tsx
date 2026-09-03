@@ -191,10 +191,10 @@ const ArbitrationCase = () => {
     const timer = setTimeout(async () => {
       try {
         const res = await getUserList({ keyword, page: 1, pageSize: 20 });
-        const options = res.list.map((u: UserItem) => ({
+        const options = res?.list?.map((u: UserItem) => ({
           label: u.nickname || u.username,
           value: u.nickname || u.username,
-        }));
+        })) ?? [];
         setUserOptions(options);
       } catch {
         // 静默处理错误
@@ -585,7 +585,7 @@ const ArbitrationCase = () => {
               type: type as string | undefined,
               keyword: keyword as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }
@@ -613,7 +613,6 @@ const ArbitrationCase = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={960}
-        destroyOnHidden
         maskClosable={false}
         extra={
           <Space>
@@ -628,6 +627,7 @@ const ArbitrationCase = () => {
           form={form}
           layout="vertical"
           requiredMark
+          key={editing?.id ?? 'empty'}
           onFinish={handleSubmit}
           initialValues={{ type: 'other', amount: 0 }}
         >

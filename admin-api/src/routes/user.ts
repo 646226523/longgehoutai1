@@ -9,6 +9,7 @@
 
 import { Router, Response } from 'express';
 import db from '../db';
+import bcrypt from 'bcryptjs';
 import { authenticate, requirePermission } from '../middlewares/auth';
 import { auditMiddleware } from '../middlewares/audit';
 import type { AuthedRequest, ApiResponse } from '../types';
@@ -53,6 +54,12 @@ interface UserRow {
   real_name_status: string;
   loft_owner_status: string;
   audit_remark: string | null;
+  balance: number;
+  points: number;
+  distributor_id: number | null;
+  distributor_name: string | null;
+  is_blacklisted: number;
+  tags_json: string;
   created_at: number;
   updated_at: number;
 }
@@ -91,9 +98,12 @@ userRouter.get('/users', requirePermission('user:view'), (req: AuthedRequest, re
               u.status, u.growth_value, u.member_level_id,
               ml.name AS level_name, ml.code AS level_code,
               u.cert_status, u.real_name_status, u.loft_owner_status, u.audit_remark,
+              u.balance, u.points, u.distributor_id, d.name AS distributor_name,
+              u.is_blacklisted, u.tags_json,
               u.created_at, u.updated_at
        FROM users u
        LEFT JOIN member_levels ml ON ml.id = u.member_level_id
+       LEFT JOIN distributors d ON d.id = u.distributor_id
        ${whereSql}
        ORDER BY u.created_at DESC
        LIMIT ? OFFSET ?`
@@ -117,6 +127,12 @@ userRouter.get('/users', requirePermission('user:view'), (req: AuthedRequest, re
     real_name_status: r.real_name_status,
     loft_owner_status: r.loft_owner_status,
     audit_remark: r.audit_remark,
+    balance: r.balance ?? 0,
+    points: r.points ?? 0,
+    distributor_id: r.distributor_id,
+    distributor_name: r.distributor_name,
+    is_blacklisted: r.is_blacklisted ?? 0,
+    tags: (() => { try { return JSON.parse(r.tags_json || '[]'); } catch { return []; } })(),
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -240,19 +256,30 @@ userRouter.get('/users/:id', requirePermission('user:view'), (req: AuthedRequest
   const row = db
     .prepare(
       `SELECT u.id, u.username, u.nickname, u.avatar, u.phone, u.real_name, u.id_card,
+              u.id_card_front, u.id_card_back, u.id_card_handheld,
               u.status, u.growth_value, u.member_level_id,
               ml.name AS level_name, ml.code AS level_code,
               u.cert_status, u.real_name_status, u.loft_owner_status, u.audit_remark,
+              u.balance, u.points, u.distributor_id, d.name AS distributor_name,
+              u.is_blacklisted, u.tags_json,
               u.created_at, u.updated_at
        FROM users u
        LEFT JOIN member_levels ml ON ml.id = u.member_level_id
+       LEFT JOIN distributors d ON d.id = u.distributor_id
        WHERE u.id = ?`
     )
     .get(id) as UserRow | undefined;
   if (!row) {
     return fail(res, 404, '用户不存在');
   }
-  return ok(res, row);
+  const result = {
+    ...row,
+    balance: row.balance ?? 0,
+    points: row.points ?? 0,
+    is_blacklisted: row.is_blacklisted ?? 0,
+    tags: (() => { try { return JSON.parse(row.tags_json || '[]'); } catch { return []; } })(),
+  };
+  return ok(res, result);
 });
 
 // PUT /api/user/users/:id - 编辑用户(昵称/手机/实名信息/成长值/会员等级)
@@ -265,10 +292,20 @@ userRouter.put(
     if (!Number.isFinite(id)) {
       return fail(res, 400, '无效的用户 ID');
     }
-    const target = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    const target = db
+      .prepare('SELECT id, username, nickname, phone, real_name FROM users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null }
+      | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
     const {
       nickname,
       phone,
@@ -327,10 +364,20 @@ userRouter.patch(
     if (status !== 0 && status !== 1) {
       return fail(res, 400, '状态值非法(0 封禁 / 1 正常)');
     }
-    const target = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    const target = db
+      .prepare('SELECT id, username, nickname, phone, real_name FROM users WHERE id = ?')
+      .get(id) as
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null }
+      | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
     db.prepare('UPDATE users SET status = ?, updated_at = ? WHERE id = ?').run(
       status,
       Date.now(),
@@ -355,13 +402,19 @@ userRouter.post(
       return fail(res, 400, '审核动作非法(approved / rejected)');
     }
     const target = db
-      .prepare('SELECT id, real_name_status, cert_status FROM users WHERE id = ?')
+      .prepare('SELECT id, username, nickname, phone, real_name, real_name_status, cert_status FROM users WHERE id = ?')
       .get(id) as
-      | { id: number; real_name_status: string; cert_status: string }
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null; real_name_status: string; cert_status: string }
       | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
 
     const tx = db.transaction(() => {
       if (action === 'approved') {
@@ -399,13 +452,19 @@ userRouter.post(
       return fail(res, 400, '审核动作非法(approved / rejected)');
     }
     const target = db
-      .prepare('SELECT id, loft_owner_status, cert_status FROM users WHERE id = ?')
+      .prepare('SELECT id, username, nickname, phone, real_name, loft_owner_status, cert_status FROM users WHERE id = ?')
       .get(id) as
-      | { id: number; loft_owner_status: string; cert_status: string }
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null; loft_owner_status: string; cert_status: string }
       | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
     }
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || target.phone || target.real_name || `用户#${id}`,
+      targetId: id,
+      targetType: 'user',
+    };
 
     const tx = db.transaction(() => {
       if (action === 'approved') {
@@ -783,6 +842,297 @@ userRouter.delete(
     }
     db.prepare('DELETE FROM member_benefits WHERE id = ?').run(id);
     return ok(res, null, '权益已删除');
+  }
+);
+
+// ==================== 分销商与优惠券辅助接口 ====================
+
+// GET /api/user/distributors - 分销商列表
+userRouter.get('/distributors', requirePermission('user:view'), (_req: AuthedRequest, res: Response) => {
+  const rows = db
+    .prepare(
+      `SELECT id, name, contact, phone, level, commission_rate, status
+       FROM distributors WHERE status = 1 ORDER BY id ASC`
+    )
+    .all() as Array<{
+    id: number; name: string; contact: string | null; phone: string | null;
+    level: string; commission_rate: number; status: number;
+  }>;
+  return ok(res, { list: rows, total: rows.length });
+});
+
+// GET /api/user/coupons - 优惠券模板列表
+userRouter.get('/coupons', requirePermission('user:view'), (_req: AuthedRequest, res: Response) => {
+  const rows = db
+    .prepare(
+      `SELECT id, name, type, value, min_amount, total_count, remain_count, expire_days,
+              description, status FROM coupons WHERE status = 1 ORDER BY id ASC`
+    )
+    .all() as Array<{
+    id: number; name: string; type: string; value: number; min_amount: number;
+    total_count: number; remain_count: number; expire_days: number;
+    description: string | null; status: number;
+  }>;
+  return ok(res, { list: rows, total: rows.length });
+});
+
+// GET /api/user/users/:id/coupons - 用户优惠券列表
+userRouter.get('/users/:id/coupons', requirePermission('user:view'), (req: AuthedRequest, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  const rows = db
+    .prepare(
+      `SELECT id, coupon_id, coupon_name, coupon_type, coupon_value, status,
+              used_at, expires_at, created_at FROM user_coupons
+       WHERE user_id = ? ORDER BY created_at DESC`
+    )
+    .all(id) as Array<{
+    id: number; coupon_id: number; coupon_name: string | null; coupon_type: string | null;
+    coupon_value: number | null; status: string; used_at: number | null;
+    expires_at: number | null; created_at: number;
+  }>;
+  return ok(res, { list: rows, total: rows.length });
+});
+
+// ==================== 用户更多操作端点 ====================
+
+// PATCH /api/user/users/:id/distributor - 变更上级分销商
+userRouter.patch(
+  '/users/:id/distributor',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'change_distributor'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { distributor_id } = req.body as { distributor_id?: number | null };
+
+    const target = db.prepare('SELECT id, username, nickname, distributor_id FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string; distributor_id: number | null } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    if (distributor_id !== null && distributor_id !== undefined) {
+      const dist = db.prepare('SELECT id FROM distributors WHERE id = ? AND status = 1').get(distributor_id);
+      if (!dist) return fail(res, 400, '分销商不存在或已禁用');
+    }
+
+    db.prepare('UPDATE users SET distributor_id = ?, updated_at = ? WHERE id = ?')
+      .run(distributor_id ?? null, Date.now(), id);
+    return ok(res, null, distributor_id ? '分销商已变更' : '已清除分销商');
+  }
+);
+
+// PATCH /api/user/users/:id/tags - 设置标签
+userRouter.patch(
+  '/users/:id/tags',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'set_tags'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { tags } = req.body as { tags?: string[] };
+
+    const target = db.prepare('SELECT id, username, nickname, tags_json FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string; tags_json: string } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    res.locals.audit = {
+      before: { ...target, tags: (() => { try { return JSON.parse(target.tags_json || '[]'); } catch { return []; } })() },
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    const cleanTags = Array.isArray(tags)
+      ? [...new Set(tags.filter((t) => typeof t === 'string' && t.trim()))].slice(0, 20)
+      : [];
+    db.prepare('UPDATE users SET tags_json = ?, updated_at = ? WHERE id = ?')
+      .run(JSON.stringify(cleanTags), Date.now(), id);
+    return ok(res, null, '标签已更新');
+  }
+);
+
+// POST /api/user/users/:id/reset-password - 重置密码
+userRouter.post(
+  '/users/:id/reset-password',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'reset_password'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { new_password } = req.body as { new_password?: string };
+
+    const target = db.prepare('SELECT id, username, nickname FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    const raw = new_password && new_password.length >= 6
+      ? new_password
+      : Math.random().toString(36).slice(-8) + 'Aa1';
+    const hashed = bcrypt.hashSync(raw, 10);
+
+    db.prepare('UPDATE users SET password = ?, updated_at = ? WHERE id = ?')
+      .run(hashed, Date.now(), id);
+
+    return ok(res, { new_password: raw }, '密码已重置');
+  }
+);
+
+// POST /api/user/users/:id/coupons - 发放优惠券
+userRouter.post(
+  '/users/:id/coupons',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'grant_coupon'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { coupon_id, count = 1 } = req.body as { coupon_id?: number; count?: number };
+
+    const target = db.prepare('SELECT id, username, nickname FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    if (!coupon_id) return fail(res, 400, '请选择优惠券');
+    const coupon = db.prepare('SELECT * FROM coupons WHERE id = ? AND status = 1').get(coupon_id) as
+      | { id: number; name: string; type: string; value: number; expire_days: number; remain_count: number }
+      | undefined;
+    if (!coupon) return fail(res, 404, '优惠券不存在或已禁用');
+
+    const cnt = Math.max(1, Math.min(10, count));
+    if (coupon.remain_count < cnt && coupon.remain_count !== 0) {
+      return fail(res, 400, `优惠券剩余数量不足(剩 ${coupon.remain_count})`);
+    }
+
+    const now = Date.now();
+    const expiresAt = now + coupon.expire_days * 86400 * 1000;
+
+    const tx = db.transaction(() => {
+      for (let i = 0; i < cnt; i++) {
+        db.prepare(
+          `INSERT INTO user_coupons (user_id, coupon_id, coupon_name, coupon_type, coupon_value, expires_at)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        ).run(id, coupon.id, coupon.name, coupon.type, coupon.value, expiresAt);
+      }
+      if (coupon.remain_count > 0) {
+        db.prepare('UPDATE coupons SET remain_count = remain_count - ? WHERE id = ?')
+          .run(cnt, coupon.id);
+      }
+    });
+    tx();
+
+    return ok(res, { granted: cnt }, `已发放 ${cnt} 张优惠券`);
+  }
+);
+
+// PATCH /api/user/users/:id/balance - 调整余额
+userRouter.patch(
+  '/users/:id/balance',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'adjust_balance'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { amount, reason } = req.body as { amount?: number; reason?: string };
+
+    const target = db.prepare('SELECT id, username, nickname, balance FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string; balance: number } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    if (typeof amount !== 'number' || amount === 0) {
+      return fail(res, 400, '调整金额必须为非零数字');
+    }
+    if (target.balance + amount < 0) {
+      return fail(res, 400, '余额不足,无法扣除');
+    }
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    db.prepare('UPDATE users SET balance = balance + ?, updated_at = ? WHERE id = ?')
+      .run(amount, Date.now(), id);
+    return ok(res, { balance: target.balance + amount }, `余额已${amount > 0 ? '增加' : '扣除'} ${Math.abs(amount).toFixed(2)} 元${reason ? ` (${reason})` : ''}`);
+  }
+);
+
+// PATCH /api/user/users/:id/points - 调整积分
+userRouter.patch(
+  '/users/:id/points',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'adjust_points'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { amount, reason } = req.body as { amount?: number; reason?: string };
+
+    const target = db.prepare('SELECT id, username, nickname, points FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string; points: number } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    if (typeof amount !== 'number' || amount === 0) {
+      return fail(res, 400, '调整数量必须为非零整数');
+    }
+    if (!Number.isInteger(amount)) {
+      return fail(res, 400, '积分必须为整数');
+    }
+    if (target.points + amount < 0) {
+      return fail(res, 400, '积分不足,无法扣除');
+    }
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    db.prepare('UPDATE users SET points = points + ?, updated_at = ? WHERE id = ?')
+      .run(amount, Date.now(), id);
+    return ok(res, { points: target.points + amount }, `积分已${amount > 0 ? '增加' : '扣除'} ${Math.abs(amount)}${reason ? ` (${reason})` : ''}`);
+  }
+);
+
+// PATCH /api/user/users/:id/blacklist - 加入/移出黑名单
+userRouter.patch(
+  '/users/:id/blacklist',
+  requirePermission('user:edit'),
+  auditMiddleware('user', 'toggle_blacklist'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+    const { is_blacklisted } = req.body as { is_blacklisted?: number };
+
+    const target = db.prepare('SELECT id, username, nickname, is_blacklisted FROM users WHERE id = ?').get(id) as
+      | { id: number; username: string; nickname: string; is_blacklisted: number } | undefined;
+    if (!target) return fail(res, 404, '用户不存在');
+
+    const next = is_blacklisted !== undefined ? (is_blacklisted ? 1 : 0) : (target.is_blacklisted ? 0 : 1);
+
+    res.locals.audit = {
+      before: target,
+      objectName: target.nickname || target.username || `用户#${id}`,
+      targetId: id, targetType: 'user',
+    };
+
+    db.prepare('UPDATE users SET is_blacklisted = ?, updated_at = ? WHERE id = ?')
+      .run(next, Date.now(), id);
+    return ok(res, { is_blacklisted: next }, next ? '已加入黑名单' : '已移出黑名单');
   }
 );
 

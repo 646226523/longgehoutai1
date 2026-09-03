@@ -217,7 +217,7 @@ export interface DealOption {
 export async function getDealOptions(): Promise<DealOption[]> {
   try {
     const res = await getAuctionDeals({ page: 1, pageSize: 100 });
-    return res.list.map((d) => ({
+    return res?.list?.map((d) => ({
       id: d.id,
       label: `#${d.id} ${d.session_name ?? ''} - ${d.item_name ?? '拍品'}(¥${d.final_price})`,
       buyer: d.buyer,

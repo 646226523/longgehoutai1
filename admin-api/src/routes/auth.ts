@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import db from '../db';
 import { config } from '../config';
 import { authenticate, getAdminRoles, getAdminPermissions } from '../middlewares/auth';
-import { recordAuditLog } from '../middlewares/audit';
+import { recordAuditLog, formatIp, getClientIp } from '../middlewares/audit';
 import type { AuthedRequest, ApiResponse, JwtPayload } from '../types';
 
 const router = Router();
@@ -87,7 +87,7 @@ router.post('/login', (req: AuthedRequest, res: Response) => {
       action: 'login',
       method: req.method,
       path: req.originalUrl,
-      ip: req.ip,
+      ip: formatIp(getClientIp(req)) ?? undefined,
       userAgent: req.headers['user-agent'],
       statusCode: 200,
     });
@@ -172,7 +172,7 @@ router.post('/logout', authenticate, (req: AuthedRequest, res: Response) => {
       action: 'logout',
       method: req.method,
       path: req.originalUrl,
-      ip: req.ip,
+      ip: formatIp(getClientIp(req)) ?? undefined,
       userAgent: req.headers['user-agent'],
       statusCode: 200,
     });

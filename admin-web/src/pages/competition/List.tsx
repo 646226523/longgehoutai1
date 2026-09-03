@@ -1,4 +1,4 @@
-﻿import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { App, Button, Popconfirm, Space, Tag } from 'antd';
 import { PlusOutlined, TrophyOutlined, SafetyCertificateOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
@@ -288,7 +288,7 @@ const CompetitionList = () => {
             status: status as string | undefined,
             type: type as string | undefined,
           });
-          return { data: res.list, success: true, total: res.total };
+          return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
         } catch {
           return { data: [], success: false, total: 0 };
         }

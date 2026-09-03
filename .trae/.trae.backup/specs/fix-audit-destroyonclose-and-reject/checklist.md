@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: AuditList.tsx 中不再使用 destroyOnClose 属性（已改为 destroyOnHidden）
+- [x] Checkpoint 2: 控制台无 "Warning: [antd: Modal] destroyOnClose is deprecated" 警告
+- [x] Checkpoint 3: 审核操作列显示带下拉箭头的按钮
+- [x] Checkpoint 4: 下拉菜单包含"审核通过"和"驳回申请"两个选项
+- [x] Checkpoint 5: 选择驳回后弹出驳回弹窗，标题和按钮样式正确（红色主题）
+- [x] Checkpoint 6: 选择通过后弹出通过弹窗，标题和按钮样式正确（绿色主题）
+- [x] Checkpoint 7: 驳回操作必须填写备注，无备注时提交触发校验错误
+- [x] Checkpoint 8: 驳回成功后列表自动刷新，记录状态变更为"已驳回"
+- [x] Checkpoint 9: TypeScript 类型检查无错误
+- [x] Checkpoint 10: 现有审核通过功能不受影响

@@ -1,6 +1,7 @@
 // 用户与会员体系 - 用户管理
 // 功能:ProTable 分页列表(用户名/手机/状态/认证状态筛选)、编辑、封禁/解封、
 //      实名认证审核(通过/驳回)、鸽主认证审核、详情抽屉(精美用户档案详情)
+//      更多操作:变更分销商/设置标签/重置密码/发放优惠券/调整余额/调整积分/黑名单
 import {
   ModalForm,
   ProTable,
@@ -21,6 +22,7 @@ import {
   Image,
   Input,
   InputNumber,
+  Modal,
   Progress,
   Popconfirm,
   Radio,
@@ -50,6 +52,13 @@ import {
   TrophyFilled,
   UnlockOutlined,
   UserOutlined,
+  SwapOutlined,
+  TagOutlined,
+  KeyOutlined,
+  GiftOutlined,
+  WalletOutlined,
+  ThunderboltOutlined,
+  BlockOutlined,
 } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
@@ -60,11 +69,22 @@ import { useTableRefresh } from '../../hooks/useTableRefresh';
 import {
   auditUserLoftOwner,
   auditUserRealName,
+  getCoupons,
+  getDistributors,
   getMemberLevels,
   getUserDetail,
   getUserList,
+  grantUserCoupon,
+  resetUserPassword,
+  toggleUserBlacklist,
   updateUser,
+  updateUserDistributor,
   updateUserStatus,
+  updateUserTags,
+  adjustUserBalance,
+  adjustUserPoints,
+  type CouponItem,
+  type DistributorItem,
   type MemberLevelItem,
   type UserItem,
 } from '../../services/user';
@@ -248,6 +268,150 @@ const UserList = () => {
 
   const [levelOptions, setLevelOptions] = useState<MemberLevelItem[]>([]);
   const [editForm] = Form.useForm();
+
+  // ============ 更多操作弹窗状态 ============
+  const [distributorOptions, setDistributorOptions] = useState<DistributorItem[]>([]);
+  const [couponOptions, setCouponOptions] = useState<CouponItem[]>([]);
+  const [ensureMoreOptions, setEnsureMoreOptions] = useState(false);
+
+  // 当前操作目标用户
+  const [actionUser, setActionUser] = useState<UserItem | null>(null);
+  const [actionType, setActionType] = useState<
+    | 'distributor' | 'tags' | 'reset-pwd' | 'coupon' | 'balance' | 'points' | 'blacklist' | null
+  >(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // 表单
+  const [distForm] = Form.useForm();
+  const [tagsForm] = Form.useForm();
+  const [resetPwdForm] = Form.useForm();
+  const [couponForm] = Form.useForm();
+  const [balanceForm] = Form.useForm();
+  const [pointsForm] = Form.useForm();
+
+  // 快捷标签选项
+  const QUICK_TAGS = ['VIP用户', '活跃用户', '新用户', '待跟进', '投诉用户', '合作意向', '重要客户'];
+
+  // 加载分销商和优惠券选项
+  const loadMoreOptions = async () => {
+    if (ensureMoreOptions) return;
+    try {
+      const [distRes, couponRes] = await Promise.all([
+        getDistributors().catch(() => ({ list: [] })),
+        getCoupons().catch(() => ({ list: [] })),
+      ]);
+      setDistributorOptions(distRes?.list ?? []);
+      setCouponOptions(couponRes?.list ?? []);
+      setEnsureMoreOptions(true);
+    } catch { /* 静默失败 */ }
+  };
+
+  // 打开更多操作弹窗
+  const openMoreAction = (record: UserItem, type: typeof actionType) => {
+    setActionUser(record);
+    setActionType(type);
+    loadMoreOptions();
+    // 根据类型初始化表单
+    setTimeout(() => {
+      switch (type) {
+        case 'distributor':
+          distForm.setFieldsValue({ distributor_id: record.distributor_id });
+          break;
+        case 'tags':
+          tagsForm.setFieldsValue({ tags: record.tags ?? [] });
+          break;
+        case 'reset-pwd':
+          resetPwdForm.resetFields();
+          break;
+        case 'coupon':
+          couponForm.resetFields();
+          break;
+        case 'balance':
+          balanceForm.resetFields();
+          break;
+        case 'points':
+          pointsForm.resetFields();
+          break;
+      }
+    }, 50);
+  };
+
+  // 提交更多操作
+  const submitMoreAction = async () => {
+    if (!actionUser || !actionType) return;
+    setActionLoading(true);
+    try {
+      switch (actionType) {
+        case 'distributor': {
+          const values = await distForm.validateFields();
+          await updateUserDistributor(actionUser.id, values.distributor_id ?? null);
+          message.success('分销商已变更');
+          break;
+        }
+        case 'tags': {
+          const values = await tagsForm.validateFields();
+          await updateUserTags(actionUser.id, values.tags ?? []);
+          message.success('标签已更新');
+          break;
+        }
+        case 'reset-pwd': {
+          const values = await resetPwdForm.validateFields();
+          const res = await resetUserPassword(actionUser.id, values.new_password);
+          modal.info({
+            title: '密码已重置',
+            content: (
+              <div>
+                <div>用户 <Text strong>{actionUser.nickname || actionUser.username}</Text> 的密码已重置为：</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#1677ff', margin: '12px 0', fontFamily: 'monospace' }}>
+                  {res.new_password}
+                </div>
+                <div style={{ color: '#8c8c8c', fontSize: 12 }}>请及时将新密码告知用户,并提醒其登录后修改</div>
+              </div>
+            ),
+            okText: '我知道了',
+          });
+          break;
+        }
+        case 'coupon': {
+          const values = await couponForm.validateFields();
+          const res = await grantUserCoupon(actionUser.id, values.coupon_id, values.count ?? 1);
+          message.success(`已发放 ${res.granted} 张优惠券`);
+          break;
+        }
+        case 'balance': {
+          const values = await balanceForm.validateFields();
+          const res = await adjustUserBalance(actionUser.id, values.amount, values.reason);
+          message.success(`操作成功,当前余额: ¥${res.balance.toFixed(2)}`);
+          break;
+        }
+        case 'points': {
+          const values = await pointsForm.validateFields();
+          const res = await adjustUserPoints(actionUser.id, values.amount, values.reason);
+          message.success(`操作成功,当前积分: ${res.points}`);
+          break;
+        }
+      }
+      closeMoreAction();
+      handleRefresh();
+      // 如果详情抽屉打开的是同一用户,刷新详情
+      if (detailDrawer.visible && detailDrawer.record?.id === actionUser.id) {
+        try {
+          const fresh = await getUserDetail(actionUser.id);
+          setDetailDrawer({ visible: true, record: fresh });
+        } catch { /* 忽略 */ }
+      }
+    } catch (err: any) {
+      if (err?.errorFields) return; // 表单验证错误
+      message.error(err?.message || '操作失败');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const closeMoreAction = () => {
+    setActionType(null);
+    setActionUser(null);
+  };
 
   const ensureLevelOptions = () => {
     if (levelOptions.length) return;
@@ -491,27 +655,50 @@ const UserList = () => {
           <Dropdown
             menu={{
               items: [
-                { key: 'distributor', label: '变更上级分销商' },
-                { key: 'tag', label: '设置标签' },
+                { key: 'distributor', label: '变更上级分销商', icon: <SwapOutlined /> },
+                { key: 'tag', label: '设置标签', icon: <TagOutlined /> },
                 { type: 'divider' },
-                { key: 'reset-pwd', label: '重置密码' },
-                { key: 'coupon', label: '发放优惠券' },
-                { key: 'balance', label: '调整余额' },
-                { key: 'points', label: '调整积分' },
+                { key: 'reset-pwd', label: '重置密码', icon: <KeyOutlined /> },
+                { key: 'coupon', label: '发放优惠券', icon: <GiftOutlined /> },
+                { key: 'balance', label: '调整余额', icon: <WalletOutlined /> },
+                { key: 'points', label: '调整积分', icon: <ThunderboltOutlined /> },
                 { type: 'divider' },
-                { key: 'blacklist', label: '黑名单', danger: true },
+                { key: 'blacklist', label: record.is_blacklisted ? '移出黑名单' : '加入黑名单', icon: <BlockOutlined />, danger: true },
               ],
-              onClick: ({ key }) => {
-                const actionMap: Record<string, string> = {
-                  distributor: '变更上级分销商',
-                  tag: '设置标签',
-                  'reset-pwd': '重置密码',
-                  coupon: '发放优惠券',
-                  balance: '调整余额',
-                  points: '调整积分',
-                  blacklist: '加入黑名单',
+              onClick: async ({ key }) => {
+                if (key === 'blacklist') {
+                  // 黑名单操作(带确认)
+                  const next = record.is_blacklisted ? 0 : 1;
+                  modal.confirm({
+                    title: next ? '确认加入黑名单？' : '确认移出黑名单？',
+                    content: next
+                      ? `用户「${record.nickname || record.username}」将被加入黑名单,限制其部分功能使用。`
+                      : `用户「${record.nickname || record.username}」将被移出黑名单,恢复正常使用。`,
+                    okText: '确认',
+                    cancelText: '取消',
+                    okButtonProps: { danger: next === 1 },
+                    onOk: async () => {
+                      try {
+                        await toggleUserBlacklist(record.id, next);
+                        message.success(next ? '已加入黑名单' : '已移出黑名单');
+                        handleRefresh();
+                      } catch (err: any) {
+                        message.error(err?.message || '操作失败');
+                      }
+                    },
+                  });
+                  return;
+                }
+                // 其他操作打开对应弹窗
+                const typeMap: Record<string, typeof actionType> = {
+                  distributor: 'distributor',
+                  tag: 'tags',
+                  'reset-pwd': 'reset-pwd',
+                  coupon: 'coupon',
+                  balance: 'balance',
+                  points: 'points',
                 };
-                message.info(`${actionMap[key]}功能开发中`);
+                openMoreAction(record, typeMap[key] ?? null);
               },
             }}
             placement="bottomRight"
@@ -756,6 +943,42 @@ const UserList = () => {
                       {dayjs().diff(dayjs(record.created_at), 'day')}
                     </div>
                   </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <WalletOutlined /> 余额
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>
+                      ¥{(record.balance ?? 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <ThunderboltOutlined /> 积分
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>
+                      {record.points ?? 0}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -840,6 +1063,67 @@ const UserList = () => {
                     },
                     { type: 'divider' },
                     {
+                      key: 'balance',
+                      label: '调整余额',
+                      icon: <WalletOutlined />,
+                      onClick: () => openMoreAction(record, 'balance'),
+                    },
+                    {
+                      key: 'points',
+                      label: '调整积分',
+                      icon: <ThunderboltOutlined />,
+                      onClick: () => openMoreAction(record, 'points'),
+                    },
+                    {
+                      key: 'coupon',
+                      label: '发放优惠券',
+                      icon: <GiftOutlined />,
+                      onClick: () => openMoreAction(record, 'coupon'),
+                    },
+                    {
+                      key: 'tags',
+                      label: '设置标签',
+                      icon: <TagOutlined />,
+                      onClick: () => openMoreAction(record, 'tags'),
+                    },
+                    {
+                      key: 'distributor',
+                      label: '变更分销商',
+                      icon: <SwapOutlined />,
+                      onClick: () => openMoreAction(record, 'distributor'),
+                    },
+                    { type: 'divider' },
+                    {
+                      key: 'blacklist',
+                      label: record.is_blacklisted ? '移出黑名单' : '加入黑名单',
+                      icon: <BlockOutlined />,
+                      danger: true,
+                      onClick: () => {
+                        const next = record.is_blacklisted ? 0 : 1;
+                        modal.confirm({
+                          title: next ? '确认加入黑名单？' : '确认移出黑名单？',
+                          content: next
+                            ? `用户「${record.nickname || record.username}」将被加入黑名单。`
+                            : `用户「${record.nickname || record.username}」将被移出黑名单。`,
+                          okText: '确认',
+                          cancelText: '取消',
+                          okButtonProps: { danger: next === 1 },
+                          onOk: async () => {
+                            try {
+                              await toggleUserBlacklist(record.id, next);
+                              message.success(next ? '已加入黑名单' : '已移出黑名单');
+                              // 刷新详情
+                              const fresh = await getUserDetail(record.id);
+                              setDetailDrawer({ visible: true, record: fresh });
+                              handleRefresh();
+                            } catch (err: any) {
+                              message.error(err?.message || '操作失败');
+                            }
+                          },
+                        });
+                      },
+                    },
+                    {
                       key: 'delete',
                       label: <span style={{ color: '#ff4d4f' }}>删除账号</span>,
                       icon: <CloseCircleFilled style={{ color: '#ff4d4f' }} />,
@@ -913,9 +1197,34 @@ const UserList = () => {
                           {record.id_card ? maskIdCard(record.id_card) : <Text type="secondary">未认证</Text>}
                         </Descriptions.Item>
                         <Descriptions.Item label="账号状态">
-                          <Tag color={record.status === 1 ? 'green' : 'red'}>
-                            {record.status === 1 ? '正常' : '已封禁'}
-                          </Tag>
+                          <Space>
+                            <Tag color={record.status === 1 ? 'green' : 'red'}>
+                              {record.status === 1 ? '正常' : '已封禁'}
+                            </Tag>
+                            {record.is_blacklisted === 1 && (
+                              <Tag color="error" icon={<BlockOutlined />}>黑名单</Tag>
+                            )}
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="账户余额">
+                          <Text strong style={{ color: '#52c41a' }}>¥{(record.balance ?? 0).toFixed(2)}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="积分">
+                          <Text strong style={{ color: '#1677ff' }}>{record.points ?? 0}</Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="上级分销商">
+                          {record.distributor_name || <Text type="secondary">未设置</Text>}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="用户标签" span={2}>
+                          {record.tags && record.tags.length > 0 ? (
+                            <Space size={[0, 4]} wrap>
+                              {record.tags.map((tag, i) => (
+                                <Tag key={i} color="blue">{tag}</Tag>
+                              ))}
+                            </Space>
+                          ) : (
+                            <Text type="secondary">暂无标签</Text>
+                          )}
                         </Descriptions.Item>
                         <Descriptions.Item label="注册时间">
                           {dayjs(record.created_at).format('YYYY-MM-DD HH:mm:ss')}
@@ -1565,7 +1874,7 @@ const UserList = () => {
               status: status as number | string | undefined,
               cert_status: cert_status as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }
@@ -1611,7 +1920,6 @@ const UserList = () => {
         width={560}
         open={editModal.visible}
         onClose={handleEditCancel}
-        destroyOnHidden
         extra={
           <Space>
             <Button onClick={handleEditCancel}>取 消</Button>
@@ -1624,7 +1932,7 @@ const UserList = () => {
         <Form
           form={editForm}
           layout="vertical"
-          preserve={false}
+          key={editModal.record?.id ?? 'empty'}
         >
           <Divider orientation="left" plain style={{ fontSize: 14, fontWeight: 600 }}>
             基础信息
@@ -1760,6 +2068,273 @@ const UserList = () => {
           onChange={(e) => setAuditRemark(e.target.value)}
         />
       </ModalForm>
+
+      {/* ============ 更多操作弹窗 ============ */}
+
+      {/* 变更上级分销商 */}
+      <Modal
+        title={
+          <Space>
+            <SwapOutlined style={{ color: '#1677ff' }} />
+            <span>变更上级分销商</span>
+          </Space>
+        }
+        open={actionType === 'distributor'}
+        onCancel={closeMoreAction}
+        onOk={submitMoreAction}
+        confirmLoading={actionLoading}
+        width={480}
+        okText="确认变更"
+        cancelText="取消"
+      >
+        {actionUser && (
+          <div>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f5f5f5', borderRadius: 6, fontSize: 13 }}>
+              目标用户：<Text strong>{actionUser.nickname || actionUser.username}</Text>
+              {actionUser.distributor_name && (
+                <Text type="secondary"> | 当前：{actionUser.distributor_name}</Text>
+              )}
+            </div>
+            <Form form={distForm} layout="vertical">
+              <Form.Item label="选择分销商" name="distributor_id">
+                <Select
+                  allowClear
+                  placeholder="请选择上级分销商(不选则清除)"
+                  options={distributorOptions.map((d) => ({
+                    label: (
+                      <span>
+                        {d.name}
+                        <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                          {d.contact} {d.phone}
+                        </Text>
+                      </span>
+                    ),
+                    value: d.id,
+                  }))}
+                />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
+
+      {/* 设置标签 */}
+      <Modal
+        title={
+          <Space>
+            <TagOutlined style={{ color: '#722ed1' }} />
+            <span>设置用户标签</span>
+          </Space>
+        }
+        open={actionType === 'tags'}
+        onCancel={closeMoreAction}
+        onOk={submitMoreAction}
+        confirmLoading={actionLoading}
+        width={520}
+        okText="保存标签"
+        cancelText="取消"
+      >
+        {actionUser && (
+          <div>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f5f5f5', borderRadius: 6, fontSize: 13 }}>
+              目标用户：<Text strong>{actionUser.nickname || actionUser.username}</Text>
+            </div>
+            <Form form={tagsForm} layout="vertical">
+              <Form.Item label="快捷标签">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {QUICK_TAGS.map((tag) => (
+                    <Tag.CheckableTag
+                      key={tag}
+                      checked={(tagsForm.getFieldValue('tags') ?? []).includes(tag)}
+                      onChange={(checked) => {
+                        const current: string[] = tagsForm.getFieldValue('tags') ?? [];
+                        tagsForm.setFieldsValue({
+                          tags: checked ? [...current, tag] : current.filter((t) => t !== tag),
+                        });
+                      }}
+                    >
+                      {tag}
+                    </Tag.CheckableTag>
+                  ))}
+                </div>
+              </Form.Item>
+              <Form.Item
+                label="自定义标签"
+                name="tags"
+                tooltip="按回车添加标签,最多20个"
+              >
+                <Select
+                  mode="tags"
+                  placeholder="输入标签后按回车添加"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
+
+      {/* 重置密码 */}
+      <Modal
+        title={
+          <Space>
+            <KeyOutlined style={{ color: '#faad14' }} />
+            <span>重置用户密码</span>
+          </Space>
+        }
+        open={actionType === 'reset-pwd'}
+        onCancel={closeMoreAction}
+        onOk={submitMoreAction}
+        confirmLoading={actionLoading}
+        width={480}
+        okText="确认重置"
+        cancelText="取消"
+      >
+        {actionUser && (
+          <div>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fffbe6', borderRadius: 6, fontSize: 13, color: '#ad6800' }}>
+              ⚠️ 重置后用户原密码将失效,新密码将显示给管理员
+            </div>
+            <div style={{ marginBottom: 12, fontSize: 13 }}>
+              目标用户：<Text strong>{actionUser.nickname || actionUser.username}</Text>
+              <Text type="secondary"> ({actionUser.username})</Text>
+            </div>
+            <Form form={resetPwdForm} layout="vertical">
+              <Form.Item label="自定义新密码(可选)" name="new_password" extra="不填则自动生成8位随机密码">
+                <Input.Password placeholder="至少6位,留空自动生成" />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
+
+      {/* 发放优惠券 */}
+      <Modal
+        title={
+          <Space>
+            <GiftOutlined style={{ color: '#eb2f96' }} />
+            <span>发放优惠券</span>
+          </Space>
+        }
+        open={actionType === 'coupon'}
+        onCancel={closeMoreAction}
+        onOk={submitMoreAction}
+        confirmLoading={actionLoading}
+        width={520}
+        okText="确认发放"
+        cancelText="取消"
+      >
+        {actionUser && (
+          <div>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f5f5f5', borderRadius: 6, fontSize: 13 }}>
+              目标用户：<Text strong>{actionUser.nickname || actionUser.username}</Text>
+              {actionUser.level_name && <Tag color="gold" style={{ marginLeft: 8 }}>{actionUser.level_name}</Tag>}
+            </div>
+            <Form form={couponForm} layout="vertical">
+              <Form.Item label="选择优惠券" name="coupon_id" rules={[{ required: true, message: '请选择优惠券' }]}>
+                <Select
+                  placeholder="请选择要发放的优惠券"
+                  options={couponOptions.map((c) => ({
+                    label: `${c.name} (${c.type === 'amount' ? `¥${c.value}` : `${(c.value * 10).toFixed(1)}折`})`,
+                    value: c.id,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item label="发放数量" name="count" initialValue={1} rules={[{ type: 'number', min: 1, max: 10, message: '1-10张' }]}>
+                <InputNumber min={1} max={10} style={{ width: '100%' }} />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
+
+      {/* 调整余额 */}
+      <Modal
+        title={
+          <Space>
+            <WalletOutlined style={{ color: '#52c41a' }} />
+            <span>调整账户余额</span>
+          </Space>
+        }
+        open={actionType === 'balance'}
+        onCancel={closeMoreAction}
+        onOk={submitMoreAction}
+        confirmLoading={actionLoading}
+        width={480}
+        okText="确认调整"
+        cancelText="取消"
+      >
+        {actionUser && (
+          <div>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f6ffed', borderRadius: 6, fontSize: 13, border: '1px solid #b7eb8f' }}>
+              当前余额：<Text strong style={{ color: '#52c41a', fontSize: 16 }}>¥{(actionUser.balance ?? 0).toFixed(2)}</Text>
+            </div>
+            <Form form={balanceForm} layout="vertical">
+              <Form.Item
+                label="调整金额"
+                name="amount"
+                rules={[{ required: true, message: '请输入调整金额(正数增加/负数扣除)' }]}
+                extra="正数表示增加余额,负数表示扣除余额"
+              >
+                <InputNumber
+                  placeholder="例:100 增加 / -50 扣除"
+                  style={{ width: '100%' }}
+                  precision={2}
+                  step={10}
+                  addonBefore="¥"
+                />
+              </Form.Item>
+              <Form.Item label="调整原因" name="reason">
+                <Input.TextArea rows={2} placeholder="可填写调整原因(如:人工补偿/活动奖励等)" maxLength={100} showCount />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
+
+      {/* 调整积分 */}
+      <Modal
+        title={
+          <Space>
+            <ThunderboltOutlined style={{ color: '#1677ff' }} />
+            <span>调整用户积分</span>
+          </Space>
+        }
+        open={actionType === 'points'}
+        onCancel={closeMoreAction}
+        onOk={submitMoreAction}
+        confirmLoading={actionLoading}
+        width={480}
+        okText="确认调整"
+        cancelText="取消"
+      >
+        {actionUser && (
+          <div>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, fontSize: 13, border: '1px solid #91caff' }}>
+              当前积分：<Text strong style={{ color: '#1677ff', fontSize: 16 }}>{actionUser.points ?? 0}</Text>
+            </div>
+            <Form form={pointsForm} layout="vertical">
+              <Form.Item
+                label="调整数量"
+                name="amount"
+                rules={[{ required: true, message: '请输入调整数量(正数增加/负数扣除)' }]}
+                extra="正数表示增加积分,负数表示扣除积分"
+              >
+                <InputNumber
+                  placeholder="例:100 增加 / -50 扣除"
+                  style={{ width: '100%' }}
+                  precision={0}
+                  step={10}
+                  addonAfter="分"
+                />
+              </Form.Item>
+              <Form.Item label="调整原因" name="reason">
+                <Input.TextArea rows={2} placeholder="可填写调整原因(如:签到奖励/违规扣除等)" maxLength={100} showCount />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
     </>
   );
 };

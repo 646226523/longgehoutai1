@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: upload.ts 新增 loadImagePipelineConfig 一次性加载全部 10 个 image_* 配置
+- [x] Checkpoint 2: upload.ts 新增 applyWatermark helper（SVG 文字 + 6 档位置定位）
+- [x] Checkpoint 3: upload.ts 新增 generateThumbnails helper（三档 resize + withoutEnlargement + 宽高为 0 跳过）
+- [x] Checkpoint 4: 主链路重写为：加载配置 → 水印 → 压缩 → 写原图 → 写三档缩略图 → 返回扩展 JSON
+- [x] Checkpoint 5: uploads/thumbs/{large,medium,small}/ 自动创建，缩略图 HTTP GET 返回 200（原图 2630B / large 2630B / medium 1751B / small 684B）
+- [x] Checkpoint 6: 返回值扩展 `{ url, thumbnails: { large, medium, small } }`，向后兼容 url 字段
+- [x] Checkpoint 7: 水印 enable=1 时原图 size 从 1752B → 5150B（差异明显，叠加生效）
+- [x] Checkpoint 8: 水印 enable=0 时原图 size 保持 1752B，无水印
+- [x] Checkpoint 9: small_width=0 → 返回 JSON 中 thumbnails.small 缺失
+- [x] Checkpoint 10: 后端 tsc --noEmit 零错误，浏览器 Console 零 error / 零 warn

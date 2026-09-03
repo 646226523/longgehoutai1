@@ -1,0 +1,5 @@
+- [x] Checkpoint 1: 赛事列表页的空距（distance）字段已格式化为保留两位小数。
+- [x] Checkpoint 2: `CompetitionForm.tsx` 中已修复 `InputNumber` 的 `addonAfter` 弃用警告。
+- [x] Checkpoint 3: `CompetitionForm.tsx` 中已通过 `App.useApp()` 获取 `message`，消除了静态函数警告。
+- [x] Checkpoint 4: 前端 `npm run build` 构建成功。
+- [x] Checkpoint 5: 浏览器验证相关页面，控制台不再出现上述两类 antd 弃用警告。

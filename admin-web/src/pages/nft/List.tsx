@@ -1,4 +1,4 @@
-﻿import {
+import {
   // DrawerForm, // 旧代码段保留注释中，暂不使用
   ModalForm,
   ProFormDigit,
@@ -459,7 +459,7 @@ const NftList = () => {
               status: status as string | undefined,
               owner_name: owner_name as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }

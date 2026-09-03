@@ -402,7 +402,7 @@ const AuctionItems = () => {
               status: status as string | undefined,
               name: name as string | undefined,
             });
-            return { data: res.list, success: true, total: res.total };
+            return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
           } catch {
             return { data: [], success: false, total: 0 };
           }
@@ -430,7 +430,6 @@ const AuctionItems = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={900}
-        destroyOnHidden
         maskClosable={false}
         extra={
           <Space>
@@ -445,6 +444,7 @@ const AuctionItems = () => {
           form={form}
           layout="vertical"
           requiredMark
+          key={editing?.id ?? 'empty'}
           onFinish={handleSubmit}
           initialValues={{ start_price: 0, increment: 0, sort_order: 0 }}
         >

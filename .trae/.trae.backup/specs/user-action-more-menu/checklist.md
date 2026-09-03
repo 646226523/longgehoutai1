@@ -1,0 +1,8 @@
+- [x] Checkpoint 1: 操作列宽度调整为280px
+- [x] Checkpoint 2: "更多"按钮在操作列中可见（详情、编辑按钮之后）
+- [x] Checkpoint 3: 点击"更多"按钮弹出下拉菜单
+- [x] Checkpoint 4: 下拉菜单包含7个选项（变更上级分销商、设置标签、重置密码、发放优惠券、调整余额、调整积分、黑名单）
+- [x] Checkpoint 5: 下拉菜单样式与参考截图一致（白底、左对齐、分割线分组）
+- [x] Checkpoint 6: 点击菜单项显示反馈提示
+- [x] Checkpoint 7: TypeScript编译通过（tsc --noEmit无错误）
+- [x] Checkpoint 8: 现有功能（详情、编辑、审核按钮）不受影响

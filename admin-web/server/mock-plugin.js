@@ -1,6 +1,9 @@
 // Mock plugin for Vite dev server - provides mock API responses
 // This file must be plain JavaScript (not TypeScript) because Vite's
 // TypeScript transpilation cannot properly handle Node.js APIs like Buffer
+// eslint-disable-next-line
+
+import * as http from 'node:http';
 
 const tokenStore = new Map();
 
@@ -162,36 +165,8 @@ export function mockApiPlugin() {
 
       // POST /api/upload - 文件上传接口(转发到真实后端)
       server.middlewares.use('/api/upload', (req, res, next) => { next(); });
-
-      // GET /api/system/audit-logs/modules - 审计模块下拉
-      server.middlewares.use('/api/system/audit-logs/modules', (req, res, next) => {
-        if (req.method !== 'GET') { next(); return; }
-        const modules = ['user', 'gene', 'auction', 'nft', 'competition', 'loft', 'system', 'detection'];
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: 'success', data: modules }));
-      });
-
-      // GET /api/system/audit-logs - 审计日志分页列表
-      server.middlewares.use('/api/system/audit-logs', (req, res, next) => {
-        if (req.method !== 'GET') { next(); return; }
-        const url = new URL(req.url, 'http://localhost');
-        const page = parseInt(url.searchParams.get('page') || '1', 10);
-        const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
-        const operator = url.searchParams.get('operator') || '';
-        const moduleFilter = url.searchParams.get('module') || '';
-
-        const allLogs = generateMockAuditLogs();
-        let filtered = allLogs;
-        if (operator) filtered = filtered.filter(l => l.admin_username?.includes(operator));
-        if (moduleFilter) filtered = filtered.filter(l => l.module === moduleFilter);
-
-        const total = filtered.length;
-        const start = (page - 1) * pageSize;
-        const list = filtered.slice(start, start + pageSize);
-
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: 'success', data: { list, total } }));
-      });
+      // [DISABLED] audit-logs/modules mock - now proxied to real backend
+      // [DISABLED] audit-logs list mock - now proxied to real backend
 
       // GET /api/system/dictionaries/types - 字典类型列表
       server.middlewares.use('/api/system/dictionaries/types', (req, res, next) => {
@@ -259,92 +234,15 @@ MOCK_SYSTEM_CONFIGS.list = MOCK_SYSTEM_CONFIGS.groups.flatMap((g) => g.items);
 
 // GET /api/system/configs - 系统配置(按分组)
 // PUT /api/system/configs/:key - 更新单个配置值
-server.middlewares.use('/api/system/configs', (req, res, next) => {
-  // Express 会剥离匹配的路径前缀:
-  // 请求 /api/system/configs           → req.url = '/'        → pathParts = []
-  // 请求 /api/system/configs/map_provider → req.url = '/map_provider' → pathParts = ['map_provider']
-  const rawUrl = req.url || '/';
-  const urlPath = rawUrl.split('?')[0];
-  const pathParts = urlPath.split('/').filter(Boolean);
-  const key = pathParts.length > 0 ? decodeURIComponent(pathParts[0]) : '';
-
-  // PUT 请求: 更新单个配置 (URL 带 key)
-  if (req.method === 'PUT') {
-    if (!key) {
-      res.statusCode = 400;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ code: 400, message: '缺少配置键', data: null }));
-      return;
-    }
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        const parsed = JSON.parse(body || '{}');
-        const config_value = parsed.config_value;
-        let found = false;
-        for (const g of MOCK_SYSTEM_CONFIGS.groups) {
-          for (const item of g.items) {
-            if (item.config_key === key) {
-              item.config_value = config_value ?? '';
-              item.updated_at = Date.now();
-              found = true;
-              break;
-            }
-          }
-          if (found) break;
-        }
-        if (!found) {
-          res.statusCode = 404;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ code: 404, message: '配置键不存在', data: null }));
-          return;
-        }
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 0, message: '更新成功', data: null }));
-      } catch {
-        res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
-      }
-    });
-    return;
-  }
-
-  // GET 请求: 返回配置列表 (URL 无 key)
-  if (req.method === 'GET') {
-    // req.url 已被剥离前缀，查询参数仍在
-    const queryString = rawUrl.includes('?') ? rawUrl.split('?')[1] : '';
-    const params = new URLSearchParams(queryString);
-    const groupFilter = params.get('group') || '';
-    let data = MOCK_SYSTEM_CONFIGS;
-    if (groupFilter) {
-      const filtered = MOCK_SYSTEM_CONFIGS.groups.filter((g) => g.group === groupFilter);
-      data = { groups: filtered, list: filtered.flatMap((g) => g.items) };
-    }
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ code: 0, message: 'success', data }));
-    return;
-  }
-
-  // 其他方法放行
+// 已禁用本地 mock，透传到后端（后端有完整种子数据 + 新增的七牛云/支付等分组）
+server.middlewares.use('/api/system/configs', (_req, _res, next) => {
   next();
 });
 
 // GET /api/system/map-config - 地图配置
-server.middlewares.use('/api/system/map-config', (req, res, next) => {
-  if (req.method !== 'GET') { next(); return; }
-  const mapGroup = MOCK_SYSTEM_CONFIGS.groups.find((g) => g.group === 'map');
-  const items = mapGroup?.items || [];
-  const getVal = (key) => items.find((i) => i.config_key === key)?.config_value ?? '';
-  const data = {
-    provider: getVal('map_provider'),
-    amap_key: getVal('amap_key'),
-    baidu_key: getVal('baidu_key'),
-    tencent_key: getVal('tencent_key'),
-  };
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify({ code: 0, message: 'success', data }));
+// 已禁用本地 mock，透传到后端
+server.middlewares.use('/api/system/map-config', (_req, _res, next) => {
+  next();
 });
 
 // ==================== 检测机构 Mock 数据 ====================
@@ -840,6 +738,26 @@ server.middlewares.use('/api/detection/reports', (req, res, next) => {
 
 // Catch-all for other /api routes
 server.middlewares.use('/api', (req, res, next) => {
+  // __public-ip: 手动代理到后端完整路径
+  // Connect 挂载在 /api 上会剥离前缀, req.url 变成 /__public-ip
+  // 我们需要构造完整路径 http://localhost:3015/api/__public-ip
+  if (req.url?.startsWith('/__public-ip')) {
+    const backendUrl = `http://localhost:3015/api${req.url}`;
+    http.get(backendUrl, { timeout: 5000 }, (backendRes) => {
+      res.statusCode = backendRes.statusCode;
+      if (backendRes.headers['content-type']) {
+        res.setHeader('Content-Type', backendRes.headers['content-type']);
+      }
+      backendRes.pipe(res);
+    }).on('error', (err) => {
+      console.error('[MOCK] __public-ip proxy error:', err.message);
+      res.statusCode = 502;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ code: 502, message: '后端代理不可用', data: null }));
+    });
+    return;
+  }
+
   const skip = req.url?.startsWith('/auth') || req.url?.startsWith('/admin/dashboard') || req.url?.startsWith('/system') || req.url?.startsWith('/detection') || req.url?.startsWith('/gene') || req.url?.startsWith('/auction') || req.url?.startsWith('/nft') || req.url?.startsWith('/competition') || req.url?.startsWith('/loft') || req.url?.startsWith('/arbitration') || req.url?.startsWith('/user') || req.url?.startsWith('/content') || req.url?.startsWith('/race') || req.url?.startsWith('/medias') || req.url?.startsWith('/upload') || req.url?.startsWith('/statistics');
   if (skip) { next(); return; }
   res.setHeader('Content-Type', 'application/json');

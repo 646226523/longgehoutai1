@@ -1,0 +1,6 @@
+- [x] Checkpoint 1: 工具栏图片按钮使用 uploadImage key
+- [x] Checkpoint 2: 点击图片按钮直接弹出系统文件选择器
+- [x] Checkpoint 3: 支持多图选择上传
+- [x] Checkpoint 4: 本地图片自动转 Base64 插入编辑器
+- [x] Checkpoint 5: TypeScript 编译零错误
+- [x] Checkpoint 6: 浏览器控制台无错误

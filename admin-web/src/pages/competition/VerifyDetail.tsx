@@ -1,4 +1,4 @@
-﻿import {
+import {
   ProTable,
   ModalForm,
   ProFormTextArea,
@@ -268,7 +268,7 @@ const VerifyDetail = () => {
                   ringNumber: ring_number as string | undefined,
                   verifyStatus: verify_status as string | undefined,
                 });
-                return { data: res.list, success: true, total: res.total };
+                return { data: res?.list ?? [], success: true, total: res?.total ?? 0 };
               } catch {
                 return { data: [], success: false, total: 0 };
               }

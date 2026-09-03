@@ -1,0 +1,5 @@
+- [x] Checkpoint 1: `toArr` 函数过滤空字符串
+- [x] Checkpoint 2: `GeneForm` 中 `photo_url` 初始值不使用空字符串
+- [x] Checkpoint 3: 空值状态下上传组件 cursor 为 pointer，可点击
+- [x] Checkpoint 4: 有值状态下正确显示预览
+- [x] Checkpoint 5: `npm run build` 通过

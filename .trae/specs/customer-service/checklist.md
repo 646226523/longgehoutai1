@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: db.ts 新增 10 行 customer_service 种子数据（6 小程序 + 4 企微）
+- [x] Checkpoint 2: 后端重启后 customer_service 分组存在且 10 项完整
+- [x] Checkpoint 3: GET /api/system/cs-config 返回正确 JSON（wechat + wecom），wx_cs_secret / wecom_cs_corp_secret 脱敏不返回
+- [x] Checkpoint 4: 前端 GROUP_META 注册 customer_service(sort=8)，FIELD_META 10 项
+- [x] Checkpoint 5: 系统配置 Tab 栏出现第 8 个 Tab「客服配置」
+- [x] Checkpoint 6: 客服配置 Tab 渲染 2 张 Card（微信小程序客服 / 企业微信客服），风格与现有 Card 统一
+- [x] Checkpoint 7: Secret / corp_secret 输入框为 Input.Password 类型（星号显示 + 显示/隐藏切换）
+- [x] Checkpoint 8: 修改 wx_cs_welcome → 保存 → PUT 返回 code=0 → 刷新持久化
+- [x] Checkpoint 9: 后端 tsc --noEmit 零错误，前端 tsc --noEmit 零错误
+- [x] Checkpoint 10: 浏览器 Console 零红色 error / 零黄色 warn

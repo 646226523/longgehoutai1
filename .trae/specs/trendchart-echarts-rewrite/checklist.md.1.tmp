@@ -1,0 +1,6 @@
+﻿# 数据趋势图 ECharts 全面重写 - Verification Checklist
+
+## 模块 A: 依赖与基础（对应 Task 1）
+- [x] A1. `admin-web/package.json` 中 `dependencies.echarts` ≥ 5.5 且 `echarts-for-react` ≥ 3.0
+- [x] A2. `npm ls echarts echarts-for-react` 无 `UNMET / MISSING / PEER WARNING`
+- [x] A3. `npx tsc --noEmit`（基线，Task 1 跑一次）退出码 0，0 error

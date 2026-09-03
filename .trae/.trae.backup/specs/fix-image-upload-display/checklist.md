@@ -1,0 +1,12 @@
+- [x] Checkpoint 1: 图片上传后立即在 ImageUploader 组件内预览显示（img src 为 /uploads/xxx.jpg 格式）
+- [x] Checkpoint 2: 上传接口 POST /api/upload 返回成功且 URL 格式正确
+- [x] Checkpoint 3: 前端代理 /uploads 路径正确转发到后端静态文件服务
+- [x] Checkpoint 4: 基因档案表单提交后 photo_url 正确保存到数据库
+- [x] Checkpoint 5: 基因档案列表页正确显示每条记录的鸽子照片
+- [x] Checkpoint 6: 基因档案右侧实时预览区正确显示上传的图片
+- [x] Checkpoint 7: 基因档案详情抽屉中正确显示已保存的图片
+- [x] Checkpoint 8: 编辑模式下已有图片正确回显到 ImageUploader 组件
+- [x] Checkpoint 9: 图片加载失败时有优雅降级（占位符或默认图）
+- [x] Checkpoint 10: 浏览器 Console 无图片加载相关错误
+- [x] Checkpoint 11: 多图上传模式（maxCount > 1）下所有图片正常显示
+- [x] Checkpoint 12: 检测机构表单等其他使用 ImageUploader 的页面功能正常

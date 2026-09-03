@@ -489,10 +489,17 @@ geneRouter.put(
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的档案 ID');
 
-    const target = db.prepare('SELECT id, ring_number FROM gene_profiles WHERE id = ?').get(id) as
-      | { id: number; ring_number: string }
+    const before = db.prepare('SELECT * FROM gene_profiles WHERE id = ?').get(id) as
+      | Record<string, unknown> & { ring_number: string }
       | undefined;
-    if (!target) return fail(res, 404, '基因档案不存在');
+    if (!before) return fail(res, 404, '基因档案不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.name as string) || (before.ring_number as string) || `基因档案#${id}`,
+      targetId: id,
+      targetType: 'gene_profile',
+    };
 
     const body = req.body as {
       ring_number?: string;
@@ -512,10 +519,10 @@ geneRouter.put(
       dam_id?: number | string | null;
     };
 
-    const ring_number = String(body.ring_number ?? target.ring_number).trim();
+    const ring_number = String(body.ring_number ?? before.ring_number).trim();
     if (!ring_number) return fail(res, 400, '足环号不能为空');
 
-    if (ring_number !== target.ring_number) {
+    if (ring_number !== before.ring_number) {
       const dup = db.prepare('SELECT id FROM gene_profiles WHERE ring_number = ? AND id <> ?').get(ring_number, id);
       if (dup) return fail(res, 409, '足环号已存在');
     }
@@ -568,7 +575,7 @@ geneRouter.put(
         Date.now(),
         id
       );
-      if (ring_number !== target.ring_number) {
+      if (ring_number !== before.ring_number) {
         db.prepare('UPDATE gene_profiles SET qr_code = ? WHERE id = ?').run(
           generateTraceUrl(id, ring_number),
           id
@@ -605,8 +612,18 @@ geneRouter.delete(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的档案 ID');
-    const target = db.prepare('SELECT id FROM gene_profiles WHERE id = ?').get(id);
-    if (!target) return fail(res, 404, '基因档案不存在');
+    const before = db.prepare('SELECT * FROM gene_profiles WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, '基因档案不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.name as string) || (before.ring_number as string) || `基因档案#${id}`,
+      targetId: id,
+      targetType: 'gene_profile',
+    };
+
     db.prepare('DELETE FROM gene_profiles WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
   }
@@ -620,11 +637,19 @@ geneRouter.post(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的档案 ID');
-    const target = db.prepare('SELECT id, ring_number FROM gene_profiles WHERE id = ?').get(id) as
-      | { id: number; ring_number: string }
+    const before = db.prepare('SELECT * FROM gene_profiles WHERE id = ?').get(id) as
+      | Record<string, unknown> & { ring_number: string }
       | undefined;
-    if (!target) return fail(res, 404, '基因档案不存在');
-    const qr = generateTraceUrl(target.id, target.ring_number);
+    if (!before) return fail(res, 404, '基因档案不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.name as string) || (before.ring_number as string) || `基因档案#${id}`,
+      targetId: id,
+      targetType: 'gene_profile',
+    };
+
+    const qr = generateTraceUrl(before.id as number, before.ring_number);
     db.prepare('UPDATE gene_profiles SET qr_code = ?, updated_at = ? WHERE id = ?').run(
       qr,
       Date.now(),
@@ -700,8 +725,17 @@ geneRouter.put(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的检测记录 ID');
-    const target = db.prepare('SELECT id FROM gene_tests WHERE id = ?').get(id);
-    if (!target) return fail(res, 404, '检测记录不存在');
+    const before = db.prepare('SELECT * FROM gene_tests WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, '检测记录不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.report_no as string) || (before.project as string) || `检测记录#${id}`,
+      targetId: id,
+      targetType: 'gene_test',
+    };
 
     const body = req.body as {
       test_org?: string;
@@ -736,8 +770,18 @@ geneRouter.delete(
   (req: AuthedRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return fail(res, 400, '无效的检测记录 ID');
-    const target = db.prepare('SELECT id FROM gene_tests WHERE id = ?').get(id);
-    if (!target) return fail(res, 404, '检测记录不存在');
+    const before = db.prepare('SELECT * FROM gene_tests WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    if (!before) return fail(res, 404, '检测记录不存在');
+
+    res.locals.audit = {
+      before,
+      objectName: (before.report_no as string) || (before.project as string) || `检测记录#${id}`,
+      targetId: id,
+      targetType: 'gene_test',
+    };
+
     db.prepare('DELETE FROM gene_tests WHERE id = ?').run(id);
     return ok(res, null, '删除成功');
   }
@@ -872,6 +916,13 @@ geneRouter.post(
     if (!sub) return fail(res, 404, '提交记录不存在');
     if (sub.status !== 'pending') return fail(res, 400, '该记录已审核,不可重复操作');
 
+    res.locals.audit = {
+      before: { status: sub.status, ring_number: sub.ring_number, name: sub.name, owner_name: sub.owner_name },
+      objectName: sub.name || sub.ring_number || `提交记录#${id}`,
+      targetId: id,
+      targetType: 'gene_submission',
+    };
+
     // 校验足环号不重复
     const dup = db.prepare('SELECT id FROM gene_profiles WHERE ring_number = ?').get(sub.ring_number);
     if (dup) return fail(res, 409, `足环号 ${sub.ring_number} 已存在正式档案,无法通过`);
@@ -933,10 +984,17 @@ geneRouter.post(
     if (!remark) return fail(res, 400, '请填写驳回理由');
 
     const sub = db
-      .prepare('SELECT id, status FROM gene_manual_submissions WHERE id = ?')
-      .get(id) as { id: number; status: string } | undefined;
+      .prepare('SELECT id, status, ring_number, name FROM gene_manual_submissions WHERE id = ?')
+      .get(id) as { id: number; status: string; ring_number: string; name: string } | undefined;
     if (!sub) return fail(res, 404, '提交记录不存在');
     if (sub.status !== 'pending') return fail(res, 400, '该记录已审核,不可重复操作');
+
+    res.locals.audit = {
+      before: { status: sub.status, ring_number: sub.ring_number, name: sub.name },
+      objectName: sub.name || sub.ring_number || `提交记录#${id}`,
+      targetId: id,
+      targetType: 'gene_submission',
+    };
 
     db.prepare(
       `UPDATE gene_manual_submissions

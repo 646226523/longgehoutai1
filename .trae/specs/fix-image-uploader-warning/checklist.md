@@ -1,0 +1,5 @@
+- [x] Checkpoint 1: `handleFile` 中 `onChange` 不再位于 `setPreviewList` updater 内
+- [x] Checkpoint 2: `emitChange` 函数先 `setPreviewList` 再 `onChange`
+- [x] Checkpoint 3: 构建通过 (`npm run build`)
+- [x] Checkpoint 4: 浏览器控制台无警告
+- [x] Checkpoint 5: 上传图片功能正常

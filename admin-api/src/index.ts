@@ -16,9 +16,11 @@ import auctionRouter from './routes/auction';
 import arbitrationRouter from './routes/arbitration';
 import statisticsRouter from './routes/statistics';
 import uploadRouter from './routes/upload';
+import publicRouter from './routes/public';
 import type { ApiResponse } from './types';
 
 const app = express();
+app.set('trust proxy', true);
 
 // CORS 中间件:允许前端跨域访问
 app.use(
@@ -36,7 +38,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // 请求日志中间件(简易)
 app.use((req: Request, _res: Response, next: NextFunction) => {
-  // eslint-disable-next-line no-console
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
@@ -50,6 +51,9 @@ app.get('/api/health', (_req: Request, res: Response) => {
   };
   res.json(body);
 });
+
+// 公开路由(无需鉴权):公网 IP 查询
+app.use('/api', publicRouter);
 
 // 挂载业务路由(全部加 /api 前缀)
 app.use('/api/auth', authRoutes);

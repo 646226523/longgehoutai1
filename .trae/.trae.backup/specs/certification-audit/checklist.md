@@ -1,0 +1,12 @@
+- [x] Checkpoint 1: 后端审核列表接口 `/api/user/audits` 可正常访问
+- [x] Checkpoint 2: 接口支持按审核类型筛选（real_name/loft_owner）
+- [x] Checkpoint 3: 接口支持按审核状态筛选（pending/approved/rejected）
+- [x] Checkpoint 4: 接口支持关键字搜索
+- [x] Checkpoint 5: 前端服务层 `getAuditList` 函数定义正确
+- [x] Checkpoint 6: 认证审核页面可正常访问（路径：/user-member/audit）
+- [x] Checkpoint 7: 菜单"认证审核"正确显示在"用户与会员体系"下
+- [x] Checkpoint 8: 审核列表正确展示用户信息、审核类型、审核状态
+- [x] Checkpoint 9: 筛选功能正常工作
+- [x] Checkpoint 10: 审核操作（通过/驳回）功能正常
+- [x] Checkpoint 11: 认证材料图片可预览
+- [x] Checkpoint 12: TypeScript编译通过（tsc --noEmit无错误）

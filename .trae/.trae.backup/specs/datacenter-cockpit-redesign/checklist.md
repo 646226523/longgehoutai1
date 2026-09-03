@@ -1,0 +1,14 @@
+- [x] Checkpoint 1: 左侧 4 个指标卡一行横排显示，高度 ≤ 80px ✅
+- [x] Checkpoint 2: 省份 TOP10 柱状图高度压缩至 220px ✅
+- [x] Checkpoint 3: 拍卖成交额趋势图高度压缩至 160px ✅
+- [x] Checkpoint 4: 右侧热门拍卖 Tab 采用卡片列表布局，单卡高度紧凑 ✅
+- [x] Checkpoint 5: 右侧赛事实时 Tab 采用紧凑表格，无横向溢出 ✅
+- [x] Checkpoint 6: 右侧面板固定宽度 320px，内容无需横向滚动 ✅
+- [x] Checkpoint 7: 地图支持点击节点聚焦省份视图 ✅
+- [x] Checkpoint 8: 省份详情面板显示公棚数/在线数/鸽子数/赛事数 ✅
+- [x] Checkpoint 9: 公棚节点/飞行轨迹 Tab 切换正常 ✅
+- [x] Checkpoint 10: 底部飞行数据行高 ≤ 40px ✅
+- [x] Checkpoint 11: 异常鸽子置顶且高亮 ✅
+- [x] Checkpoint 12: 三栏布局对齐，顶部和底部边框重合 ✅
+- [x] Checkpoint 13: npm run build 成功，无 TS 错误 ✅
+- [x] Checkpoint 14: 整体视觉效果现代科技感，无内容溢出 ✅

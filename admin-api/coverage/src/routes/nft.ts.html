@@ -1,0 +1,3133 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/routes/nft.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/routes</a> nft.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/356</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/265</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/39</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/310</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a>
+<a name='L393'></a><a href='#L393'>393</a>
+<a name='L394'></a><a href='#L394'>394</a>
+<a name='L395'></a><a href='#L395'>395</a>
+<a name='L396'></a><a href='#L396'>396</a>
+<a name='L397'></a><a href='#L397'>397</a>
+<a name='L398'></a><a href='#L398'>398</a>
+<a name='L399'></a><a href='#L399'>399</a>
+<a name='L400'></a><a href='#L400'>400</a>
+<a name='L401'></a><a href='#L401'>401</a>
+<a name='L402'></a><a href='#L402'>402</a>
+<a name='L403'></a><a href='#L403'>403</a>
+<a name='L404'></a><a href='#L404'>404</a>
+<a name='L405'></a><a href='#L405'>405</a>
+<a name='L406'></a><a href='#L406'>406</a>
+<a name='L407'></a><a href='#L407'>407</a>
+<a name='L408'></a><a href='#L408'>408</a>
+<a name='L409'></a><a href='#L409'>409</a>
+<a name='L410'></a><a href='#L410'>410</a>
+<a name='L411'></a><a href='#L411'>411</a>
+<a name='L412'></a><a href='#L412'>412</a>
+<a name='L413'></a><a href='#L413'>413</a>
+<a name='L414'></a><a href='#L414'>414</a>
+<a name='L415'></a><a href='#L415'>415</a>
+<a name='L416'></a><a href='#L416'>416</a>
+<a name='L417'></a><a href='#L417'>417</a>
+<a name='L418'></a><a href='#L418'>418</a>
+<a name='L419'></a><a href='#L419'>419</a>
+<a name='L420'></a><a href='#L420'>420</a>
+<a name='L421'></a><a href='#L421'>421</a>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a>
+<a name='L424'></a><a href='#L424'>424</a>
+<a name='L425'></a><a href='#L425'>425</a>
+<a name='L426'></a><a href='#L426'>426</a>
+<a name='L427'></a><a href='#L427'>427</a>
+<a name='L428'></a><a href='#L428'>428</a>
+<a name='L429'></a><a href='#L429'>429</a>
+<a name='L430'></a><a href='#L430'>430</a>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a>
+<a name='L445'></a><a href='#L445'>445</a>
+<a name='L446'></a><a href='#L446'>446</a>
+<a name='L447'></a><a href='#L447'>447</a>
+<a name='L448'></a><a href='#L448'>448</a>
+<a name='L449'></a><a href='#L449'>449</a>
+<a name='L450'></a><a href='#L450'>450</a>
+<a name='L451'></a><a href='#L451'>451</a>
+<a name='L452'></a><a href='#L452'>452</a>
+<a name='L453'></a><a href='#L453'>453</a>
+<a name='L454'></a><a href='#L454'>454</a>
+<a name='L455'></a><a href='#L455'>455</a>
+<a name='L456'></a><a href='#L456'>456</a>
+<a name='L457'></a><a href='#L457'>457</a>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a>
+<a name='L464'></a><a href='#L464'>464</a>
+<a name='L465'></a><a href='#L465'>465</a>
+<a name='L466'></a><a href='#L466'>466</a>
+<a name='L467'></a><a href='#L467'>467</a>
+<a name='L468'></a><a href='#L468'>468</a>
+<a name='L469'></a><a href='#L469'>469</a>
+<a name='L470'></a><a href='#L470'>470</a>
+<a name='L471'></a><a href='#L471'>471</a>
+<a name='L472'></a><a href='#L472'>472</a>
+<a name='L473'></a><a href='#L473'>473</a>
+<a name='L474'></a><a href='#L474'>474</a>
+<a name='L475'></a><a href='#L475'>475</a>
+<a name='L476'></a><a href='#L476'>476</a>
+<a name='L477'></a><a href='#L477'>477</a>
+<a name='L478'></a><a href='#L478'>478</a>
+<a name='L479'></a><a href='#L479'>479</a>
+<a name='L480'></a><a href='#L480'>480</a>
+<a name='L481'></a><a href='#L481'>481</a>
+<a name='L482'></a><a href='#L482'>482</a>
+<a name='L483'></a><a href='#L483'>483</a>
+<a name='L484'></a><a href='#L484'>484</a>
+<a name='L485'></a><a href='#L485'>485</a>
+<a name='L486'></a><a href='#L486'>486</a>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a>
+<a name='L497'></a><a href='#L497'>497</a>
+<a name='L498'></a><a href='#L498'>498</a>
+<a name='L499'></a><a href='#L499'>499</a>
+<a name='L500'></a><a href='#L500'>500</a>
+<a name='L501'></a><a href='#L501'>501</a>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a>
+<a name='L506'></a><a href='#L506'>506</a>
+<a name='L507'></a><a href='#L507'>507</a>
+<a name='L508'></a><a href='#L508'>508</a>
+<a name='L509'></a><a href='#L509'>509</a>
+<a name='L510'></a><a href='#L510'>510</a>
+<a name='L511'></a><a href='#L511'>511</a>
+<a name='L512'></a><a href='#L512'>512</a>
+<a name='L513'></a><a href='#L513'>513</a>
+<a name='L514'></a><a href='#L514'>514</a>
+<a name='L515'></a><a href='#L515'>515</a>
+<a name='L516'></a><a href='#L516'>516</a>
+<a name='L517'></a><a href='#L517'>517</a>
+<a name='L518'></a><a href='#L518'>518</a>
+<a name='L519'></a><a href='#L519'>519</a>
+<a name='L520'></a><a href='#L520'>520</a>
+<a name='L521'></a><a href='#L521'>521</a>
+<a name='L522'></a><a href='#L522'>522</a>
+<a name='L523'></a><a href='#L523'>523</a>
+<a name='L524'></a><a href='#L524'>524</a>
+<a name='L525'></a><a href='#L525'>525</a>
+<a name='L526'></a><a href='#L526'>526</a>
+<a name='L527'></a><a href='#L527'>527</a>
+<a name='L528'></a><a href='#L528'>528</a>
+<a name='L529'></a><a href='#L529'>529</a>
+<a name='L530'></a><a href='#L530'>530</a>
+<a name='L531'></a><a href='#L531'>531</a>
+<a name='L532'></a><a href='#L532'>532</a>
+<a name='L533'></a><a href='#L533'>533</a>
+<a name='L534'></a><a href='#L534'>534</a>
+<a name='L535'></a><a href='#L535'>535</a>
+<a name='L536'></a><a href='#L536'>536</a>
+<a name='L537'></a><a href='#L537'>537</a>
+<a name='L538'></a><a href='#L538'>538</a>
+<a name='L539'></a><a href='#L539'>539</a>
+<a name='L540'></a><a href='#L540'>540</a>
+<a name='L541'></a><a href='#L541'>541</a>
+<a name='L542'></a><a href='#L542'>542</a>
+<a name='L543'></a><a href='#L543'>543</a>
+<a name='L544'></a><a href='#L544'>544</a>
+<a name='L545'></a><a href='#L545'>545</a>
+<a name='L546'></a><a href='#L546'>546</a>
+<a name='L547'></a><a href='#L547'>547</a>
+<a name='L548'></a><a href='#L548'>548</a>
+<a name='L549'></a><a href='#L549'>549</a>
+<a name='L550'></a><a href='#L550'>550</a>
+<a name='L551'></a><a href='#L551'>551</a>
+<a name='L552'></a><a href='#L552'>552</a>
+<a name='L553'></a><a href='#L553'>553</a>
+<a name='L554'></a><a href='#L554'>554</a>
+<a name='L555'></a><a href='#L555'>555</a>
+<a name='L556'></a><a href='#L556'>556</a>
+<a name='L557'></a><a href='#L557'>557</a>
+<a name='L558'></a><a href='#L558'>558</a>
+<a name='L559'></a><a href='#L559'>559</a>
+<a name='L560'></a><a href='#L560'>560</a>
+<a name='L561'></a><a href='#L561'>561</a>
+<a name='L562'></a><a href='#L562'>562</a>
+<a name='L563'></a><a href='#L563'>563</a>
+<a name='L564'></a><a href='#L564'>564</a>
+<a name='L565'></a><a href='#L565'>565</a>
+<a name='L566'></a><a href='#L566'>566</a>
+<a name='L567'></a><a href='#L567'>567</a>
+<a name='L568'></a><a href='#L568'>568</a>
+<a name='L569'></a><a href='#L569'>569</a>
+<a name='L570'></a><a href='#L570'>570</a>
+<a name='L571'></a><a href='#L571'>571</a>
+<a name='L572'></a><a href='#L572'>572</a>
+<a name='L573'></a><a href='#L573'>573</a>
+<a name='L574'></a><a href='#L574'>574</a>
+<a name='L575'></a><a href='#L575'>575</a>
+<a name='L576'></a><a href='#L576'>576</a>
+<a name='L577'></a><a href='#L577'>577</a>
+<a name='L578'></a><a href='#L578'>578</a>
+<a name='L579'></a><a href='#L579'>579</a>
+<a name='L580'></a><a href='#L580'>580</a>
+<a name='L581'></a><a href='#L581'>581</a>
+<a name='L582'></a><a href='#L582'>582</a>
+<a name='L583'></a><a href='#L583'>583</a>
+<a name='L584'></a><a href='#L584'>584</a>
+<a name='L585'></a><a href='#L585'>585</a>
+<a name='L586'></a><a href='#L586'>586</a>
+<a name='L587'></a><a href='#L587'>587</a>
+<a name='L588'></a><a href='#L588'>588</a>
+<a name='L589'></a><a href='#L589'>589</a>
+<a name='L590'></a><a href='#L590'>590</a>
+<a name='L591'></a><a href='#L591'>591</a>
+<a name='L592'></a><a href='#L592'>592</a>
+<a name='L593'></a><a href='#L593'>593</a>
+<a name='L594'></a><a href='#L594'>594</a>
+<a name='L595'></a><a href='#L595'>595</a>
+<a name='L596'></a><a href='#L596'>596</a>
+<a name='L597'></a><a href='#L597'>597</a>
+<a name='L598'></a><a href='#L598'>598</a>
+<a name='L599'></a><a href='#L599'>599</a>
+<a name='L600'></a><a href='#L600'>600</a>
+<a name='L601'></a><a href='#L601'>601</a>
+<a name='L602'></a><a href='#L602'>602</a>
+<a name='L603'></a><a href='#L603'>603</a>
+<a name='L604'></a><a href='#L604'>604</a>
+<a name='L605'></a><a href='#L605'>605</a>
+<a name='L606'></a><a href='#L606'>606</a>
+<a name='L607'></a><a href='#L607'>607</a>
+<a name='L608'></a><a href='#L608'>608</a>
+<a name='L609'></a><a href='#L609'>609</a>
+<a name='L610'></a><a href='#L610'>610</a>
+<a name='L611'></a><a href='#L611'>611</a>
+<a name='L612'></a><a href='#L612'>612</a>
+<a name='L613'></a><a href='#L613'>613</a>
+<a name='L614'></a><a href='#L614'>614</a>
+<a name='L615'></a><a href='#L615'>615</a>
+<a name='L616'></a><a href='#L616'>616</a>
+<a name='L617'></a><a href='#L617'>617</a>
+<a name='L618'></a><a href='#L618'>618</a>
+<a name='L619'></a><a href='#L619'>619</a>
+<a name='L620'></a><a href='#L620'>620</a>
+<a name='L621'></a><a href='#L621'>621</a>
+<a name='L622'></a><a href='#L622'>622</a>
+<a name='L623'></a><a href='#L623'>623</a>
+<a name='L624'></a><a href='#L624'>624</a>
+<a name='L625'></a><a href='#L625'>625</a>
+<a name='L626'></a><a href='#L626'>626</a>
+<a name='L627'></a><a href='#L627'>627</a>
+<a name='L628'></a><a href='#L628'>628</a>
+<a name='L629'></a><a href='#L629'>629</a>
+<a name='L630'></a><a href='#L630'>630</a>
+<a name='L631'></a><a href='#L631'>631</a>
+<a name='L632'></a><a href='#L632'>632</a>
+<a name='L633'></a><a href='#L633'>633</a>
+<a name='L634'></a><a href='#L634'>634</a>
+<a name='L635'></a><a href='#L635'>635</a>
+<a name='L636'></a><a href='#L636'>636</a>
+<a name='L637'></a><a href='#L637'>637</a>
+<a name='L638'></a><a href='#L638'>638</a>
+<a name='L639'></a><a href='#L639'>639</a>
+<a name='L640'></a><a href='#L640'>640</a>
+<a name='L641'></a><a href='#L641'>641</a>
+<a name='L642'></a><a href='#L642'>642</a>
+<a name='L643'></a><a href='#L643'>643</a>
+<a name='L644'></a><a href='#L644'>644</a>
+<a name='L645'></a><a href='#L645'>645</a>
+<a name='L646'></a><a href='#L646'>646</a>
+<a name='L647'></a><a href='#L647'>647</a>
+<a name='L648'></a><a href='#L648'>648</a>
+<a name='L649'></a><a href='#L649'>649</a>
+<a name='L650'></a><a href='#L650'>650</a>
+<a name='L651'></a><a href='#L651'>651</a>
+<a name='L652'></a><a href='#L652'>652</a>
+<a name='L653'></a><a href='#L653'>653</a>
+<a name='L654'></a><a href='#L654'>654</a>
+<a name='L655'></a><a href='#L655'>655</a>
+<a name='L656'></a><a href='#L656'>656</a>
+<a name='L657'></a><a href='#L657'>657</a>
+<a name='L658'></a><a href='#L658'>658</a>
+<a name='L659'></a><a href='#L659'>659</a>
+<a name='L660'></a><a href='#L660'>660</a>
+<a name='L661'></a><a href='#L661'>661</a>
+<a name='L662'></a><a href='#L662'>662</a>
+<a name='L663'></a><a href='#L663'>663</a>
+<a name='L664'></a><a href='#L664'>664</a>
+<a name='L665'></a><a href='#L665'>665</a>
+<a name='L666'></a><a href='#L666'>666</a>
+<a name='L667'></a><a href='#L667'>667</a>
+<a name='L668'></a><a href='#L668'>668</a>
+<a name='L669'></a><a href='#L669'>669</a>
+<a name='L670'></a><a href='#L670'>670</a>
+<a name='L671'></a><a href='#L671'>671</a>
+<a name='L672'></a><a href='#L672'>672</a>
+<a name='L673'></a><a href='#L673'>673</a>
+<a name='L674'></a><a href='#L674'>674</a>
+<a name='L675'></a><a href='#L675'>675</a>
+<a name='L676'></a><a href='#L676'>676</a>
+<a name='L677'></a><a href='#L677'>677</a>
+<a name='L678'></a><a href='#L678'>678</a>
+<a name='L679'></a><a href='#L679'>679</a>
+<a name='L680'></a><a href='#L680'>680</a>
+<a name='L681'></a><a href='#L681'>681</a>
+<a name='L682'></a><a href='#L682'>682</a>
+<a name='L683'></a><a href='#L683'>683</a>
+<a name='L684'></a><a href='#L684'>684</a>
+<a name='L685'></a><a href='#L685'>685</a>
+<a name='L686'></a><a href='#L686'>686</a>
+<a name='L687'></a><a href='#L687'>687</a>
+<a name='L688'></a><a href='#L688'>688</a>
+<a name='L689'></a><a href='#L689'>689</a>
+<a name='L690'></a><a href='#L690'>690</a>
+<a name='L691'></a><a href='#L691'>691</a>
+<a name='L692'></a><a href='#L692'>692</a>
+<a name='L693'></a><a href='#L693'>693</a>
+<a name='L694'></a><a href='#L694'>694</a>
+<a name='L695'></a><a href='#L695'>695</a>
+<a name='L696'></a><a href='#L696'>696</a>
+<a name='L697'></a><a href='#L697'>697</a>
+<a name='L698'></a><a href='#L698'>698</a>
+<a name='L699'></a><a href='#L699'>699</a>
+<a name='L700'></a><a href='#L700'>700</a>
+<a name='L701'></a><a href='#L701'>701</a>
+<a name='L702'></a><a href='#L702'>702</a>
+<a name='L703'></a><a href='#L703'>703</a>
+<a name='L704'></a><a href='#L704'>704</a>
+<a name='L705'></a><a href='#L705'>705</a>
+<a name='L706'></a><a href='#L706'>706</a>
+<a name='L707'></a><a href='#L707'>707</a>
+<a name='L708'></a><a href='#L708'>708</a>
+<a name='L709'></a><a href='#L709'>709</a>
+<a name='L710'></a><a href='#L710'>710</a>
+<a name='L711'></a><a href='#L711'>711</a>
+<a name='L712'></a><a href='#L712'>712</a>
+<a name='L713'></a><a href='#L713'>713</a>
+<a name='L714'></a><a href='#L714'>714</a>
+<a name='L715'></a><a href='#L715'>715</a>
+<a name='L716'></a><a href='#L716'>716</a>
+<a name='L717'></a><a href='#L717'>717</a>
+<a name='L718'></a><a href='#L718'>718</a>
+<a name='L719'></a><a href='#L719'>719</a>
+<a name='L720'></a><a href='#L720'>720</a>
+<a name='L721'></a><a href='#L721'>721</a>
+<a name='L722'></a><a href='#L722'>722</a>
+<a name='L723'></a><a href='#L723'>723</a>
+<a name='L724'></a><a href='#L724'>724</a>
+<a name='L725'></a><a href='#L725'>725</a>
+<a name='L726'></a><a href='#L726'>726</a>
+<a name='L727'></a><a href='#L727'>727</a>
+<a name='L728'></a><a href='#L728'>728</a>
+<a name='L729'></a><a href='#L729'>729</a>
+<a name='L730'></a><a href='#L730'>730</a>
+<a name='L731'></a><a href='#L731'>731</a>
+<a name='L732'></a><a href='#L732'>732</a>
+<a name='L733'></a><a href='#L733'>733</a>
+<a name='L734'></a><a href='#L734'>734</a>
+<a name='L735'></a><a href='#L735'>735</a>
+<a name='L736'></a><a href='#L736'>736</a>
+<a name='L737'></a><a href='#L737'>737</a>
+<a name='L738'></a><a href='#L738'>738</a>
+<a name='L739'></a><a href='#L739'>739</a>
+<a name='L740'></a><a href='#L740'>740</a>
+<a name='L741'></a><a href='#L741'>741</a>
+<a name='L742'></a><a href='#L742'>742</a>
+<a name='L743'></a><a href='#L743'>743</a>
+<a name='L744'></a><a href='#L744'>744</a>
+<a name='L745'></a><a href='#L745'>745</a>
+<a name='L746'></a><a href='#L746'>746</a>
+<a name='L747'></a><a href='#L747'>747</a>
+<a name='L748'></a><a href='#L748'>748</a>
+<a name='L749'></a><a href='#L749'>749</a>
+<a name='L750'></a><a href='#L750'>750</a>
+<a name='L751'></a><a href='#L751'>751</a>
+<a name='L752'></a><a href='#L752'>752</a>
+<a name='L753'></a><a href='#L753'>753</a>
+<a name='L754'></a><a href='#L754'>754</a>
+<a name='L755'></a><a href='#L755'>755</a>
+<a name='L756'></a><a href='#L756'>756</a>
+<a name='L757'></a><a href='#L757'>757</a>
+<a name='L758'></a><a href='#L758'>758</a>
+<a name='L759'></a><a href='#L759'>759</a>
+<a name='L760'></a><a href='#L760'>760</a>
+<a name='L761'></a><a href='#L761'>761</a>
+<a name='L762'></a><a href='#L762'>762</a>
+<a name='L763'></a><a href='#L763'>763</a>
+<a name='L764'></a><a href='#L764'>764</a>
+<a name='L765'></a><a href='#L765'>765</a>
+<a name='L766'></a><a href='#L766'>766</a>
+<a name='L767'></a><a href='#L767'>767</a>
+<a name='L768'></a><a href='#L768'>768</a>
+<a name='L769'></a><a href='#L769'>769</a>
+<a name='L770'></a><a href='#L770'>770</a>
+<a name='L771'></a><a href='#L771'>771</a>
+<a name='L772'></a><a href='#L772'>772</a>
+<a name='L773'></a><a href='#L773'>773</a>
+<a name='L774'></a><a href='#L774'>774</a>
+<a name='L775'></a><a href='#L775'>775</a>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a>
+<a name='L779'></a><a href='#L779'>779</a>
+<a name='L780'></a><a href='#L780'>780</a>
+<a name='L781'></a><a href='#L781'>781</a>
+<a name='L782'></a><a href='#L782'>782</a>
+<a name='L783'></a><a href='#L783'>783</a>
+<a name='L784'></a><a href='#L784'>784</a>
+<a name='L785'></a><a href='#L785'>785</a>
+<a name='L786'></a><a href='#L786'>786</a>
+<a name='L787'></a><a href='#L787'>787</a>
+<a name='L788'></a><a href='#L788'>788</a>
+<a name='L789'></a><a href='#L789'>789</a>
+<a name='L790'></a><a href='#L790'>790</a>
+<a name='L791'></a><a href='#L791'>791</a>
+<a name='L792'></a><a href='#L792'>792</a>
+<a name='L793'></a><a href='#L793'>793</a>
+<a name='L794'></a><a href='#L794'>794</a>
+<a name='L795'></a><a href='#L795'>795</a>
+<a name='L796'></a><a href='#L796'>796</a>
+<a name='L797'></a><a href='#L797'>797</a>
+<a name='L798'></a><a href='#L798'>798</a>
+<a name='L799'></a><a href='#L799'>799</a>
+<a name='L800'></a><a href='#L800'>800</a>
+<a name='L801'></a><a href='#L801'>801</a>
+<a name='L802'></a><a href='#L802'>802</a>
+<a name='L803'></a><a href='#L803'>803</a>
+<a name='L804'></a><a href='#L804'>804</a>
+<a name='L805'></a><a href='#L805'>805</a>
+<a name='L806'></a><a href='#L806'>806</a>
+<a name='L807'></a><a href='#L807'>807</a>
+<a name='L808'></a><a href='#L808'>808</a>
+<a name='L809'></a><a href='#L809'>809</a>
+<a name='L810'></a><a href='#L810'>810</a>
+<a name='L811'></a><a href='#L811'>811</a>
+<a name='L812'></a><a href='#L812'>812</a>
+<a name='L813'></a><a href='#L813'>813</a>
+<a name='L814'></a><a href='#L814'>814</a>
+<a name='L815'></a><a href='#L815'>815</a>
+<a name='L816'></a><a href='#L816'>816</a>
+<a name='L817'></a><a href='#L817'>817</a>
+<a name='L818'></a><a href='#L818'>818</a>
+<a name='L819'></a><a href='#L819'>819</a>
+<a name='L820'></a><a href='#L820'>820</a>
+<a name='L821'></a><a href='#L821'>821</a>
+<a name='L822'></a><a href='#L822'>822</a>
+<a name='L823'></a><a href='#L823'>823</a>
+<a name='L824'></a><a href='#L824'>824</a>
+<a name='L825'></a><a href='#L825'>825</a>
+<a name='L826'></a><a href='#L826'>826</a>
+<a name='L827'></a><a href='#L827'>827</a>
+<a name='L828'></a><a href='#L828'>828</a>
+<a name='L829'></a><a href='#L829'>829</a>
+<a name='L830'></a><a href='#L830'>830</a>
+<a name='L831'></a><a href='#L831'>831</a>
+<a name='L832'></a><a href='#L832'>832</a>
+<a name='L833'></a><a href='#L833'>833</a>
+<a name='L834'></a><a href='#L834'>834</a>
+<a name='L835'></a><a href='#L835'>835</a>
+<a name='L836'></a><a href='#L836'>836</a>
+<a name='L837'></a><a href='#L837'>837</a>
+<a name='L838'></a><a href='#L838'>838</a>
+<a name='L839'></a><a href='#L839'>839</a>
+<a name='L840'></a><a href='#L840'>840</a>
+<a name='L841'></a><a href='#L841'>841</a>
+<a name='L842'></a><a href='#L842'>842</a>
+<a name='L843'></a><a href='#L843'>843</a>
+<a name='L844'></a><a href='#L844'>844</a>
+<a name='L845'></a><a href='#L845'>845</a>
+<a name='L846'></a><a href='#L846'>846</a>
+<a name='L847'></a><a href='#L847'>847</a>
+<a name='L848'></a><a href='#L848'>848</a>
+<a name='L849'></a><a href='#L849'>849</a>
+<a name='L850'></a><a href='#L850'>850</a>
+<a name='L851'></a><a href='#L851'>851</a>
+<a name='L852'></a><a href='#L852'>852</a>
+<a name='L853'></a><a href='#L853'>853</a>
+<a name='L854'></a><a href='#L854'>854</a>
+<a name='L855'></a><a href='#L855'>855</a>
+<a name='L856'></a><a href='#L856'>856</a>
+<a name='L857'></a><a href='#L857'>857</a>
+<a name='L858'></a><a href='#L858'>858</a>
+<a name='L859'></a><a href='#L859'>859</a>
+<a name='L860'></a><a href='#L860'>860</a>
+<a name='L861'></a><a href='#L861'>861</a>
+<a name='L862'></a><a href='#L862'>862</a>
+<a name='L863'></a><a href='#L863'>863</a>
+<a name='L864'></a><a href='#L864'>864</a>
+<a name='L865'></a><a href='#L865'>865</a>
+<a name='L866'></a><a href='#L866'>866</a>
+<a name='L867'></a><a href='#L867'>867</a>
+<a name='L868'></a><a href='#L868'>868</a>
+<a name='L869'></a><a href='#L869'>869</a>
+<a name='L870'></a><a href='#L870'>870</a>
+<a name='L871'></a><a href='#L871'>871</a>
+<a name='L872'></a><a href='#L872'>872</a>
+<a name='L873'></a><a href='#L873'>873</a>
+<a name='L874'></a><a href='#L874'>874</a>
+<a name='L875'></a><a href='#L875'>875</a>
+<a name='L876'></a><a href='#L876'>876</a>
+<a name='L877'></a><a href='#L877'>877</a>
+<a name='L878'></a><a href='#L878'>878</a>
+<a name='L879'></a><a href='#L879'>879</a>
+<a name='L880'></a><a href='#L880'>880</a>
+<a name='L881'></a><a href='#L881'>881</a>
+<a name='L882'></a><a href='#L882'>882</a>
+<a name='L883'></a><a href='#L883'>883</a>
+<a name='L884'></a><a href='#L884'>884</a>
+<a name='L885'></a><a href='#L885'>885</a>
+<a name='L886'></a><a href='#L886'>886</a>
+<a name='L887'></a><a href='#L887'>887</a>
+<a name='L888'></a><a href='#L888'>888</a>
+<a name='L889'></a><a href='#L889'>889</a>
+<a name='L890'></a><a href='#L890'>890</a>
+<a name='L891'></a><a href='#L891'>891</a>
+<a name='L892'></a><a href='#L892'>892</a>
+<a name='L893'></a><a href='#L893'>893</a>
+<a name='L894'></a><a href='#L894'>894</a>
+<a name='L895'></a><a href='#L895'>895</a>
+<a name='L896'></a><a href='#L896'>896</a>
+<a name='L897'></a><a href='#L897'>897</a>
+<a name='L898'></a><a href='#L898'>898</a>
+<a name='L899'></a><a href='#L899'>899</a>
+<a name='L900'></a><a href='#L900'>900</a>
+<a name='L901'></a><a href='#L901'>901</a>
+<a name='L902'></a><a href='#L902'>902</a>
+<a name='L903'></a><a href='#L903'>903</a>
+<a name='L904'></a><a href='#L904'>904</a>
+<a name='L905'></a><a href='#L905'>905</a>
+<a name='L906'></a><a href='#L906'>906</a>
+<a name='L907'></a><a href='#L907'>907</a>
+<a name='L908'></a><a href='#L908'>908</a>
+<a name='L909'></a><a href='#L909'>909</a>
+<a name='L910'></a><a href='#L910'>910</a>
+<a name='L911'></a><a href='#L911'>911</a>
+<a name='L912'></a><a href='#L912'>912</a>
+<a name='L913'></a><a href='#L913'>913</a>
+<a name='L914'></a><a href='#L914'>914</a>
+<a name='L915'></a><a href='#L915'>915</a>
+<a name='L916'></a><a href='#L916'>916</a>
+<a name='L917'></a><a href='#L917'>917</a>
+<a name='L918'></a><a href='#L918'>918</a>
+<a name='L919'></a><a href='#L919'>919</a>
+<a name='L920'></a><a href='#L920'>920</a>
+<a name='L921'></a><a href='#L921'>921</a>
+<a name='L922'></a><a href='#L922'>922</a>
+<a name='L923'></a><a href='#L923'>923</a>
+<a name='L924'></a><a href='#L924'>924</a>
+<a name='L925'></a><a href='#L925'>925</a>
+<a name='L926'></a><a href='#L926'>926</a>
+<a name='L927'></a><a href='#L927'>927</a>
+<a name='L928'></a><a href='#L928'>928</a>
+<a name='L929'></a><a href='#L929'>929</a>
+<a name='L930'></a><a href='#L930'>930</a>
+<a name='L931'></a><a href='#L931'>931</a>
+<a name='L932'></a><a href='#L932'>932</a>
+<a name='L933'></a><a href='#L933'>933</a>
+<a name='L934'></a><a href='#L934'>934</a>
+<a name='L935'></a><a href='#L935'>935</a>
+<a name='L936'></a><a href='#L936'>936</a>
+<a name='L937'></a><a href='#L937'>937</a>
+<a name='L938'></a><a href='#L938'>938</a>
+<a name='L939'></a><a href='#L939'>939</a>
+<a name='L940'></a><a href='#L940'>940</a>
+<a name='L941'></a><a href='#L941'>941</a>
+<a name='L942'></a><a href='#L942'>942</a>
+<a name='L943'></a><a href='#L943'>943</a>
+<a name='L944'></a><a href='#L944'>944</a>
+<a name='L945'></a><a href='#L945'>945</a>
+<a name='L946'></a><a href='#L946'>946</a>
+<a name='L947'></a><a href='#L947'>947</a>
+<a name='L948'></a><a href='#L948'>948</a>
+<a name='L949'></a><a href='#L949'>949</a>
+<a name='L950'></a><a href='#L950'>950</a>
+<a name='L951'></a><a href='#L951'>951</a>
+<a name='L952'></a><a href='#L952'>952</a>
+<a name='L953'></a><a href='#L953'>953</a>
+<a name='L954'></a><a href='#L954'>954</a>
+<a name='L955'></a><a href='#L955'>955</a>
+<a name='L956'></a><a href='#L956'>956</a>
+<a name='L957'></a><a href='#L957'>957</a>
+<a name='L958'></a><a href='#L958'>958</a>
+<a name='L959'></a><a href='#L959'>959</a>
+<a name='L960'></a><a href='#L960'>960</a>
+<a name='L961'></a><a href='#L961'>961</a>
+<a name='L962'></a><a href='#L962'>962</a>
+<a name='L963'></a><a href='#L963'>963</a>
+<a name='L964'></a><a href='#L964'>964</a>
+<a name='L965'></a><a href='#L965'>965</a>
+<a name='L966'></a><a href='#L966'>966</a>
+<a name='L967'></a><a href='#L967'>967</a>
+<a name='L968'></a><a href='#L968'>968</a>
+<a name='L969'></a><a href='#L969'>969</a>
+<a name='L970'></a><a href='#L970'>970</a>
+<a name='L971'></a><a href='#L971'>971</a>
+<a name='L972'></a><a href='#L972'>972</a>
+<a name='L973'></a><a href='#L973'>973</a>
+<a name='L974'></a><a href='#L974'>974</a>
+<a name='L975'></a><a href='#L975'>975</a>
+<a name='L976'></a><a href='#L976'>976</a>
+<a name='L977'></a><a href='#L977'>977</a>
+<a name='L978'></a><a href='#L978'>978</a>
+<a name='L979'></a><a href='#L979'>979</a>
+<a name='L980'></a><a href='#L980'>980</a>
+<a name='L981'></a><a href='#L981'>981</a>
+<a name='L982'></a><a href='#L982'>982</a>
+<a name='L983'></a><a href='#L983'>983</a>
+<a name='L984'></a><a href='#L984'>984</a>
+<a name='L985'></a><a href='#L985'>985</a>
+<a name='L986'></a><a href='#L986'>986</a>
+<a name='L987'></a><a href='#L987'>987</a>
+<a name='L988'></a><a href='#L988'>988</a>
+<a name='L989'></a><a href='#L989'>989</a>
+<a name='L990'></a><a href='#L990'>990</a>
+<a name='L991'></a><a href='#L991'>991</a>
+<a name='L992'></a><a href='#L992'>992</a>
+<a name='L993'></a><a href='#L993'>993</a>
+<a name='L994'></a><a href='#L994'>994</a>
+<a name='L995'></a><a href='#L995'>995</a>
+<a name='L996'></a><a href='#L996'>996</a>
+<a name='L997'></a><a href='#L997'>997</a>
+<a name='L998'></a><a href='#L998'>998</a>
+<a name='L999'></a><a href='#L999'>999</a>
+<a name='L1000'></a><a href='#L1000'>1000</a>
+<a name='L1001'></a><a href='#L1001'>1001</a>
+<a name='L1002'></a><a href='#L1002'>1002</a>
+<a name='L1003'></a><a href='#L1003'>1003</a>
+<a name='L1004'></a><a href='#L1004'>1004</a>
+<a name='L1005'></a><a href='#L1005'>1005</a>
+<a name='L1006'></a><a href='#L1006'>1006</a>
+<a name='L1007'></a><a href='#L1007'>1007</a>
+<a name='L1008'></a><a href='#L1008'>1008</a>
+<a name='L1009'></a><a href='#L1009'>1009</a>
+<a name='L1010'></a><a href='#L1010'>1010</a>
+<a name='L1011'></a><a href='#L1011'>1011</a>
+<a name='L1012'></a><a href='#L1012'>1012</a>
+<a name='L1013'></a><a href='#L1013'>1013</a>
+<a name='L1014'></a><a href='#L1014'>1014</a>
+<a name='L1015'></a><a href='#L1015'>1015</a>
+<a name='L1016'></a><a href='#L1016'>1016</a>
+<a name='L1017'></a><a href='#L1017'>1017</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// NFT 资产管理模块 - 后端路由
+// 挂载于 /api/nft,所有接口需登录鉴权
+// 子模块:资产铸造与元数据、上链审核与异步上链队列、资产流转记录与链上状态监控
+import { Router, Response } from 'express';
+import db from '../db';
+import { authenticate, requirePermission } from '../middlewares/auth';
+import { auditMiddleware } from '../middlewares/audit';
+import type { AuthedRequest, ApiResponse } from '../types';
+import { NFT_STATUS, MINT_TASK_STATUS } from '../modules/nft/db';
+import type {
+  NftAssetRow,
+  NftMintTaskRow,
+  NftTransferRow,
+} from '../modules/nft/db';
+&nbsp;
+export const nftRouter = <span class="cstat-no" title="statement not covered" >Router()</span>;
+&nbsp;
+// 统一成功响应
+function <span class="fstat-no" title="function not covered" >ok&lt;T&gt;(r</span>es: Response, data: T, message = <span class="branch-0 cbranch-no" title="branch not covered" >'success'): Response {</span>
+  const body: ApiResponse&lt;T&gt; = <span class="cstat-no" title="statement not covered" >{ code: 0, message, data };</span>
+<span class="cstat-no" title="statement not covered" >  return res.json(body);</span>
+}
+&nbsp;
+// 统一失败响应
+function <span class="fstat-no" title="function not covered" >fail(r</span>es: Response, status: number, message: string): Response {
+  const body: ApiResponse = <span class="cstat-no" title="statement not covered" >{ code: status, message, data: null };</span>
+<span class="cstat-no" title="statement not covered" >  return res.status(status).json(body);</span>
+}
+&nbsp;
+// 所有 NFT 模块接口均需登录鉴权
+<span class="cstat-no" title="statement not covered" >nftRouter.use(authenticate);</span>
+&nbsp;
+// ==================== 跨模块查询辅助 ====================
+&nbsp;
+// 基因档案简要信息(供列表关联展示)
+interface GeneBrief {
+  id: number;
+  ring_number: string;
+  name: string;
+  owner_name: string;
+}
+&nbsp;
+// 跨模块查询基因档案(容错:表不存在或查询失败返回 null)
+function <span class="fstat-no" title="function not covered" >getGeneBrief(g</span>eneProfileId: number | null): GeneBrief | null {
+<span class="cstat-no" title="statement not covered" >  if (!geneProfileId) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="cstat-no" title="statement not covered" >  try {</span>
+    const row = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare('SELECT id, ring_number, name, owner_name FROM gene_profiles WHERE id = ?')
+      .get(geneProfileId) as GeneBrief | undefined;
+<span class="cstat-no" title="statement not covered" >    return row ?? null;</span>
+  } catch {
+    // gene_profiles 表可能尚未创建,容错返回 null
+<span class="cstat-no" title="statement not covered" >    return null;</span>
+  }
+}
+&nbsp;
+// 批量查询基因档案简要(容错)
+function <span class="fstat-no" title="function not covered" >getGeneBriefMap(i</span>ds: number[]): Map&lt;number, GeneBrief&gt; {
+  const map = <span class="cstat-no" title="statement not covered" >new Map&lt;number, GeneBrief&gt;();</span>
+<span class="cstat-no" title="statement not covered" >  if (!ids.length) <span class="cstat-no" title="statement not covered" >return map;</span></span>
+<span class="cstat-no" title="statement not covered" >  try {</span>
+    const placeholders = <span class="cstat-no" title="statement not covered" >ids.<span class="fstat-no" title="function not covered" >map(() =&gt; <span class="cstat-no" title="statement not covered" >'</span>?')</span>.join(',');</span>
+    const rows = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare(
+        `SELECT id, ring_number, name, owner_name FROM gene_profiles WHERE id IN (${placeholders})`
+      )
+      .all(...ids) as GeneBrief[];
+<span class="cstat-no" title="statement not covered" >    rows.<span class="fstat-no" title="function not covered" >forEach((r</span>) =&gt; <span class="cstat-no" title="statement not covered" >map.set(r.id, r))</span>;</span>
+  } catch {
+    // 容错:返回空 map
+  }
+<span class="cstat-no" title="statement not covered" >  return map;</span>
+}
+&nbsp;
+// 资产状态标签映射
+const STATUS_LABEL: Record&lt;string, string&gt; = <span class="cstat-no" title="statement not covered" >{</span>
+  draft: '草稿',
+  pending: '待审核',
+  approved: '审核通过',
+  minting: '上链中',
+  minted: '已上链',
+  failed: '上链失败',
+  rejected: '已驳回',
+};
+&nbsp;
+// ==================== 资产列表与详情 ====================
+&nbsp;
+// GET /api/nft/assets - 分页列表(资产名/状态/鸽主筛选)
+<span class="cstat-no" title="statement not covered" >nftRouter.get('/assets', requirePermission('nft:view'<span class="fstat-no" title="function not covered" >), (r</span>eq: AuthedRequest, res: Response) =&gt; {</span>
+  const page = <span class="cstat-no" title="statement not covered" >Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);</span>
+  const pageSize = <span class="cstat-no" title="statement not covered" >Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);</span>
+  const name = <span class="cstat-no" title="statement not covered" >String(req.query.name ?? '').trim();</span>
+  const status = <span class="cstat-no" title="statement not covered" >String(req.query.status ?? '').trim();</span>
+  const owner_name = <span class="cstat-no" title="statement not covered" >String(req.query.owner_name ?? '').trim();</span>
+&nbsp;
+  const where: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  const params: Array&lt;string | number&gt; = <span class="cstat-no" title="statement not covered" >[];</span>
+<span class="cstat-no" title="statement not covered" >  if (name) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('(a.name LIKE ? OR a.token_id LIKE ?)');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(`%${name}%`, `%${name}%`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (status) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('a.status = ?');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(status);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (owner_name) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('a.owner_name LIKE ?');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(`%${owner_name}%`);</span>
+  }
+  const whereSql = <span class="cstat-no" title="statement not covered" >where.length ? `WHERE ${where.join(' AND ')}` : '';</span>
+&nbsp;
+  const total = (
+<span class="cstat-no" title="statement not covered" >    db.prepare(`SELECT COUNT(*) AS c FROM nft_assets a ${whereSql}`).get(...params) as { c: number }</span>
+  ).c;
+&nbsp;
+  const rows = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT a.id, a.token_id, a.gene_profile_id, a.name, a.description, a.image_url,
+              a.metadata, a.owner_name, a.status, a.contract_address, a.tx_hash,
+              a.minted_at, a.created_at, a.updated_at
+       FROM nft_assets a
+       ${whereSql}
+       ORDER BY a.created_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(...params, pageSize, (page - 1) * pageSize) as NftAssetRow[];
+&nbsp;
+  // 批量关联基因档案信息
+  const geneIds = <span class="cstat-no" title="statement not covered" >rows.<span class="fstat-no" title="function not covered" >map((r</span>) =&gt; <span class="cstat-no" title="statement not covered" >r.gene_profile_id)</span>.<span class="fstat-no" title="function not covered" >filter((i</span>d): id is number =&gt; <span class="cstat-no" title="statement not covered" >id !== null)</span>;</span>
+  const geneMap = <span class="cstat-no" title="statement not covered" >getGeneBriefMap(geneIds);</span>
+&nbsp;
+  const list = <span class="cstat-no" title="statement not covered" >rows.<span class="fstat-no" title="function not covered" >map((r</span>) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+    ...r,
+    status_label: STATUS_LABEL[r.status] ?? r.status,
+    gene_profile: r.gene_profile_id ? geneMap.get(r.gene_profile_id) ?? null : null,
+  }));
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ok(res, { list, total });</span>
+});
+&nbsp;
+// GET /api/nft/assets/:id - 详情(含流转记录 + 上链任务 + 链上状态 + 关联基因档案)
+<span class="cstat-no" title="statement not covered" >nftRouter.get('/assets/:id', requirePermission('nft:view'<span class="fstat-no" title="function not covered" >), (r</span>eq: AuthedRequest, res: Response) =&gt; {</span>
+  const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >  if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+  const asset = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT id, token_id, gene_profile_id, name, description, image_url, metadata,
+              owner_name, status, contract_address, tx_hash, minted_at, created_at, updated_at
+       FROM nft_assets WHERE id = ?`
+    )
+    .get(id) as NftAssetRow | undefined;
+<span class="cstat-no" title="statement not covered" >  if (!asset) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+  // 关联流转记录
+  const transfers = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT id, nft_asset_id, from_owner, to_owner, transfer_type, price, tx_hash, status, created_at
+       FROM nft_transfers WHERE nft_asset_id = ? ORDER BY created_at DESC`
+    )
+    .all(id) as NftTransferRow[];
+&nbsp;
+  // 关联上链任务(取最近一条)
+  const mintTask = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT id, nft_asset_id, status, retry_count, error_msg, tx_hash, contract_address,
+              started_at, finished_at, created_at
+       FROM nft_mint_tasks WHERE nft_asset_id = ? ORDER BY id DESC LIMIT 1`
+    )
+    .get(id) as NftMintTaskRow | undefined;
+&nbsp;
+  // 跨模块查询基因档案(容错)
+  const geneProfile = <span class="cstat-no" title="statement not covered" >getGeneBrief(asset.gene_profile_id);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ok(res, {</span>
+    ...asset,
+    status_label: STATUS_LABEL[asset.status] ?? asset.status,
+    transfers,
+    mint_task: mintTask ?? null,
+    gene_profile: geneProfile,
+    // 链上状态信息
+    chain_status: {
+      token_id: asset.token_id,
+      contract_address: asset.contract_address,
+      tx_hash: asset.tx_hash,
+      minted_at: asset.minted_at,
+      status: asset.status,
+    },
+  });
+});
+&nbsp;
+// POST /api/nft/assets - 新增铸造申请(选择 gene_profile_id,状态草稿)
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/assets',
+  requirePermission('nft:edit'),
+  auditMiddleware('nft', 'create_asset'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const body = <span class="cstat-no" title="statement not covered" >req.body as {</span>
+      gene_profile_id?: number | null;
+      name?: string;
+      description?: string;
+      image_url?: string;
+      metadata?: Record&lt;string, unknown&gt; | string | null;
+      owner_name?: string;
+    };
+&nbsp;
+    const name = <span class="cstat-no" title="statement not covered" >String(body.name ?? '').trim();</span>
+<span class="cstat-no" title="statement not covered" >    if (!name) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '资产名称不能为空');</span></span>
+&nbsp;
+    // 校验关联基因档案存在性(跨模块容错)
+    let ownerName = <span class="cstat-no" title="statement not covered" >String(body.owner_name ?? '').trim();</span>
+<span class="cstat-no" title="statement not covered" >    if (body.gene_profile_id) {</span>
+      const gene = <span class="cstat-no" title="statement not covered" >getGeneBrief(body.gene_profile_id);</span>
+<span class="cstat-no" title="statement not covered" >      if (!gene) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '指定的基因档案不存在');</span></span>
+      // 自动填充鸽主
+<span class="cstat-no" title="statement not covered" >      if (!ownerName) <span class="cstat-no" title="statement not covered" >ownerName = gene.owner_name;</span></span>
+    }
+&nbsp;
+    // metadata 序列化为字符串
+    let metadataText: string | null = <span class="cstat-no" title="statement not covered" >null;</span>
+<span class="cstat-no" title="statement not covered" >    if (body.metadata !== undefined &amp;&amp; body.metadata !== null) {</span>
+<span class="cstat-no" title="statement not covered" >      if (typeof body.metadata === 'string') {</span>
+<span class="cstat-no" title="statement not covered" >        metadataText = body.metadata;</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        try {</span>
+<span class="cstat-no" title="statement not covered" >          metadataText = JSON.stringify(body.metadata);</span>
+        } catch {
+<span class="cstat-no" title="statement not covered" >          metadataText = null;</span>
+        }
+      }
+    }
+&nbsp;
+    const result = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare(
+        `INSERT INTO nft_assets
+          (gene_profile_id, name, description, image_url, metadata, owner_name, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'draft')`
+      )
+      .run(
+        body.gene_profile_id ?? null,
+        name,
+        body.description ?? null,
+        body.image_url ?? null,
+        metadataText,
+        ownerName
+      );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, { id: result.lastInsertRowid }, '铸造申请已创建(草稿状态)');</span>
+  }
+);
+&nbsp;
+// PUT /api/nft/assets/:id - 编辑(仅草稿/上链失败状态可编辑)
+<span class="cstat-no" title="statement not covered" >nftRouter.put(</span>
+  '/assets/:id',
+  requirePermission('nft:edit'),
+  auditMiddleware('nft', 'update_asset'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare(</span>
+      'SELECT id, status, gene_profile_id, name, description, image_url, metadata, owner_name FROM nft_assets WHERE id = ?'
+    ).get(id) as
+      | {
+          id: number;
+          status: string;
+          gene_profile_id: number | null;
+          name: string;
+          description: string | null;
+          image_url: string | null;
+          metadata: string | null;
+          owner_name: string;
+        }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+    // 仅草稿、待审核、上链失败状态可编辑
+    const editableStatus: string[] = <span class="cstat-no" title="statement not covered" >[NFT_STATUS.DRAFT, NFT_STATUS.PENDING, NFT_STATUS.FAILED];</span>
+<span class="cstat-no" title="statement not covered" >    if (!editableStatus.includes(target.status)) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可编辑`);</span>
+    }
+&nbsp;
+    const body = <span class="cstat-no" title="statement not covered" >req.body as {</span>
+      gene_profile_id?: number | null;
+      name?: string;
+      description?: string;
+      image_url?: string;
+      metadata?: Record&lt;string, unknown&gt; | string | null;
+      owner_name?: string;
+    };
+&nbsp;
+    // 计算各字段最终值:未传入则保留原值
+    const finalName = <span class="cstat-no" title="statement not covered" >body.name !== undefined ? String(body.name).trim() : target.name;</span>
+<span class="cstat-no" title="statement not covered" >    if (!finalName) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '资产名称不能为空');</span></span>
+&nbsp;
+    const finalGeneId =
+<span class="cstat-no" title="statement not covered" >      body.gene_profile_id !== undefined ? body.gene_profile_id : target.gene_profile_id;</span>
+    const finalDescription = <span class="cstat-no" title="statement not covered" >body.description !== undefined ? body.description : target.description;</span>
+    const finalImageUrl = <span class="cstat-no" title="statement not covered" >body.image_url !== undefined ? body.image_url : target.image_url;</span>
+    const finalOwnerName =
+<span class="cstat-no" title="statement not covered" >      body.owner_name !== undefined ? String(body.owner_name).trim() : target.owner_name;</span>
+&nbsp;
+    // 校验关联基因档案(跨模块容错),若 gene_profile_id 变更且未显式传入鸽主,则自动填充
+    let autoOwnerName: string | undefined;
+<span class="cstat-no" title="statement not covered" >    if (finalGeneId) {</span>
+      const gene = <span class="cstat-no" title="statement not covered" >getGeneBrief(finalGeneId);</span>
+<span class="cstat-no" title="statement not covered" >      if (!gene) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '指定的基因档案不存在');</span></span>
+      // gene_profile_id 变更且未显式传入鸽主时,自动用基因档案的鸽主填充
+<span class="cstat-no" title="statement not covered" >      if (body.gene_profile_id !== undefined &amp;&amp; body.owner_name === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >        autoOwnerName = gene.owner_name;</span>
+      }
+    }
+    const finalOwnerNameResolved = <span class="cstat-no" title="statement not covered" >autoOwnerName ?? finalOwnerName;</span>
+&nbsp;
+    // metadata 序列化:未传入则保留原值
+    let finalMetadata: string | null;
+<span class="cstat-no" title="statement not covered" >    if (body.metadata === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >      finalMetadata = target.metadata;</span>
+    } else <span class="cstat-no" title="statement not covered" >if (body.metadata === null) {</span>
+<span class="cstat-no" title="statement not covered" >      finalMetadata = null;</span>
+    } else <span class="cstat-no" title="statement not covered" >if (typeof body.metadata === 'string') {</span>
+<span class="cstat-no" title="statement not covered" >      finalMetadata = body.metadata;</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      try {</span>
+<span class="cstat-no" title="statement not covered" >        finalMetadata = JSON.stringify(body.metadata);</span>
+      } catch {
+<span class="cstat-no" title="statement not covered" >        finalMetadata = target.metadata;</span>
+      }
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    db.prepare(</span>
+      `UPDATE nft_assets
+       SET gene_profile_id = ?, name = ?, description = ?, image_url = ?, metadata = ?,
+           owner_name = ?, updated_at = ?
+       WHERE id = ?`
+    ).run(
+      finalGeneId ?? null,
+      finalName,
+      finalDescription,
+      finalImageUrl,
+      finalMetadata,
+      finalOwnerNameResolved,
+      Date.now(),
+      id
+    );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, null, '更新成功');</span>
+  }
+);
+&nbsp;
+// POST /api/nft/assets/:id/submit - 提交审核(草稿/上链失败 → 待审核)
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/assets/:id/submit',
+  requirePermission('nft:edit'),
+  auditMiddleware('nft', 'submit_audit'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id, status FROM nft_assets WHERE id = ?').get(id) as</span>
+      | { id: number; status: string }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+    const submittableStatus: string[] = <span class="cstat-no" title="statement not covered" >[NFT_STATUS.DRAFT, NFT_STATUS.FAILED];</span>
+<span class="cstat-no" title="statement not covered" >    if (!submittableStatus.includes(target.status)) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可提交审核`);</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+      NFT_STATUS.PENDING,
+      Date.now(),
+      id
+    );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, null, '已提交审核');</span>
+  }
+);
+&nbsp;
+// DELETE /api/nft/assets/:id - 删除(仅草稿/上链失败状态可删除)
+<span class="cstat-no" title="statement not covered" >nftRouter.delete(</span>
+  '/assets/:id',
+  requirePermission('nft:edit'),
+  auditMiddleware('nft', 'delete_asset'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id, status FROM nft_assets WHERE id = ?').get(id) as</span>
+      | { id: number; status: string }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+    const deletableStatus: string[] = <span class="cstat-no" title="statement not covered" >[NFT_STATUS.DRAFT, NFT_STATUS.PENDING, NFT_STATUS.FAILED];</span>
+<span class="cstat-no" title="statement not covered" >    if (!deletableStatus.includes(target.status)) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可删除`);</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    db.prepare('DELETE FROM nft_assets WHERE id = ?').run(id);</span>
+<span class="cstat-no" title="statement not covered" >    return ok(res, null, '删除成功');</span>
+  }
+);
+&nbsp;
+// ==================== 资产流转记录 ====================
+&nbsp;
+// GET /api/nft/assets/:id/transfers - 资产流转记录列表
+<span class="cstat-no" title="statement not covered" >nftRouter.get(</span>
+  '/assets/:id/transfers',
+  requirePermission('nft:view'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id FROM nft_assets WHERE id = ?').get(id);</span>
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+    const rows = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare(
+        `SELECT id, nft_asset_id, from_owner, to_owner, transfer_type, price, tx_hash, status, created_at
+         FROM nft_transfers WHERE nft_asset_id = ? ORDER BY created_at DESC`
+      )
+      .all(id) as NftTransferRow[];
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, rows);</span>
+  }
+);
+&nbsp;
+// POST /api/nft/assets/:id/transfers - 新增流转记录
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/assets/:id/transfers',
+  requirePermission('nft:edit'),
+  auditMiddleware('nft', 'create_transfer'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id, owner_name FROM nft_assets WHERE id = ?').get(id) as</span>
+      | { id: number; owner_name: string }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+    const body = <span class="cstat-no" title="statement not covered" >req.body as {</span>
+      from_owner?: string | null;
+      to_owner?: string;
+      transfer_type?: string;
+      price?: number | null;
+      tx_hash?: string | null;
+      status?: string;
+    };
+&nbsp;
+    const toOwner = <span class="cstat-no" title="statement not covered" >String(body.to_owner ?? '').trim();</span>
+<span class="cstat-no" title="statement not covered" >    if (!toOwner) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '转入方不能为空');</span></span>
+&nbsp;
+    const transferType = <span class="cstat-no" title="statement not covered" >body.transfer_type ?? 'transfer';</span>
+    const validTypes = <span class="cstat-no" title="statement not covered" >['transfer', 'auction', 'gift'];</span>
+<span class="cstat-no" title="statement not covered" >    if (!validTypes.includes(transferType)) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, '流转类型无效(可选:transfer/auction/gift)');</span>
+    }
+&nbsp;
+    const result = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare(
+        `INSERT INTO nft_transfers
+          (nft_asset_id, from_owner, to_owner, transfer_type, price, tx_hash, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        id,
+        body.from_owner ?? target.owner_name,
+        toOwner,
+        transferType,
+        body.price ?? null,
+        body.tx_hash ?? null,
+        body.status ?? 'success'
+      );
+&nbsp;
+    // 若流转成功,更新资产持有者
+<span class="cstat-no" title="statement not covered" >    if ((body.status ?? 'success') === 'success') {</span>
+<span class="cstat-no" title="statement not covered" >      db.prepare('UPDATE nft_assets SET owner_name = ?, updated_at = ? WHERE id = ?').run(</span>
+        toOwner,
+        Date.now(),
+        id
+      );
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, { id: result.lastInsertRowid }, '流转记录已新增');</span>
+  }
+);
+&nbsp;
+// GET /api/nft/assets/:id/chain-status - 链上状态查询
+<span class="cstat-no" title="statement not covered" >nftRouter.get(</span>
+  '/assets/:id/chain-status',
+  requirePermission('nft:view'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const asset = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare(
+        'SELECT id, token_id, contract_address, tx_hash, minted_at, status FROM nft_assets WHERE id = ?'
+      )
+      .get(id) as
+      | {
+          id: number;
+          token_id: string | null;
+          contract_address: string | null;
+          tx_hash: string | null;
+          minted_at: number | null;
+          status: string;
+        }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!asset) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, {</span>
+      token_id: asset.token_id,
+      contract_address: asset.contract_address,
+      tx_hash: asset.tx_hash,
+      minted_at: asset.minted_at,
+      status: asset.status,
+      status_label: STATUS_LABEL[asset.status] ?? asset.status,
+    });
+  }
+);
+&nbsp;
+// ==================== 上链审核 ====================
+&nbsp;
+// GET /api/nft/audit/list - 待审核列表(默认查待审核,可查全部审核相关状态)
+<span class="cstat-no" title="statement not covered" >nftRouter.get('/audit/list', requirePermission('nft:audit'<span class="fstat-no" title="function not covered" >), (r</span>eq: AuthedRequest, res: Response) =&gt; {</span>
+  const page = <span class="cstat-no" title="statement not covered" >Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);</span>
+  const pageSize = <span class="cstat-no" title="statement not covered" >Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);</span>
+  const status = <span class="cstat-no" title="statement not covered" >String(req.query.status ?? NFT_STATUS.PENDING).trim();</span>
+  const name = <span class="cstat-no" title="statement not covered" >String(req.query.name ?? '').trim();</span>
+  const owner_name = <span class="cstat-no" title="statement not covered" >String(req.query.owner_name ?? '').trim();</span>
+&nbsp;
+  const where: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  const params: Array&lt;string | number&gt; = <span class="cstat-no" title="statement not covered" >[];</span>
+<span class="cstat-no" title="statement not covered" >  if (status) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('a.status = ?');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(status);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (name) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('(a.name LIKE ? OR a.token_id LIKE ?)');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(`%${name}%`, `%${name}%`);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (owner_name) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('a.owner_name LIKE ?');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(`%${owner_name}%`);</span>
+  }
+  const whereSql = <span class="cstat-no" title="statement not covered" >where.length ? `WHERE ${where.join(' AND ')}` : '';</span>
+&nbsp;
+  const total = (
+<span class="cstat-no" title="statement not covered" >    db.prepare(`SELECT COUNT(*) AS c FROM nft_assets a ${whereSql}`).get(...params) as { c: number }</span>
+  ).c;
+&nbsp;
+  const rows = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT a.id, a.token_id, a.gene_profile_id, a.name, a.description, a.image_url,
+              a.metadata, a.owner_name, a.status, a.contract_address, a.tx_hash,
+              a.minted_at, a.created_at, a.updated_at
+       FROM nft_assets a
+       ${whereSql}
+       ORDER BY a.created_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(...params, pageSize, (page - 1) * pageSize) as NftAssetRow[];
+&nbsp;
+  // 批量关联基因档案
+  const geneIds = <span class="cstat-no" title="statement not covered" >rows.<span class="fstat-no" title="function not covered" >map((r</span>) =&gt; <span class="cstat-no" title="statement not covered" >r.gene_profile_id)</span>.<span class="fstat-no" title="function not covered" >filter((i</span>d): id is number =&gt; <span class="cstat-no" title="statement not covered" >id !== null)</span>;</span>
+  const geneMap = <span class="cstat-no" title="statement not covered" >getGeneBriefMap(geneIds);</span>
+&nbsp;
+  const list = <span class="cstat-no" title="statement not covered" >rows.<span class="fstat-no" title="function not covered" >map((r</span>) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+    ...r,
+    status_label: STATUS_LABEL[r.status] ?? r.status,
+    gene_profile: r.gene_profile_id ? geneMap.get(r.gene_profile_id) ?? null : null,
+  }));
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ok(res, { list, total });</span>
+});
+&nbsp;
+// 生成模拟链上标识
+function <span class="fstat-no" title="function not covered" >generateChainIdentifiers(): { tokenId: string; contractAddress: string; txHash: string } {</span>
+  const ts = <span class="cstat-no" title="statement not covered" >Date.now();</span>
+  const rand = <span class="cstat-no" title="statement not covered" >Math.floor(Math.random() * 1e8).toString(16).padStart(8, '0');</span>
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    tokenId: `NFT-${ts.toString(36).toUpperCase()}-${rand.slice(0, 6).toUpperCase()}`,
+    contractAddress: `0x${rand}${Math.floor(Math.random() * 1e16).toString(16).padStart(16, '0')}`,
+    txHash: `0x${ts.toString(16)}${rand}${Math.floor(Math.random() * 1e16)
+      .toString(16)
+      .padStart(16, '0')}`,
+  };
+}
+&nbsp;
+// 模拟上链:用 setImmediate 异步执行,模拟调用链上合约铸造
+// 成功后回写 tx_hash/contract_address/token_id,更新 nft_assets 为已上链
+function <span class="fstat-no" title="function not covered" >simulateMint(a</span>ssetId: number, taskId: number): void {
+  // 标记任务为 processing
+<span class="cstat-no" title="statement not covered" >  db.prepare(</span>
+    'UPDATE nft_mint_tasks SET status = ?, started_at = ? WHERE id = ?'
+  ).run(MINT_TASK_STATUS.PROCESSING, Date.now(), taskId);
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  setImmediate(() =&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+      const { tokenId, contractAddress, txHash } = <span class="cstat-no" title="statement not covered" >generateChainIdentifiers();</span>
+      const finishedAt = <span class="cstat-no" title="statement not covered" >Date.now();</span>
+&nbsp;
+      const tx = <span class="cstat-no" title="statement not covered" >db.<span class="fstat-no" title="function not covered" >transaction(() =&gt; {</span></span>
+        // 更新任务为 success
+<span class="cstat-no" title="statement not covered" >        db.prepare(</span>
+          `UPDATE nft_mint_tasks
+           SET status = ?, tx_hash = ?, contract_address = ?, finished_at = ?, error_msg = NULL
+           WHERE id = ?`
+        ).run(MINT_TASK_STATUS.SUCCESS, txHash, contractAddress, finishedAt, taskId);
+&nbsp;
+        // 更新资产为已上链
+<span class="cstat-no" title="statement not covered" >        db.prepare(</span>
+          `UPDATE nft_assets
+           SET status = ?, token_id = ?, tx_hash = ?, contract_address = ?, minted_at = ?, updated_at = ?
+           WHERE id = ?`
+        ).run(
+          NFT_STATUS.MINTED,
+          tokenId,
+          txHash,
+          contractAddress,
+          finishedAt,
+          finishedAt,
+          assetId
+        );
+      });
+<span class="cstat-no" title="statement not covered" >      tx();</span>
+      // eslint-disable-next-line no-console
+<span class="cstat-no" title="statement not covered" >      console.log(`[NFT] 资产 ${assetId} 模拟上链成功,token_id=${tokenId}`);</span>
+    } catch (err) {
+      // 上链失败
+<span class="cstat-no" title="statement not covered" >      db.prepare(</span>
+        `UPDATE nft_mint_tasks
+         SET status = ?, error_msg = ?, finished_at = ?
+         WHERE id = ?`
+      ).run(
+        MINT_TASK_STATUS.FAILED,
+        err instanceof Error ? err.message : '模拟上链异常',
+        Date.now(),
+        taskId
+      );
+<span class="cstat-no" title="statement not covered" >      db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+        NFT_STATUS.FAILED,
+        Date.now(),
+        assetId
+      );
+      // eslint-disable-next-line no-console
+<span class="cstat-no" title="statement not covered" >      console.error(`[NFT] 资产 ${assetId} 模拟上链失败:`, err);</span>
+    }
+  });
+}
+&nbsp;
+// POST /api/nft/audit/:id/approve - 审核通过(创建 mint_task,更新资产为上链中,异步模拟上链)
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/audit/:id/approve',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'approve_mint'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id, status FROM nft_assets WHERE id = ?').get(id) as</span>
+      | { id: number; status: string }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (target.status !== NFT_STATUS.PENDING) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可审核`);</span>
+    }
+&nbsp;
+    // 事务:创建 pending 任务 + 更新资产为审核通过→上链中
+    let taskId = <span class="cstat-no" title="statement not covered" >0;</span>
+    const tx = <span class="cstat-no" title="statement not covered" >db.<span class="fstat-no" title="function not covered" >transaction(() =&gt; {</span></span>
+      // 更新资产状态:审核通过 → 上链中(直接进入上链流程)
+<span class="cstat-no" title="statement not covered" >      db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+        NFT_STATUS.MINTING,
+        Date.now(),
+        id
+      );
+      // 创建 pending 任务
+      const result = <span class="cstat-no" title="statement not covered" >db</span>
+        .prepare(
+          `INSERT INTO nft_mint_tasks (nft_asset_id, status, retry_count) VALUES (?, 'pending', 0)`
+        )
+        .run(id);
+<span class="cstat-no" title="statement not covered" >      taskId = result.lastInsertRowid as number;</span>
+    });
+<span class="cstat-no" title="statement not covered" >    tx();</span>
+&nbsp;
+    // 异步模拟上链(不阻塞响应)
+<span class="cstat-no" title="statement not covered" >    simulateMint(id, taskId);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, { task_id: taskId }, '审核通过,已进入上链队列,正在异步铸造');</span>
+  }
+);
+&nbsp;
+// POST /api/nft/audit/:id/reject - 审核驳回
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/audit/:id/reject',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'reject_mint'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const body = <span class="cstat-no" title="statement not covered" >req.body as { audit_remark?: string };</span>
+    const remark = <span class="cstat-no" title="statement not covered" >String(body.audit_remark ?? '').trim();</span>
+<span class="cstat-no" title="statement not covered" >    if (!remark) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '请填写驳回理由');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id, status FROM nft_assets WHERE id = ?').get(id) as</span>
+      | { id: number; status: string }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (target.status !== NFT_STATUS.PENDING) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可审核`);</span>
+    }
+&nbsp;
+    // 驳回后标记为 rejected 状态，供"已驳回"Tab 查询
+<span class="cstat-no" title="statement not covered" >    db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+      NFT_STATUS.REJECTED,
+      Date.now(),
+      id
+    );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, null, '已驳回');</span>
+  }
+);
+&nbsp;
+// GET /api/nft/audit/stats - 今日审核统计
+<span class="cstat-no" title="statement not covered" >nftRouter.get('/audit/stats', requirePermission('nft:audit'<span class="fstat-no" title="function not covered" >), (_</span>req: AuthedRequest, res: Response) =&gt; {</span>
+  const now = <span class="cstat-no" title="statement not covered" >Date.now();</span>
+  const startOfDay = <span class="cstat-no" title="statement not covered" >now - (now % 86400000);</span>
+&nbsp;
+  const todayApproved = (
+<span class="cstat-no" title="statement not covered" >    db</span>
+      .prepare(
+        `SELECT COUNT(*) AS c FROM nft_assets
+         WHERE status IN (?, ?) AND updated_at &gt;= ?`
+      )
+      .get(NFT_STATUS.MINTING, NFT_STATUS.MINTED, startOfDay) as { c: number }
+  ).c;
+&nbsp;
+  const todayMintSuccess = (
+<span class="cstat-no" title="statement not covered" >    db</span>
+      .prepare(
+        `SELECT COUNT(*) AS c FROM nft_assets
+         WHERE status = ? AND updated_at &gt;= ?`
+      )
+      .get(NFT_STATUS.MINTED, startOfDay) as { c: number }
+  ).c;
+&nbsp;
+  const todayMintFailed = (
+<span class="cstat-no" title="statement not covered" >    db</span>
+      .prepare(
+        `SELECT COUNT(*) AS c FROM nft_assets
+         WHERE status = ? AND updated_at &gt;= ?`
+      )
+      .get(NFT_STATUS.FAILED, startOfDay) as { c: number }
+  ).c;
+&nbsp;
+  const avgRow = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT AVG(finished_at - started_at) AS avg_sec FROM nft_mint_tasks
+       WHERE status = ? AND finished_at &gt;= ? AND started_at IS NOT NULL AND finished_at IS NOT NULL`
+    )
+    .get(MINT_TASK_STATUS.SUCCESS, startOfDay) as { avg_sec: number | null } | undefined;
+&nbsp;
+  const avgDuration = <span class="cstat-no" title="statement not covered" >avgRow?.avg_sec ? Math.round(avgRow.avg_sec) : 0;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ok(res, {</span>
+    today_approved: todayApproved,
+    today_mint_success: todayMintSuccess,
+    today_mint_failed: todayMintFailed,
+    avg_duration_sec: avgDuration,
+  });
+});
+&nbsp;
+// POST /api/nft/audit/batch-approve - 批量审核通过
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/audit/batch-approve',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'batch_approve_mint'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const body = <span class="cstat-no" title="statement not covered" >req.body as { ids?: number[] };</span>
+    const ids = <span class="cstat-no" title="statement not covered" >Array.isArray(body.ids) ? body.ids.<span class="fstat-no" title="function not covered" >filter((i</span>d) =&gt; <span class="cstat-no" title="statement not covered" >Number.isFinite(Number(id)))</span> : [];</span>
+<span class="cstat-no" title="statement not covered" >    if (!ids.length) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '请选择要审核的资产');</span></span>
+&nbsp;
+    let success = <span class="cstat-no" title="statement not covered" >0;</span>
+    let failed = <span class="cstat-no" title="statement not covered" >0;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    for (const id of ids) {</span>
+      const target = <span class="cstat-no" title="statement not covered" >db</span>
+        .prepare('SELECT id, status FROM nft_assets WHERE id = ?')
+        .get(id) as { id: number; status: string } | undefined;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      if (!target || target.status !== NFT_STATUS.PENDING) {</span>
+<span class="cstat-no" title="statement not covered" >        failed++;</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      try {</span>
+        const tx = <span class="cstat-no" title="statement not covered" >db.<span class="fstat-no" title="function not covered" >transaction(() =&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >          db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+            NFT_STATUS.MINTING,
+            Date.now(),
+            id
+          );
+          const result = <span class="cstat-no" title="statement not covered" >db</span>
+            .prepare(
+              `INSERT INTO nft_mint_tasks (nft_asset_id, status, retry_count) VALUES (?, 'pending', 0)`
+            )
+            .run(id);
+<span class="cstat-no" title="statement not covered" >          return result.lastInsertRowid as number;</span>
+        });
+        const taskId = <span class="cstat-no" title="statement not covered" >tx();</span>
+<span class="cstat-no" title="statement not covered" >        simulateMint(id, taskId);</span>
+<span class="cstat-no" title="statement not covered" >        success++;</span>
+      } catch {
+<span class="cstat-no" title="statement not covered" >        failed++;</span>
+      }
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, { total: ids.length, success, failed }, `批量审核完成:成功${success}条,失败${failed}条`);</span>
+  }
+);
+&nbsp;
+// POST /api/nft/audit/batch-reject - 批量审核驳回
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/audit/batch-reject',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'batch_reject_mint'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const body = <span class="cstat-no" title="statement not covered" >req.body as { ids?: number[]; reject_reason?: string };</span>
+    const ids = <span class="cstat-no" title="statement not covered" >Array.isArray(body.ids) ? body.ids.<span class="fstat-no" title="function not covered" >filter((i</span>d) =&gt; <span class="cstat-no" title="statement not covered" >Number.isFinite(Number(id)))</span> : [];</span>
+    const reason = <span class="cstat-no" title="statement not covered" >String(body.reject_reason ?? '').trim();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (!ids.length) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '请选择要驳回的资产');</span></span>
+<span class="cstat-no" title="statement not covered" >    if (!reason) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '请填写驳回理由');</span></span>
+&nbsp;
+    let success = <span class="cstat-no" title="statement not covered" >0;</span>
+    let failed = <span class="cstat-no" title="statement not covered" >0;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    for (const id of ids) {</span>
+      const target = <span class="cstat-no" title="statement not covered" >db</span>
+        .prepare('SELECT id, status FROM nft_assets WHERE id = ?')
+        .get(id) as { id: number; status: string } | undefined;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      if (!target || target.status !== NFT_STATUS.PENDING) {</span>
+<span class="cstat-no" title="statement not covered" >        failed++;</span>
+<span class="cstat-no" title="statement not covered" >        continue;</span>
+      }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      try {</span>
+<span class="cstat-no" title="statement not covered" >        db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+          NFT_STATUS.REJECTED,
+          Date.now(),
+          id
+        );
+<span class="cstat-no" title="statement not covered" >        success++;</span>
+      } catch {
+<span class="cstat-no" title="statement not covered" >        failed++;</span>
+      }
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, { total: ids.length, success, failed }, `批量驳回完成:成功${success}条,失败${failed}条`);</span>
+  }
+);
+&nbsp;
+// POST /api/nft/assets/:id/resubmit - 重新提交审核
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/assets/:id/resubmit',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'resubmit_audit'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的资产 ID');</span></span>
+&nbsp;
+    const target = <span class="cstat-no" title="statement not covered" >db.prepare('SELECT id, status FROM nft_assets WHERE id = ?').get(id) as</span>
+      | { id: number; status: string }
+      | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!target) <span class="cstat-no" title="statement not covered" >return fail(res, 404, 'NFT 资产不存在');</span></span>
+&nbsp;
+    const resubmittableStatus: string[] = <span class="cstat-no" title="statement not covered" >[NFT_STATUS.DRAFT, NFT_STATUS.FAILED, NFT_STATUS.REJECTED];</span>
+<span class="cstat-no" title="statement not covered" >    if (!resubmittableStatus.includes(target.status)) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前状态【${STATUS_LABEL[target.status] ?? target.status}】不可重新提交`);</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+      NFT_STATUS.PENDING,
+      Date.now(),
+      id
+    );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, null, '已重新提交审核');</span>
+  }
+);
+&nbsp;
+// ==================== 上链任务 ====================
+&nbsp;
+// GET /api/nft/tasks - 上链任务列表(可按资产 ID / 状态筛选)
+<span class="cstat-no" title="statement not covered" >nftRouter.get('/tasks', requirePermission('nft:audit'<span class="fstat-no" title="function not covered" >), (r</span>eq: AuthedRequest, res: Response) =&gt; {</span>
+  const page = <span class="cstat-no" title="statement not covered" >Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);</span>
+  const pageSize = <span class="cstat-no" title="statement not covered" >Math.max(1, parseInt(String(req.query.pageSize ?? '10'), 10) || 10);</span>
+  const nft_asset_id = <span class="cstat-no" title="statement not covered" >req.query.nft_asset_id</span>
+    ? parseInt(String(req.query.nft_asset_id), 10)
+    : undefined;
+  const status = <span class="cstat-no" title="statement not covered" >String(req.query.status ?? '').trim();</span>
+&nbsp;
+  const where: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  const params: Array&lt;string | number&gt; = <span class="cstat-no" title="statement not covered" >[];</span>
+<span class="cstat-no" title="statement not covered" >  if (nft_asset_id &amp;&amp; Number.isFinite(nft_asset_id)) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('t.nft_asset_id = ?');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(nft_asset_id);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (status) {</span>
+<span class="cstat-no" title="statement not covered" >    where.push('t.status = ?');</span>
+<span class="cstat-no" title="statement not covered" >    params.push(status);</span>
+  }
+  const whereSql = <span class="cstat-no" title="statement not covered" >where.length ? `WHERE ${where.join(' AND ')}` : '';</span>
+&nbsp;
+  const total = (
+<span class="cstat-no" title="statement not covered" >    db.prepare(`SELECT COUNT(*) AS c FROM nft_mint_tasks t ${whereSql}`).get(...params) as {</span>
+      c: number;
+    }
+  ).c;
+&nbsp;
+  const rows = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT t.id, t.nft_asset_id, t.status, t.retry_count, t.error_msg, t.tx_hash,
+              t.contract_address, t.started_at, t.finished_at, t.created_at,
+              a.name AS asset_name, a.token_id, a.owner_name
+       FROM nft_mint_tasks t
+       LEFT JOIN nft_assets a ON a.id = t.nft_asset_id
+       ${whereSql}
+       ORDER BY t.created_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(...params, pageSize, (page - 1) * pageSize) as Array&lt;
+    NftMintTaskRow &amp; {
+      asset_name: string | null;
+      token_id: string | null;
+      owner_name: string | null;
+    }
+  &gt;;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ok(res, { list: rows, total });</span>
+});
+&nbsp;
+// GET /api/nft/tasks/:id - 查询单个上链任务状态
+<span class="cstat-no" title="statement not covered" >nftRouter.get('/tasks/:id', requirePermission('nft:audit'<span class="fstat-no" title="function not covered" >), (r</span>eq: AuthedRequest, res: Response) =&gt; {</span>
+  const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >  if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的任务 ID');</span></span>
+&nbsp;
+  const task = <span class="cstat-no" title="statement not covered" >db</span>
+    .prepare(
+      `SELECT t.id, t.nft_asset_id, t.status, t.retry_count, t.error_msg, t.tx_hash,
+              t.contract_address, t.started_at, t.finished_at, t.created_at,
+              a.name AS asset_name, a.token_id, a.owner_name, a.status AS asset_status
+       FROM nft_mint_tasks t
+       LEFT JOIN nft_assets a ON a.id = t.nft_asset_id
+       WHERE t.id = ?`
+    )
+    .get(id) as
+    | (NftMintTaskRow &amp; {
+        asset_name: string | null;
+        token_id: string | null;
+        owner_name: string | null;
+        asset_status: string | null;
+      })
+    | undefined;
+<span class="cstat-no" title="statement not covered" >  if (!task) <span class="cstat-no" title="statement not covered" >return fail(res, 404, '上链任务不存在');</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ok(res, task);</span>
+});
+&nbsp;
+// POST /api/nft/tasks/:id/retry - 重试失败任务(重新触发模拟上链)
+<span class="cstat-no" title="statement not covered" >nftRouter.post(</span>
+  '/tasks/:id/retry',
+  requirePermission('nft:audit'),
+  auditMiddleware('nft', 'retry_mint_task'<span class="fstat-no" title="function not covered" >),</span>
+  (req: AuthedRequest, res: Response) =&gt; {
+    const id = <span class="cstat-no" title="statement not covered" >parseInt(req.params.id, 10);</span>
+<span class="cstat-no" title="statement not covered" >    if (!Number.isFinite(id)) <span class="cstat-no" title="statement not covered" >return fail(res, 400, '无效的任务 ID');</span></span>
+&nbsp;
+    const task = <span class="cstat-no" title="statement not covered" >db</span>
+      .prepare('SELECT id, nft_asset_id, status, retry_count FROM nft_mint_tasks WHERE id = ?')
+      .get(id) as { id: number; nft_asset_id: number; status: string; retry_count: number } | undefined;
+<span class="cstat-no" title="statement not covered" >    if (!task) <span class="cstat-no" title="statement not covered" >return fail(res, 404, '上链任务不存在');</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (task.status !== MINT_TASK_STATUS.FAILED) {</span>
+<span class="cstat-no" title="statement not covered" >      return fail(res, 400, `当前任务状态【${task.status}】不可重试,仅失败任务可重试`);</span>
+    }
+&nbsp;
+    // 更新任务为 pending,增加重试次数;资产回到上链中
+<span class="cstat-no" title="statement not covered" >    db.prepare(</span>
+      `UPDATE nft_mint_tasks
+       SET status = ?, retry_count = ?, error_msg = NULL, started_at = NULL, finished_at = NULL
+       WHERE id = ?`
+    ).run(MINT_TASK_STATUS.PENDING, task.retry_count + 1, id);
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    db.prepare('UPDATE nft_assets SET status = ?, updated_at = ? WHERE id = ?').run(</span>
+      NFT_STATUS.MINTING,
+      Date.now(),
+      task.nft_asset_id
+    );
+&nbsp;
+    // 重新触发模拟上链
+<span class="cstat-no" title="statement not covered" >    simulateMint(task.nft_asset_id, id);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return ok(res, null, '已重新触发上链任务');</span>
+  }
+);
+&nbsp;
+export default nftRouter;
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-09-01T04:25:45.502Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

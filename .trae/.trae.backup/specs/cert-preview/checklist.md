@@ -1,0 +1,7 @@
+- [x] Checkpoint 1: 认证材料卡片支持点击触发预览
+- [x] Checkpoint 2: 预览窗口正常显示图片
+- [x] Checkpoint 3: 预览支持放大、缩小、旋转操作
+- [x] Checkpoint 4: 支持多图切换（左右箭头或方向键）
+- [x] Checkpoint 5: 无图片时显示占位提示
+- [x] Checkpoint 6: TypeScript编译通过
+- [x] Checkpoint 7: 页面无控制台报错

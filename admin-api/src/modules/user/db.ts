@@ -109,6 +109,84 @@ export function initUserDb(db: DB): void {
     db.exec('ALTER TABLE users ADD COLUMN id_card_handheld TEXT');
   }
 
+  // ============ 更多操作功能字段 ============
+  if (!columnNames.has('balance')) {
+    db.exec('ALTER TABLE users ADD COLUMN balance REAL NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.has('points')) {
+    db.exec('ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.has('distributor_id')) {
+    db.exec('ALTER TABLE users ADD COLUMN distributor_id INTEGER');
+  }
+  if (!columnNames.has('is_blacklisted')) {
+    db.exec('ALTER TABLE users ADD COLUMN is_blacklisted INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.has('tags_json')) {
+    db.exec("ALTER TABLE users ADD COLUMN tags_json TEXT DEFAULT '[]'");
+  }
+
+  // ============ 分销商表 ============
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS distributors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,                          -- 分销商名称
+      contact TEXT,                                -- 联系人
+      phone TEXT,                                  -- 联系电话
+      level TEXT DEFAULT 'normal',                 -- 分销商等级 normal/senior/partner
+      commission_rate REAL DEFAULT 0,              -- 佣金比例
+      status INTEGER NOT NULL DEFAULT 1,           -- 1 启用 0 禁用
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
+    );
+    CREATE INDEX IF NOT EXISTS idx_distributors_status ON distributors(status);
+  `);
+
+  // ============ 优惠券模板表 ============
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coupons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,                          -- 优惠券名称
+      type TEXT NOT NULL DEFAULT 'amount',         -- amount 金额抵扣 / percent 折扣
+      value REAL NOT NULL DEFAULT 0,               -- 面额(元) 或 折扣率(0-1)
+      min_amount REAL DEFAULT 0,                   -- 最低消费金额
+      total_count INTEGER DEFAULT 0,               -- 发行总量(0=不限)
+      remain_count INTEGER DEFAULT 0,              -- 剩余数量
+      expire_days INTEGER DEFAULT 30,              -- 有效期(天)
+      description TEXT,                            -- 描述
+      status INTEGER NOT NULL DEFAULT 1,           -- 1 启用 0 禁用
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
+    );
+    CREATE INDEX IF NOT EXISTS idx_coupons_status ON coupons(status);
+  `);
+
+  // ============ 用户优惠券表 ============
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_coupons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      coupon_id INTEGER NOT NULL,
+      coupon_name TEXT,                            -- 冗余优惠券名称快照
+      coupon_type TEXT,                            -- 冗余类型快照
+      coupon_value REAL,                           -- 冗余面额快照
+      status TEXT NOT NULL DEFAULT 'unused',       -- unused 未使用 / used 已使用 / expired 已过期
+      used_at INTEGER,
+      expires_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_coupons_user ON user_coupons(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_coupons_status ON user_coupons(status);
+  `);
+
+  // 用户余额/积分/黑名单索引
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_users_blacklisted ON users(is_blacklisted);
+    CREATE INDEX IF NOT EXISTS idx_users_distributor ON users(distributor_id);
+  `);
+
   // ============ 初始示例数据(仅首次建库时写入)============
   const levelCount = (db.prepare('SELECT COUNT(*) AS c FROM member_levels').get() as { c: number }).c;
   if (levelCount === 0) {
@@ -357,6 +435,41 @@ const users = [
     const idCardHandheld = generateHandheldIdCardSvg(realName);
     updateUser.run(avatar, idCardFront, idCardBack, idCardHandheld, u.id);
   });
+
+  // ============ 分销商种子数据 ============
+  const distCount = (db.prepare('SELECT COUNT(*) AS c FROM distributors').get() as { c: number }).c;
+  if (distCount === 0) {
+    const insertDist = db.prepare(
+      `INSERT INTO distributors (name, contact, phone, level, commission_rate, status)
+       VALUES (@name, @contact, @phone, @level, @commission_rate, @status)`
+    );
+    const distributors = [
+      { name: '华东赛区总代理', contact: '刘经理', phone: '13900001111', level: 'partner', commission_rate: 0.15, status: 1 },
+      { name: '华南赛区总代理', contact: '陈经理', phone: '13900002222', level: 'partner', commission_rate: 0.15, status: 1 },
+      { name: '华北赛区总代理', contact: '周经理', phone: '13900003333', level: 'senior', commission_rate: 0.12, status: 1 },
+      { name: '西南赛区总代理', contact: '吴经理', phone: '13900004444', level: 'senior', commission_rate: 0.12, status: 1 },
+      { name: '华东一区分销商', contact: '郑经理', phone: '13900005555', level: 'normal', commission_rate: 0.08, status: 1 },
+      { name: '华东二区分销商', contact: '孙经理', phone: '13900006666', level: 'normal', commission_rate: 0.08, status: 1 },
+    ];
+    distributors.forEach((d) => insertDist.run(d));
+  }
+
+  // ============ 优惠券模板种子数据 ============
+  const couponCount = (db.prepare('SELECT COUNT(*) AS c FROM coupons').get() as { c: number }).c;
+  if (couponCount === 0) {
+    const insertCoupon = db.prepare(
+      `INSERT INTO coupons (name, type, value, min_amount, total_count, remain_count, expire_days, description, status)
+       VALUES (@name, @type, @value, @min_amount, @total_count, @remain_count, @expire_days, @description, @status)`
+    );
+    const coupons = [
+      { name: '新用户注册礼包', type: 'amount', value: 50, min_amount: 200, total_count: 10000, remain_count: 8500, expire_days: 30, description: '新用户注册即送50元抵扣券', status: 1 },
+      { name: '赛事报名立减券', type: 'amount', value: 100, min_amount: 500, total_count: 5000, remain_count: 4200, expire_days: 15, description: '赛事报名满500可用', status: 1 },
+      { name: '检测服务9折券', type: 'percent', value: 0.9, min_amount: 0, total_count: 3000, remain_count: 2800, expire_days: 60, description: '检测服务9折优惠', status: 1 },
+      { name: '会员专属抵扣券', type: 'amount', value: 200, min_amount: 1000, total_count: 2000, remain_count: 1800, expire_days: 30, description: '黄金及以上会员专享', status: 1 },
+      { name: '拍卖手续费减免券', type: 'amount', value: 300, min_amount: 2000, total_count: 1000, remain_count: 950, expire_days: 90, description: '拍卖成交手续费减免', status: 1 },
+    ];
+    coupons.forEach((c) => insertCoupon.run(c));
+  }
 
   // eslint-disable-next-line no-console
   console.log('[DB] 用户与会员体系模块:表结构与示例数据已就绪');

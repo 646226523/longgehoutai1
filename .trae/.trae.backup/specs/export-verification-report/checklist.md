@@ -1,0 +1,9 @@
+- [x] Checkpoint 1: 后端 `POST /api/competition/verify-export` 接口实现，支持 PDF/Excel/CSV 三种格式导出
+- [x] Checkpoint 2: PDF 报告包含封面、统计摘要、核验明细，中文显示正常（使用 simhei.ttf 字体）
+- [x] Checkpoint 3: Excel 报告包含统计摘要和核验明细两个 Sheet，数据完整
+- [x] Checkpoint 4: CSV 报告包含 UTF-8 BOM，中文无乱码
+- [x] Checkpoint 5: 前端导出配置弹窗实现，支持范围、格式、内容选项配置
+- [x] Checkpoint 6: 导出范围控制正确（当前赛事/全部赛事/勾选赛事）
+- [x] Checkpoint 7: 空数据处理得当，有明确提示
+- [x] Checkpoint 8: `npm run build` 前后端均构建成功
+- [x] Checkpoint 9: API 测试验证三种格式导出均正常，PDF 文件格式有效（%PDF-1.3 头）

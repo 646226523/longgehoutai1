@@ -1,0 +1,9 @@
+- [x] Checkpoint 1: wangEditor 依赖安装成功，package.json 中可见
+- [x] Checkpoint 2: RichTextEditor 组件接受 value/onChange props 正常工作
+- [x] Checkpoint 3: 工具栏包含加粗、斜体、标题、列表、图片、链接、表格按钮
+- [x] Checkpoint 4: 图片能通过本地上传转为 Base64 插入编辑器
+- [x] Checkpoint 5: 资讯编辑抽屉显示富文本编辑器（而非 textarea）
+- [x] Checkpoint 6: 编辑/预览 Tab 切换正常，预览正确渲染 HTML
+- [x] Checkpoint 7: 保存资讯时 content 字段提交完整富文本 HTML
+- [x] Checkpoint 8: TypeScript 编译零错误
+- [x] Checkpoint 9: 浏览器控制台无错误信息
