@@ -1101,64 +1101,6 @@ const UserList = () => {
                 )}
               </div>
             </div>
-
-            {/* 右：KPI 指标列 */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-                flexShrink: 0,
-                minWidth: 120,
-              }}
-            >
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    opacity: 0.8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <WalletOutlined /> 余额
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>
-                  ¥{(record.balance ?? 0).toFixed(2)}
-                </div>
-              </div>
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    opacity: 0.8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <ThunderboltOutlined /> 积分
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>{record.points ?? 0}</div>
-              </div>
-            </div>
           </div>
         </div>
 
