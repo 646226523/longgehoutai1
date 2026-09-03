@@ -1093,6 +1093,7 @@ const UserList = () => {
                         color: '#fff',
                         background: 'rgba(255,255,255,0.15)',
                         borderRadius: 8,
+                        height: 32,
                       }}
                     >
                       更多操作
