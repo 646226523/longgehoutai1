@@ -790,30 +790,6 @@ const UserList = () => {
             overflow: 'hidden',
           }}
         >
-          {/* 装饰光晕 */}
-          <div
-            style={{
-              position: 'absolute',
-              top: -100,
-              right: -80,
-              width: 340,
-              height: 340,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -80,
-              left: -40,
-              width: 220,
-              height: 220,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-            }}
-          />
-
           {/* 主体布局：大头像在左 + 右侧全部信息 */}
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: 28 }}>
             {/* ========= 左：大头像 ========= */}
