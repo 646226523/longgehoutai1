@@ -211,6 +211,7 @@ const generatePigeonList = (_record: UserItem) => {
       breed: '詹森',
       gender: '雄',
       status: '参赛中',
+      photo_url: 'https://images.unsplash.com/photo-1551189017-3b50f5f8d7a2?w=800&h=600&fit=crop',
     },
     {
       id: 2,
@@ -219,6 +220,7 @@ const generatePigeonList = (_record: UserItem) => {
       breed: '慕利门',
       gender: '雌',
       status: '休息',
+      photo_url: 'https://images.unsplash.com/photo-1522858547137-f1dcec554f55?w=800&h=600&fit=crop',
     },
     {
       id: 3,
@@ -227,6 +229,7 @@ const generatePigeonList = (_record: UserItem) => {
       breed: '盖比',
       gender: '雄',
       status: '训练中',
+      photo_url: 'https://images.unsplash.com/photo-1591608971362-f08b2a75731a?w=800&h=600&fit=crop',
     },
   ];
 };
@@ -1781,12 +1784,42 @@ const UserList = () => {
                               >
                                 <div
                                   style={{
-                                    padding: '24px 16px',
-                                    background: 'linear-gradient(135deg, #e6f4ff, #bae0ff)',
-                                    textAlign: 'center',
+                                    width: '100%',
+                                    aspectRatio: '4 / 3',
+                                    background: '#f5f5f5',
+                                    overflow: 'hidden',
+                                    position: 'relative',
                                   }}
                                 >
-                                  <div style={{ fontSize: 36 }}>🕊️</div>
+                                  {p.photo_url ? (
+                                    <img
+                                      src={p.photo_url}
+                                      alt={p.name}
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        display: 'block',
+                                      }}
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, #e6f4ff, #bae0ff)',
+                                        fontSize: 36,
+                                      }}
+                                    >
+                                      🕊️
+                                    </div>
+                                  )}
                                 </div>
                                 <div style={{ padding: 12 }}>
                                   <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
