@@ -999,7 +999,8 @@ const UserList = () => {
                 )}
                 {canEdit && (
                   <Dropdown
-                    getPopupContainer={() => document.body}
+                    trigger={['click']}
+                    placement="bottomLeft"
                     menu={{
                       items: [
                         {
@@ -1065,7 +1066,6 @@ const UserList = () => {
                                 try {
                                   await toggleUserBlacklist(record.id, next);
                                   message.success(next ? '已加入黑名单' : '已移出黑名单');
-                                  // 刷新详情
                                   const fresh = await getUserDetail(record.id);
                                   setDetailDrawer({ visible: true, record: fresh });
                                   handleRefresh();
