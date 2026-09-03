@@ -11,7 +11,6 @@ import {
 import {
   App,
   Avatar,
-  Badge,
   Button,
   Card,
   Descriptions,
@@ -30,9 +29,9 @@ import {
   Space,
   Steps,
   Switch,
-  Table,
   Tabs,
   Tag,
+  Timeline,
   Typography,
 } from 'antd';
 import {
@@ -48,6 +47,7 @@ import {
   SafetyOutlined,
   SearchOutlined,
   StarFilled,
+  StarOutlined,
   TeamOutlined,
   TrophyFilled,
   UnlockOutlined,
@@ -767,420 +767,339 @@ const UserList = () => {
 
     return (
       <div style={{ paddingBottom: 80 }}>
-        {/* 头部身份卡片 */}
+        {/* 头部身份卡片 - 渐变 */}
         <div
           style={{
             position: 'relative',
             margin: '-24px -24px 0',
-            padding: '28px 24px 24px',
+            padding: '28px 24px 20px',
             background: levelTheme.gradient,
             color: '#fff',
             overflow: 'hidden',
           }}
         >
-          {/* 装饰背景 */}
+          {/* 装饰光晕 */}
           <div
             style={{
               position: 'absolute',
-              top: -60,
-              right: -40,
-              width: 220,
-              height: 220,
+              top: -80,
+              right: -60,
+              width: 280,
+              height: 280,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
             }}
           />
           <div
             style={{
               position: 'absolute',
-              bottom: -40,
-              left: 120,
-              width: 100,
-              height: 100,
+              bottom: -60,
+              left: 160,
+              width: 140,
+              height: 140,
               borderRadius: '50%',
               background: 'rgba(255,255,255,0.08)',
             }}
           />
 
-          {/* 主体：头像+身份+状态+数据 */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', gap: 20 }}>
-              {/* 头像区 */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 100 }}>
-                <div
+          {/* 主体布局：左-头像+姓名 | 中-状态+信息 | 右-KPI指标 */}
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 24 }}>
+            {/* 左：头像 */}
+            <div style={{ flexShrink: 0 }}>
+              <div
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: '50%',
+                  padding: 3,
+                  background:
+                    'conic-gradient(from 0deg, rgba(255,255,255,0.95), rgba(255,255,255,0.25), rgba(255,255,255,0.95))',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                }}
+              >
+                <Avatar
+                  src={record.avatar}
+                  size={94}
                   style={{
-                    width: 88,
-                    height: 88,
-                    borderRadius: '50%',
-                    padding: 3,
-                    background: 'conic-gradient(from 0deg, rgba(255,255,255,0.9), rgba(255,255,255,0.3), rgba(255,255,255,0.9))',
-                    boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
+                    background: 'rgba(255,255,255,0.4)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: 38,
                   }}
                 >
-                  <Badge
-                    count={record.status === 1 ? '' : '禁'}
-                    style={{
-                      backgroundColor: record.status === 1 ? '#52c41a' : '#ff4d4f',
-                      fontSize: 11,
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                    }}
-                    offset={[-6, 6]}
-                  >
-                    <div
-                      style={{
-                        width: 82,
-                        height: 82,
-                        borderRadius: '50%',
-                        overflow: 'hidden',
-                        background: 'rgba(255,255,255,0.25)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '2px solid rgba(255,255,255,0.5)',
-                      }}
-                    >
-                      <Avatar
-                        src={record.avatar}
-                        size={72}
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.4)',
-                          color: '#fff',
-                          fontWeight: 600,
-                          fontSize: 32,
-                        }}
-                      >
-                        {firstChar}
-                      </Avatar>
-                    </div>
-                  </Badge>
-                </div>
-
-                {/* 等级徽章 */}
-                {record.level_name ? (
+                  {firstChar}
+                </Avatar>
+              </div>
+              {/* 底部状态小圆标 */}
+              <div style={{ marginTop: -8, marginLeft: 48, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {record.level_name && (
                   <div
                     style={{
-                      marginTop: 10,
-                      padding: '3px 10px',
-                      background: 'rgba(255,255,255,0.22)',
-                      borderRadius: 12,
+                      padding: '2px 10px',
+                      background: 'rgba(255,255,255,0.25)',
+                      borderRadius: 10,
                       border: '1px solid rgba(255,255,255,0.4)',
-                      backdropFilter: 'blur(6px)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: 600,
+                      backdropFilter: 'blur(4px)',
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    <StarFilled style={{ fontSize: 11 }} />
-                    {record.level_name}
+                    ⭐ {record.level_name}
                   </div>
-                ) : null}
-              </div>
-
-              {/* 身份+状态+数据区 */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {/* 第一行：姓名+状态标签 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <Title level={4} style={{ color: '#fff', margin: 0, fontSize: 20, fontWeight: 700 }}>
-                    {displayName}
-                  </Title>
-                  <Tag
-                    color={record.status === 1 ? 'green' : 'red'}
-                    style={{ borderRadius: 10, fontSize: 12, marginRight: 0 }}
-                  >
-                    {record.status === 1 ? '正常' : '已封禁'}
-                  </Tag>
-                  <Tag color={certCfg.color} style={{ borderRadius: 10, fontSize: 12, marginRight: 0 }}>
-                    {certCfg.text}
-                  </Tag>
-                </div>
-
-                {/* 第二行：身份信息 */}
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 13,
-                    lineHeight: 1.8,
-                    opacity: 0.95,
-                  }}
-                >
-                  <div>
-                    <Text style={{ color: 'rgba(255,255,255,0.75)' }}>用户ID：</Text>
-                    <Text strong>{record.id}</Text>
-                    <Text style={{ margin: '0 10px', color: 'rgba(255,255,255,0.4)' }}>|</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.75)' }}>手机号：</Text>
-                    <Text strong>{maskPhone(record.phone)}</Text>
-                  </div>
-                  <div>
-                    <Text style={{ color: 'rgba(255,255,255,0.75)' }}>注册时间：</Text>
-                    <Text>{dayjs(record.created_at).format('YYYY-MM-DD HH:mm:ss')}</Text>
-                    {record.real_name ? (
-                      <>
-                        <Text style={{ margin: '0 10px', color: 'rgba(255,255,255,0.4)' }}>|</Text>
-                        <Text style={{ color: 'rgba(255,255,255,0.75)' }}>真实姓名：</Text>
-                        <Text>{record.real_name}</Text>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* 第三行：关键数据卡片 */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                )}
+                {record.status !== 1 && (
                   <div
                     style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'rgba(255,255,255,0.15)',
+                      padding: '2px 8px',
+                      background: '#ff4d4f',
                       borderRadius: 10,
-                      padding: '8px 12px',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(4px)',
+                      fontSize: 10,
+                      fontWeight: 600,
                     }}
                   >
-                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <TrophyFilled /> 成长值
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>{record.growth_value.toLocaleString()}</div>
+                    🔒 已封禁
                   </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 10,
-                      padding: '8px 12px',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <SafetyOutlined /> 认证
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>
-                      {certProgress.done}/{certProgress.total}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 10,
-                      padding: '8px 12px',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ClockCircleFilled /> 天数
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>
-                      {dayjs().diff(dayjs(record.created_at), 'day')}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 10,
-                      padding: '8px 12px',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <WalletOutlined /> 余额
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>
-                      ¥{(record.balance ?? 0).toFixed(2)}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 10,
-                      padding: '8px 12px',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ThunderboltOutlined /> 积分
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>
-                      {record.points ?? 0}
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* 头部操作按钮 */}
-            <div
-              style={{
-                marginTop: 16,
-                paddingTop: 14,
-                borderTop: '1px solid rgba(255,255,255,0.25)',
-                display: 'flex',
-                gap: 10,
-                flexWrap: 'wrap',
-              }}
-            >
-              {canEdit && (
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    openEdit(record);
-                    setDetailDrawer({ visible: false, record: null });
-                  }}
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    color: '#fff',
-                    background: 'rgba(255,255,255,0.12)',
-                  }}
-                >
-                  编辑信息
-                </Button>
-              )}
-              {canEdit && (
-                <Button
-                  icon={<LockOutlined />}
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    color: '#fff',
-                    background: 'rgba(255,255,255,0.12)',
-                  }}
-                  onClick={() => {
-                    message.info('密码重置功能开发中');
-                  }}
-                >
-                  重置密码
-                </Button>
-              )}
-              {canEdit && (
-                <Popconfirm
-                  title={record.status === 1 ? '确认锁定该用户账号?' : '确认解锁该用户账号?'}
-                  onConfirm={async () => {
-                    await handleToggleStatus(record, record.status === 1 ? 0 : 1);
-                    setDetailDrawer({ visible: false, record: null });
-                  }}
-                >
+            {/* 中：姓名+标签+信息 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <Title level={4} style={{ color: '#fff', margin: 0, fontSize: 22, fontWeight: 700 }}>
+                  {displayName}
+                </Title>
+                <Tag color={certCfg.color} style={{ borderRadius: 10, fontSize: 12, margin: 0 }}>
+                  {certCfg.text}
+                </Tag>
+                {record.is_blacklisted === 1 && (
+                  <Tag color="error" style={{ borderRadius: 10, fontSize: 12 }}>
+                    🚫 黑名单
+                  </Tag>
+                )}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.9, opacity: 0.92 }}>
+                <div>
+                  <Text style={{ color: 'rgba(255,255,255,0.7)' }}>ID</Text> {record.id}
+                  <Text style={{ margin: '0 8px', opacity: 0.4 }}>·</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.7)' }}>📱</Text> {maskPhone(record.phone)}
+                  <Text style={{ margin: '0 8px', opacity: 0.4 }}>·</Text>
+                  {record.real_name && (
+                    <>
+                      <Text style={{ color: 'rgba(255,255,255,0.7)' }}>👤</Text> {record.real_name}
+                      <Text style={{ margin: '0 8px', opacity: 0.4 }}>·</Text>
+                    </>
+                  )}
+                  <Text style={{ color: 'rgba(255,255,255,0.7)' }}>📅</Text>{' '}
+                  {dayjs(record.created_at).format('YYYY-MM-DD')}
+                </div>
+              </div>
+
+              {/* 操作按钮组 */}
+              <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {canEdit && (
                   <Button
-                    danger={record.status === 1}
-                    icon={record.status === 1 ? <LockOutlined /> : <UnlockOutlined />}
+                    icon={<EditOutlined />}
+                    size="small"
+                    onClick={() => {
+                      openEdit(record);
+                      setDetailDrawer({ visible: false, record: null });
+                    }}
                     style={{
                       borderColor: 'rgba(255,255,255,0.5)',
-                      color: record.status === 1 ? '#ff7875' : '#fff',
-                      background: 'rgba(255,255,255,0.12)',
+                      color: '#fff',
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 8,
                     }}
                   >
-                    {record.status === 1 ? '锁定账号' : '解锁账号'}
+                    编辑信息
                   </Button>
-                </Popconfirm>
-              )}
-              <Dropdown
-                getPopupContainer={() => document.body}
-                menu={{
-                  items: [
-                    {
-                      key: 'logout',
-                      label: '强制退出登录',
-                      icon: <SafetyOutlined />,
-                      onClick: () => message.info('强制退出功能开发中'),
-                    },
-                    {
-                      key: 'export',
-                      label: '导出用户数据',
-                      icon: <EyeOutlined />,
-                      onClick: () => message.info('导出功能开发中'),
-                    },
-                    { type: 'divider' },
-                    {
-                      key: 'balance',
-                      label: '调整余额',
-                      icon: <WalletOutlined />,
-                      onClick: () => openMoreAction(record, 'balance'),
-                    },
-                    {
-                      key: 'points',
-                      label: '调整积分',
-                      icon: <ThunderboltOutlined />,
-                      onClick: () => openMoreAction(record, 'points'),
-                    },
-                    {
-                      key: 'coupon',
-                      label: '发放优惠券',
-                      icon: <GiftOutlined />,
-                      onClick: () => openMoreAction(record, 'coupon'),
-                    },
-                    {
-                      key: 'tags',
-                      label: '设置标签',
-                      icon: <TagOutlined />,
-                      onClick: () => openMoreAction(record, 'tags'),
-                    },
-                    {
-                      key: 'distributor',
-                      label: '变更分销商',
-                      icon: <SwapOutlined />,
-                      onClick: () => openMoreAction(record, 'distributor'),
-                    },
-                    { type: 'divider' },
-                    {
-                      key: 'blacklist',
-                      label: record.is_blacklisted ? '移出黑名单' : '加入黑名单',
-                      icon: <BlockOutlined />,
-                      danger: true,
-                      onClick: () => {
-                        const next = record.is_blacklisted ? 0 : 1;
-                        modal.confirm({
-                          title: next ? '确认加入黑名单？' : '确认移出黑名单？',
-                          content: next
-                            ? `用户「${record.nickname || record.username}」将被加入黑名单。`
-                            : `用户「${record.nickname || record.username}」将被移出黑名单。`,
-                          okText: '确认',
-                          cancelText: '取消',
-                          okButtonProps: { danger: next === 1 },
-                          onOk: async () => {
-                            try {
-                              await toggleUserBlacklist(record.id, next);
-                              message.success(next ? '已加入黑名单' : '已移出黑名单');
-                              // 刷新详情
-                              const fresh = await getUserDetail(record.id);
-                              setDetailDrawer({ visible: true, record: fresh });
-                              handleRefresh();
-                            } catch (err: any) {
-                              message.error(err?.message || '操作失败');
-                            }
+                )}
+                {canEdit && (
+                  <Popconfirm
+                    title={record.status === 1 ? '确认锁定该用户账号?' : '确认解锁该用户账号?'}
+                    onConfirm={async () => {
+                      await handleToggleStatus(record, record.status === 1 ? 0 : 1);
+                      setDetailDrawer({ visible: false, record: null });
+                    }}
+                  >
+                    <Button
+                      size="small"
+                      danger={record.status === 1}
+                      icon={record.status === 1 ? <LockOutlined /> : <UnlockOutlined />}
+                      style={{
+                        borderColor: 'rgba(255,255,255,0.5)',
+                        color: record.status === 1 ? '#ffccc7' : '#fff',
+                        background: 'rgba(255,255,255,0.15)',
+                        borderRadius: 8,
+                      }}
+                    >
+                      {record.status === 1 ? '锁定账号' : '解锁账号'}
+                    </Button>
+                  </Popconfirm>
+                )}
+                {canEdit && (
+                  <Dropdown
+                    getPopupContainer={() => document.body}
+                    menu={{
+                      items: [
+                        {
+                          key: 'logout',
+                          label: '强制退出登录',
+                          icon: <SafetyOutlined />,
+                          onClick: () => message.info('强制退出功能开发中'),
+                        },
+                        {
+                          key: 'export',
+                          label: '导出用户数据',
+                          icon: <EyeOutlined />,
+                          onClick: () => message.info('导出功能开发中'),
+                        },
+                        { type: 'divider' },
+                        {
+                          key: 'balance',
+                          label: '调整余额',
+                          icon: <WalletOutlined />,
+                          onClick: () => openMoreAction(record, 'balance'),
+                        },
+                        {
+                          key: 'points',
+                          label: '调整积分',
+                          icon: <ThunderboltOutlined />,
+                          onClick: () => openMoreAction(record, 'points'),
+                        },
+                        {
+                          key: 'coupon',
+                          label: '发放优惠券',
+                          icon: <GiftOutlined />,
+                          onClick: () => openMoreAction(record, 'coupon'),
+                        },
+                        {
+                          key: 'tags',
+                          label: '设置标签',
+                          icon: <TagOutlined />,
+                          onClick: () => openMoreAction(record, 'tags'),
+                        },
+                        {
+                          key: 'distributor',
+                          label: '变更分销商',
+                          icon: <SwapOutlined />,
+                          onClick: () => openMoreAction(record, 'distributor'),
+                        },
+                        { type: 'divider' },
+                        {
+                          key: 'blacklist',
+                          label: record.is_blacklisted ? '移出黑名单' : '加入黑名单',
+                          icon: <BlockOutlined />,
+                          danger: true,
+                          onClick: () => {
+                            const next = record.is_blacklisted ? 0 : 1;
+                            modal.confirm({
+                              title: next ? '确认加入黑名单？' : '确认移出黑名单？',
+                              content: next
+                                ? `用户「${record.nickname || record.username}」将被加入黑名单。`
+                                : `用户「${record.nickname || record.username}」将被移出黑名单。`,
+                              okText: '确认',
+                              cancelText: '取消',
+                              okButtonProps: { danger: next === 1 },
+                              onOk: async () => {
+                                try {
+                                  await toggleUserBlacklist(record.id, next);
+                                  message.success(next ? '已加入黑名单' : '已移出黑名单');
+                                  // 刷新详情
+                                  const fresh = await getUserDetail(record.id);
+                                  setDetailDrawer({ visible: true, record: fresh });
+                                  handleRefresh();
+                                } catch (err: any) {
+                                  message.error(err?.message || '操作失败');
+                                }
+                              },
+                            });
                           },
-                        });
-                      },
-                    },
-                    {
-                      key: 'delete',
-                      label: <span style={{ color: '#ff4d4f' }}>删除账号</span>,
-                      icon: <CloseCircleFilled style={{ color: '#ff4d4f' }} />,
-                      onClick: () => message.warning('删除功能开发中'),
-                    },
-                  ],
+                        },
+                        {
+                          key: 'delete',
+                          label: <span style={{ color: '#ff4d4f' }}>删除账号</span>,
+                          icon: <CloseCircleFilled style={{ color: '#ff4d4f' }} />,
+                          onClick: () => message.warning('删除功能开发中'),
+                        },
+                      ],
+                    }}
+                  >
+                    <Button
+                      size="small"
+                      icon={<MoreOutlined />}
+                      style={{
+                        borderColor: 'rgba(255,255,255,0.5)',
+                        color: '#fff',
+                        background: 'rgba(255,255,255,0.15)',
+                        borderRadius: 8,
+                      }}
+                    >
+                      更多操作
+                    </Button>
+                  </Dropdown>
+                )}
+              </div>
+            </div>
+
+            {/* 右：KPI 指标列 */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                flexShrink: 0,
+                minWidth: 120,
+              }}
+            >
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(4px)',
                 }}
               >
-                <Button
-                  icon={<MoreOutlined />}
+                <div
                   style={{
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    color: '#fff',
-                    background: 'rgba(255,255,255,0.12)',
+                    fontSize: 11,
+                    opacity: 0.8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
                   }}
                 >
-                  更多操作
-                </Button>
-              </Dropdown>
+                  <WalletOutlined /> 余额
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>
+                  ¥{(record.balance ?? 0).toFixed(2)}
+                </div>
+              </div>
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    opacity: 0.8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <ThunderboltOutlined /> 积分
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>{record.points ?? 0}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1200,148 +1119,249 @@ const UserList = () => {
                   </span>
                 ),
                 children: (
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <Card
-                      variant="borderless"
-                      styles={{ body: { padding: 20 } }}
-                      style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          marginBottom: 16,
-                          paddingBottom: 12,
-                          borderBottom: '1px dashed #f0f0f0',
-                        }}
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                    {/* 左列 */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {/* 基本信息卡 */}
+                      <Card
+                        variant="borderless"
+                        styles={{ body: { padding: 18 } }}
+                        style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
                       >
-                        <IdcardOutlined style={{ color: '#1677ff' }} />
-                        <Text strong style={{ fontSize: 15 }}>账号信息</Text>
-                      </div>
-                      <Descriptions column={2} size="small" colon={false}>
-                        <Descriptions.Item label="用户ID">{record.id}</Descriptions.Item>
-                        <Descriptions.Item label="用户名">{record.username}</Descriptions.Item>
-                        <Descriptions.Item label="昵称">
-                          {record.nickname || <Text type="secondary">未设置</Text>}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="手机号">
-                          {record.phone || <Text type="secondary">未绑定</Text>}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="真实姓名">
-                          {record.real_name || <Text type="secondary">未认证</Text>}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="身份证号">
-                          {record.id_card ? maskIdCard(record.id_card) : <Text type="secondary">未认证</Text>}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="账号状态">
-                          <Space>
-                            <Tag color={record.status === 1 ? 'green' : 'red'}>
-                              {record.status === 1 ? '正常' : '已封禁'}
-                            </Tag>
-                            {record.is_blacklisted === 1 && (
-                              <Tag color="error" icon={<BlockOutlined />}>黑名单</Tag>
-                            )}
-                          </Space>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="账户余额">
-                          <Text strong style={{ color: '#52c41a' }}>¥{(record.balance ?? 0).toFixed(2)}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="积分">
-                          <Text strong style={{ color: '#1677ff' }}>{record.points ?? 0}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="上级分销商">
-                          {record.distributor_name || <Text type="secondary">未设置</Text>}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="用户标签" span={2}>
-                          {record.tags && record.tags.length > 0 ? (
-                            <Space size={[0, 4]} wrap>
-                              {record.tags.map((tag, i) => (
-                                <Tag key={i} color="blue">{tag}</Tag>
-                              ))}
-                            </Space>
-                          ) : (
-                            <Text type="secondary">暂无标签</Text>
-                          )}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="注册时间">
-                          {dayjs(record.created_at).format('YYYY-MM-DD HH:mm:ss')}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="更新时间" span={2}>
-                          {dayjs(record.updated_at).format('YYYY-MM-DD HH:mm:ss')}
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </Card>
-
-                    <Card
-                      variant="borderless"
-                      styles={{ body: { padding: 20 } }}
-                      style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          marginBottom: 16,
-                          paddingBottom: 12,
-                          borderBottom: '1px dashed #f0f0f0',
-                        }}
-                      >
-                        <TrophyFilled style={{ color: '#faad14' }} />
-                        <Text strong style={{ fontSize: 15 }}>会员信息</Text>
-                      </div>
-                      <Descriptions column={2} size="small" colon={false}>
-                        <Descriptions.Item label="当前等级">
-                          {record.level_name ? (
-                            <Tag
-                              color={
-                                record.level_code === 'diamond'
-                                  ? 'purple'
-                                  : record.level_code === 'gold'
-                                  ? 'gold'
-                                  : record.level_code === 'silver'
-                                  ? 'blue'
-                                  : 'default'
-                              }
-                              style={{ fontSize: 13, padding: '2px 10px' }}
-                            >
-                              <StarFilled /> {record.level_name}
-                            </Tag>
-                          ) : (
-                            <Tag>无等级</Tag>
-                          )}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="成长值">
-                          <span style={{ fontWeight: 600, fontSize: 16, color: '#faad14' }}>
-                            {record.growth_value}
-                          </span>
-                        </Descriptions.Item>
-                      </Descriptions>
-                      {record.level_name && (
-                        <div style={{ marginTop: 16 }}>
-                          <Progress
-                            percent={Math.min((record.growth_value / 1000) * 100, 100)}
-                            strokeColor={{ from: levelTheme.color, to: levelTheme.color + 'cc' }}
-                            trailColor="#f5f5f5"
-                          />
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            距离下一级还需 {Math.max(0, 1000 - record.growth_value)} 成长值
-                          </Text>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginBottom: 14,
+                            paddingBottom: 10,
+                            borderBottom: '1px solid #f0f0f0',
+                          }}
+                        >
+                          <IdcardOutlined style={{ color: '#1677ff' }} />
+                          <Text strong style={{ fontSize: 15 }}>基本信息</Text>
                         </div>
-                      )}
-                      {record.level_name && (
-                        <div style={{ marginTop: 16 }}>
-                          <Text strong style={{ fontSize: 13 }}>会员权益：</Text>
-                          <div style={{ marginTop: 8, paddingLeft: 8 }}>
-                            <div style={{ fontSize: 13, color: '#595959' }}>· 每日可查看 50 羽鸽子详情</div>
-                            <div style={{ fontSize: 13, color: '#595959' }}>· 竞拍保证金优惠 50%</div>
-                            <div style={{ fontSize: 13, color: '#595959' }}>· 专属客服支持</div>
+                        <Descriptions
+                          column={2}
+                          size="small"
+                          colon={false}
+                          labelStyle={{ color: '#8c8c8c', width: 90 }}
+                          contentStyle={{ fontWeight: 500 }}
+                        >
+                          <Descriptions.Item label="用户ID">#{record.id}</Descriptions.Item>
+                          <Descriptions.Item label="用户名">{record.username}</Descriptions.Item>
+                          <Descriptions.Item label="昵称">
+                            {record.nickname || <Text type="secondary">未设置</Text>}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="手机号">
+                            {record.phone || <Text type="secondary">未绑定</Text>}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="真实姓名">
+                            {record.real_name || <Text type="secondary">未认证</Text>}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="身份证号">
+                            {record.id_card ? (
+                              maskIdCard(record.id_card)
+                            ) : (
+                              <Text type="secondary">未认证</Text>
+                            )}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="账号状态">
+                            <Space>
+                              <Tag color={record.status === 1 ? 'green' : 'red'}>
+                                {record.status === 1 ? '正常' : '已封禁'}
+                              </Tag>
+                              {record.is_blacklisted === 1 && (
+                                <Tag color="error">🚫 黑名单</Tag>
+                              )}
+                            </Space>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="分销商">
+                            {record.distributor_name || <Text type="secondary">未设置</Text>}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="注册时间">
+                            {dayjs(record.created_at).format('YYYY-MM-DD HH:mm')}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="更新时间">
+                            {dayjs(record.updated_at).format('YYYY-MM-DD HH:mm')}
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </Card>
+
+                      {/* 用户标签墙 */}
+                      <Card
+                        variant="borderless"
+                        styles={{ body: { padding: 18 } }}
+                        style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginBottom: 14,
+                            paddingBottom: 10,
+                            borderBottom: '1px solid #f0f0f0',
+                          }}
+                        >
+                          <TagOutlined style={{ color: '#722ed1' }} />
+                          <Text strong style={{ fontSize: 15 }}>用户标签</Text>
+                          {record.tags && record.tags.length > 0 && (
+                            <Tag color="purple">{record.tags.length}</Tag>
+                          )}
+                        </div>
+                        {record.tags && record.tags.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {record.tags.map((tag, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  padding: '3px 12px',
+                                  borderRadius: 12,
+                                  background: 'linear-gradient(135deg, #f9f0ff, #efdbff)',
+                                  border: '1px solid #d3adf7',
+                                  color: '#722ed1',
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              padding: '20px 0',
+                              textAlign: 'center',
+                              color: '#bfbfbf',
+                              fontSize: 13,
+                            }}
+                          >
+                            🏷️ 暂无标签
+                          </div>
+                        )}
+                      </Card>
+                    </div>
+
+                    {/* 右列 */}
+                    <div
+                      style={{
+                        width: 280,
+                        flexShrink: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                      }}
+                    >
+                      {/* 财务卡 */}
+                      <Card
+                        variant="borderless"
+                        styles={{ body: { padding: 18 } }}
+                        style={{
+                          borderRadius: 12,
+                          border: '1px solid #f0f0f0',
+                          background: 'linear-gradient(135deg, #f6ffed 0%, #f0fff0 100%)',
+                        }}
+                      >
+                        <div style={{ fontSize: 12, color: '#389e0d', fontWeight: 600, marginBottom: 12 }}>
+                          💰 财务概览
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                          <span style={{ fontSize: 28, fontWeight: 700, color: '#389e0d' }}>
+                            ¥{(record.balance ?? 0).toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: 12, color: '#8c8c8c' }}>账户余额</span>
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 14,
+                            paddingTop: 14,
+                            borderTop: '1px dashed #d9f7be',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 11, color: '#8c8c8c' }}>积分</div>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: '#1677ff' }}>
+                              {record.points ?? 0}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#8c8c8c' }}>赛鸽</div>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: '#722ed1' }}>
+                              {generatePigeonList(record).length}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#8c8c8c' }}>NFT</div>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: '#faad14' }}>
+                              {generateNftList(record).length}
+                            </div>
                           </div>
                         </div>
+                      </Card>
+
+                      {/* 会员卡 */}
+                      {record.level_name ? (
+                        <Card
+                          variant="borderless"
+                          styles={{ body: { padding: 18 } }}
+                          style={{
+                            borderRadius: 12,
+                            border: '1px solid #f0f0f0',
+                            background: levelTheme.gradient,
+                            color: '#fff',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <div style={{ fontSize: 11, opacity: 0.85 }}>当前等级</div>
+                              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>
+                                ⭐ {record.level_name}
+                              </div>
+                            </div>
+                            <TrophyFilled style={{ fontSize: 36, opacity: 0.4 }} />
+                          </div>
+                          <div style={{ marginTop: 12 }}>
+                            <Progress
+                              percent={Math.min((record.growth_value / 1000) * 100, 100)}
+                              strokeColor="#fff"
+                              trailColor="rgba(255,255,255,0.2)"
+                              showInfo={false}
+                              size="small"
+                            />
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                marginTop: 6,
+                                fontSize: 11,
+                                opacity: 0.85,
+                              }}
+                            >
+                              <span>{record.growth_value.toLocaleString()} 成长值</span>
+                              <span>还差 {Math.max(0, 1000 - record.growth_value)}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      ) : (
+                        <Card
+                          variant="borderless"
+                          styles={{ body: { padding: 18 } }}
+                          style={{
+                            borderRadius: 12,
+                            border: '1px dashed #d9d9d9',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <StarOutlined style={{ fontSize: 32, color: '#bfbfbf' }} />
+                          <div style={{ marginTop: 8, fontSize: 13, color: '#8c8c8c' }}>暂无会员等级</div>
+                        </Card>
                       )}
-                    </Card>
-                  </Space>
+                    </div>
+                  </div>
                 ),
               },
               {
@@ -1648,7 +1668,15 @@ const UserList = () => {
                       styles={{ body: { padding: 12 } }}
                       style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: 10,
+                        }}
+                      >
                         <Space>
                           <Text type="secondary" style={{ fontSize: 13 }}>
                             筛选：
@@ -1679,93 +1707,88 @@ const UserList = () => {
                       </div>
                     </Card>
 
-                    {/* 活动日志表格 */}
+                    {/* Timeline 时间线 */}
                     <Card
                       variant="borderless"
-                      styles={{ body: { padding: 0 } }}
-                      style={{ borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}
+                      styles={{ body: { padding: 20 } }}
+                      style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
                     >
-                      <Table
-                        size="small"
-                        pagination={false}
-                        rowKey="id"
-                        dataSource={activityLogs}
-                        columns={[
-                          {
-                            title: '时间',
-                            dataIndex: 'time',
-                            width: 140,
-                            render: (t: number) => (
-                              <div>
-                                <div style={{ fontWeight: 500 }}>{dayjs(t).format('MM-DD')}</div>
-                                <div style={{ fontSize: 11, color: '#8c8c8c' }}>
-                                  {dayjs(t).format('HH:mm')}
-                                </div>
-                              </div>
-                            ),
-                          },
-                          {
-                            title: '类型',
-                            dataIndex: 'typeLabel',
-                            width: 80,
-                            render: (label: string, row: any) => (
-                              <Tag color={row.typeColor} style={{ borderRadius: 10 }}>
-                                {label}
-                              </Tag>
-                            ),
-                          },
-                          {
-                            title: '内容',
-                            dataIndex: 'content',
-                            ellipsis: true,
-                            render: (text: string) => (
-                              <span style={{ color: '#262626' }}>{text}</span>
-                            ),
-                          },
-                          {
-                            title: 'IP地址',
-                            dataIndex: 'ip',
-                            width: 130,
-                            render: (ip: string) => (
-                              <Text
-                                copyable={{ text: ip }}
+                      {activityLogs.length > 0 ? (
+                        <Timeline
+                          mode="left"
+                          items={activityLogs.slice(0, 20).map((log: any) => ({
+                            color: log.typeColor,
+                            dot: (
+                              <div
                                 style={{
-                                  fontFamily: 'monospace',
-                                  cursor: 'pointer',
-                                  transition: 'color 0.2s',
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: '50%',
+                                  background: log.typeColor,
+                                  boxShadow: `0 0 0 3px ${log.typeColor}30`,
+                                }}
+                              />
+                            ),
+                            label: dayjs(log.time).format('MM-DD HH:mm'),
+                            children: (
+                              <Card
+                                size="small"
+                                variant="borderless"
+                                style={{
+                                  borderRadius: 10,
+                                  border: '1px solid #f0f0f0',
+                                  marginBottom: 8,
                                 }}
                               >
-                                {ip}
-                              </Text>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <Tag color={log.typeColor}>{log.typeLabel}</Tag>
+                                  <Text type="secondary" style={{ fontSize: 12 }}>
+                                    {dayjs(log.time).format('YYYY-MM-DD HH:mm:ss')}
+                                  </Text>
+                                </div>
+                                <div style={{ fontSize: 14, color: '#262626' }}>{log.content}</div>
+                                {log.ip && (
+                                  <div style={{ marginTop: 4, fontSize: 11, color: '#8c8c8c' }}>
+                                    IP:{' '}
+                                    <Text
+                                      copyable={{ text: log.ip }}
+                                      style={{ fontFamily: 'monospace' }}
+                                    >
+                                      {log.ip}
+                                    </Text>
+                                  </div>
+                                )}
+                              </Card>
                             ),
-                          },
-                          {
-                            title: '操作',
-                            key: 'action',
-                            width: 60,
-                            render: () => (
-                              <Button type="link" size="small">
-                                详情
-                              </Button>
-                            ),
-                          },
-                        ]}
-                      />
+                          }))}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            padding: '40px 0',
+                            color: '#bfbfbf',
+                            fontSize: 13,
+                          }}
+                        >
+                          📭 暂无活动记录
+                        </div>
+                      )}
                       <div
                         style={{
-                          padding: '10px 16px',
+                          marginTop: 10,
+                          paddingTop: 10,
                           borderTop: '1px solid #f0f0f0',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          background: '#fafafa',
                         }}
                       >
                         <Text type="secondary" style={{ fontSize: 12 }}>
                           共 {activityLogs.length} 条记录
                         </Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          展示最新 {activityLogs.length} 条
+                          展示最新 {Math.min(activityLogs.length, 20)} 条
                         </Text>
                       </div>
                     </Card>
@@ -1783,48 +1806,97 @@ const UserList = () => {
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                     <Card
                       variant="borderless"
-                      styles={{ body: { padding: 0 } }}
-                      style={{ borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}
+                      styles={{ body: { padding: 16 } }}
+                      style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
                     >
-                      <Table
-                        size="small"
-                        pagination={false}
-                        rowKey="id"
-                        dataSource={generatePigeonList(record)}
-                        columns={[
-                          {
-                            title: '环号',
-                            dataIndex: 'ring_number',
-                            render: (v: string) => <Text code>{v}</Text>,
-                          },
-                          { title: '鸽名', dataIndex: 'name' },
-                          { title: '品种', dataIndex: 'breed' },
-                          { title: '性别', dataIndex: 'gender', width: 60 },
-                          {
-                            title: '状态',
-                            dataIndex: 'status',
-                            width: 100,
-                            render: (s: string) => {
-                              const colorMap: Record<string, string> = {
-                                参赛中: 'red',
-                                训练中: 'blue',
-                                休息: 'default',
-                              };
-                              return <Tag color={colorMap[s] || 'default'}>{s}</Tag>;
-                            },
-                          },
-                          {
-                            title: '操作',
-                            key: 'action',
-                            width: 80,
-                            render: () => (
-                              <Button type="link" size="small">
-                                详情
-                              </Button>
-                            ),
-                          },
-                        ]}
-                      />
+                      {generatePigeonList(record).length > 0 ? (
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                            gap: 12,
+                          }}
+                        >
+                          {generatePigeonList(record).map((p: any) => {
+                            const statusColor: Record<string, string> = {
+                              参赛中: 'red',
+                              训练中: 'blue',
+                              休息: 'default',
+                            };
+                            return (
+                              <div
+                                key={p.id}
+                                style={{
+                                  borderRadius: 12,
+                                  border: '1px solid #f0f0f0',
+                                  overflow: 'hidden',
+                                  transition: 'all 0.2s',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => {
+                                  (e.currentTarget as HTMLDivElement).style.borderColor = '#1677ff';
+                                  (e.currentTarget as HTMLDivElement).style.boxShadow =
+                                    '0 4px 12px rgba(22,119,255,0.15)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  (e.currentTarget as HTMLDivElement).style.borderColor = '#f0f0f0';
+                                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    padding: '24px 16px',
+                                    background: 'linear-gradient(135deg, #e6f4ff, #bae0ff)',
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  <div style={{ fontSize: 36 }}>🕊️</div>
+                                </div>
+                                <div style={{ padding: 12 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+                                    {p.name}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                      color: '#8c8c8c',
+                                      marginBottom: 8,
+                                    }}
+                                  >
+                                    {p.ring_number}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                    }}
+                                  >
+                                    <span style={{ fontSize: 12, color: '#8c8c8c' }}>
+                                      {p.breed} · {p.gender}
+                                    </span>
+                                    <Tag color={statusColor[p.status] || 'default'} style={{ margin: 0 }}>
+                                      {p.status}
+                                    </Tag>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            padding: '40px 0',
+                            color: '#bfbfbf',
+                            fontSize: 13,
+                          }}
+                        >
+                          🕊️ 暂无赛鸽
+                        </div>
+                      )}
                     </Card>
                   </Space>
                 ),
@@ -1840,45 +1912,109 @@ const UserList = () => {
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                     <Card
                       variant="borderless"
-                      styles={{ body: { padding: 0 } }}
-                      style={{ borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}
+                      styles={{ body: { padding: 16 } }}
+                      style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
                     >
-                      <Table
-                        size="small"
-                        pagination={false}
-                        rowKey="id"
-                        dataSource={generateNftList(record)}
-                        columns={[
-                          {
-                            title: 'Token ID',
-                            dataIndex: 'token_id',
-                            render: (v: string) => <Text code>{v}</Text>,
-                          },
-                          { title: '名称', dataIndex: 'name' },
-                          { title: '系列', dataIndex: 'collection' },
-                          {
-                            title: '获取时间',
-                            dataIndex: 'acquired_at',
-                            render: (t: number) => dayjs(t).format('YYYY-MM-DD HH:mm'),
-                          },
-                          {
-                            title: '状态',
-                            dataIndex: 'status',
-                            width: 80,
-                            render: (s: string) => <Tag color="green">{s}</Tag>,
-                          },
-                          {
-                            title: '操作',
-                            key: 'action',
-                            width: 80,
-                            render: () => (
-                              <Button type="link" size="small">
-                                查看
-                              </Button>
-                            ),
-                          },
-                        ]}
-                      />
+                      {generateNftList(record).length > 0 ? (
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                            gap: 12,
+                          }}
+                        >
+                          {generateNftList(record).map((n: any) => {
+                            const rarityColor: Record<string, string> = {
+                              稀有: '#faad14',
+                              史诗: '#722ed1',
+                              传说: '#ff4d4f',
+                              普通: '#8c8c8c',
+                            };
+                            const rarityText = n.rarity || '普通';
+                            return (
+                              <div
+                                key={n.id}
+                                style={{
+                                  borderRadius: 12,
+                                  border: '1px solid #f0f0f0',
+                                  overflow: 'hidden',
+                                  transition: 'all 0.2s',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => {
+                                  (e.currentTarget as HTMLDivElement).style.borderColor = '#722ed1';
+                                  (e.currentTarget as HTMLDivElement).style.boxShadow =
+                                    '0 4px 12px rgba(114,46,209,0.15)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  (e.currentTarget as HTMLDivElement).style.borderColor = '#f0f0f0';
+                                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    padding: '24px 16px',
+                                    background: 'linear-gradient(135deg, #f9f0ff, #efdbff)',
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  <div style={{ fontSize: 36 }}>💎</div>
+                                </div>
+                                <div style={{ padding: 12 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+                                    {n.name}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                      color: '#8c8c8c',
+                                      marginBottom: 8,
+                                    }}
+                                  >
+                                    #{n.token_id}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                    }}
+                                  >
+                                    <span style={{ fontSize: 12, color: '#8c8c8c' }}>
+                                      {n.collection}
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        padding: '2px 8px',
+                                        borderRadius: 10,
+                                        background:
+                                          (rarityColor[rarityText] || '#8c8c8c') + '15',
+                                        color: rarityColor[rarityText] || '#8c8c8c',
+                                      }}
+                                    >
+                                      {rarityText}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            padding: '40px 0',
+                            color: '#bfbfbf',
+                            fontSize: 13,
+                          }}
+                        >
+                          💎 暂无 NFT 资产
+                        </div>
+                      )}
                     </Card>
                   </Space>
                 ),
