@@ -117,6 +117,12 @@ function maskPhone(phone: string | null): string {
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
 }
 
+/** 格式化用户 ID：数字 → A + 3位零填充，如 1→A001, 99→A099, 1234→A1234 */
+function formatUserId(id: number): string {
+  if (!Number.isFinite(id) || id <= 0) return '--';
+  return 'A' + String(id).padStart(3, '0');
+}
+
 /** 生成用户头像 URL — 优先用后端返回的真实图片(http开头)，否则用 DiceBear API 生成独特 SVG 头像 */
 function buildAvatarUrl(record: UserItem): string {
   const avatar = record.avatar;
@@ -876,7 +882,7 @@ const UserList = () => {
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ opacity: 0.6 }}>ID</span>
-                  <Text strong style={{ color: '#fff' }}>#{record.id}</Text>
+                  <Text strong style={{ color: '#fff' }}>{formatUserId(record.id)}</Text>
                 </span>
                 <span style={{ opacity: 0.35 }}>·</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1095,7 +1101,7 @@ const UserList = () => {
                             content: { fontWeight: 500 },
                           }}
                         >
-                          <Descriptions.Item label="用户ID">#{record.id}</Descriptions.Item>
+                          <Descriptions.Item label="用户ID">{formatUserId(record.id)}</Descriptions.Item>
                           <Descriptions.Item label="用户名">{record.username}</Descriptions.Item>
                           <Descriptions.Item label="昵称">
                             {record.nickname || <Text type="secondary">未设置</Text>}
