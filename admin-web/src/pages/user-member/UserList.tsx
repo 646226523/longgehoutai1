@@ -767,12 +767,12 @@ const UserList = () => {
 
     return (
       <div style={{ paddingBottom: 80 }}>
-        {/* 头部身份卡片 - 渐变 */}
+        {/* ==================== 头部身份卡 - 重构版 ==================== */}
         <div
           style={{
             position: 'relative',
             margin: '-24px -24px 0',
-            padding: '28px 24px 20px',
+            padding: '32px 28px 24px',
             background: levelTheme.gradient,
             color: '#fff',
             overflow: 'hidden',
@@ -782,121 +782,189 @@ const UserList = () => {
           <div
             style={{
               position: 'absolute',
-              top: -80,
-              right: -60,
-              width: 280,
-              height: 280,
+              top: -100,
+              right: -80,
+              width: 340,
+              height: 340,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
             }}
           />
           <div
             style={{
               position: 'absolute',
-              bottom: -60,
-              left: 160,
-              width: 140,
-              height: 140,
+              bottom: -80,
+              left: -40,
+              width: 220,
+              height: 220,
               borderRadius: '50%',
-              background: 'rgba(255,255,255,0.08)',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
             }}
           />
 
-          {/* 主体布局：左-头像+姓名 | 中-状态+信息 | 右-KPI指标 */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 24 }}>
-            {/* 左：头像 */}
+          {/* 主体布局：大头像在左 + 右侧全部信息 */}
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: 28 }}>
+            {/* ========= 左：大头像 ========= */}
             <div style={{ flexShrink: 0 }}>
               <div
                 style={{
-                  width: 100,
-                  height: 100,
+                  width: 112,
+                  height: 112,
                   borderRadius: '50%',
                   padding: 3,
-                  background:
-                    'conic-gradient(from 0deg, rgba(255,255,255,0.95), rgba(255,255,255,0.25), rgba(255,255,255,0.95))',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                  background: 'conic-gradient(from 0deg, rgba(255,255,255,0.95), rgba(255,255,255,0.2), rgba(255,255,255,0.95))',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
+                  position: 'relative',
                 }}
               >
                 <Avatar
-                  src={record.avatar}
-                  size={94}
+                  src={record.avatar || undefined}
+                  size={106}
                   style={{
-                    background: 'rgba(255,255,255,0.4)',
+                    background: record.avatar ? 'transparent' : 'rgba(255,255,255,0.35)',
                     color: '#fff',
                     fontWeight: 700,
-                    fontSize: 38,
+                    fontSize: 44,
+                    border: '3px solid rgba(255,255,255,0.4)',
                   }}
                 >
                   {firstChar}
                 </Avatar>
-              </div>
-              {/* 底部状态小圆标 */}
-              <div style={{ marginTop: -8, marginLeft: 48, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {record.level_name && (
-                  <div
-                    style={{
-                      padding: '2px 10px',
-                      background: 'rgba(255,255,255,0.25)',
-                      borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.4)',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      backdropFilter: 'blur(4px)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    ⭐ {record.level_name}
-                  </div>
-                )}
-                {record.status !== 1 && (
-                  <div
-                    style={{
-                      padding: '2px 8px',
-                      background: '#ff4d4f',
-                      borderRadius: 10,
-                      fontSize: 10,
-                      fontWeight: 600,
-                    }}
-                  >
-                    🔒 已封禁
-                  </div>
-                )}
+                {/* 底部状态点 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 4,
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: record.status === 1 ? '#52c41a' : '#ff4d4f',
+                    border: '3px solid #fff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  }}
+                />
               </div>
             </div>
 
-            {/* 中：姓名+标签+信息 */}
+            {/* ========= 右：名字/标签/信息/按钮 ========= */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <Title level={4} style={{ color: '#fff', margin: 0, fontSize: 22, fontWeight: 700 }}>
+              {/* 第一行：名字 + 等级徽章 + 认证标签 + 状态 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <Title level={4} style={{ color: '#fff', margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: 0.5 }}>
                   {displayName}
                 </Title>
-                <Tag color={certCfg.color} style={{ borderRadius: 10, fontSize: 12, margin: 0 }}>
+                {/* 等级徽章 */}
+                {record.level_name && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 14px',
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.15) 100%)',
+                      borderRadius: 20,
+                      border: '1px solid rgba(255,255,255,0.45)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      backdropFilter: 'blur(6px)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    }}
+                  >
+                    <StarFilled style={{ fontSize: 13, color: '#ffd666' }} />
+                    {record.level_name}
+                  </div>
+                )}
+                {/* 认证状态 */}
+                <Tag color={certCfg.color} style={{ borderRadius: 12, fontSize: 12, margin: 0, padding: '2px 12px', border: 'none', fontWeight: 500 }}>
                   {certCfg.text}
                 </Tag>
+                {/* 账号状态 */}
+                <Tag color={record.status === 1 ? 'success' : 'error'} style={{ borderRadius: 12, fontSize: 12, margin: 0, padding: '2px 12px', border: 'none', fontWeight: 500 }}>
+                  {record.status === 1 ? '● 正常' : '● 已封禁'}
+                </Tag>
                 {record.is_blacklisted === 1 && (
-                  <Tag color="error" style={{ borderRadius: 10, fontSize: 12 }}>
+                  <Tag color="error" style={{ borderRadius: 12, fontSize: 12, margin: 0, padding: '2px 12px', border: 'none' }}>
                     🚫 黑名单
                   </Tag>
                 )}
               </div>
-              <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.9, opacity: 0.92 }}>
-                <div>
-                  <Text style={{ color: 'rgba(255,255,255,0.7)' }}>ID</Text> {record.id}
-                  <Text style={{ margin: '0 8px', opacity: 0.4 }}>·</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.7)' }}>📱</Text> {maskPhone(record.phone)}
-                  <Text style={{ margin: '0 8px', opacity: 0.4 }}>·</Text>
-                  {record.real_name && (
-                    <>
-                      <Text style={{ color: 'rgba(255,255,255,0.7)' }}>👤</Text> {record.real_name}
-                      <Text style={{ margin: '0 8px', opacity: 0.4 }}>·</Text>
-                    </>
-                  )}
-                  <Text style={{ color: 'rgba(255,255,255,0.7)' }}>📅</Text>{' '}
-                  {dayjs(record.created_at).format('YYYY-MM-DD')}
-                </div>
+
+              {/* 第二行：关键元信息（更紧凑的单行展示） */}
+              <div
+                style={{
+                  marginTop: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  flexWrap: 'wrap',
+                  fontSize: 13,
+                  opacity: 0.9,
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ opacity: 0.6 }}>ID</span>
+                  <Text strong style={{ color: '#fff' }}>#{record.id}</Text>
+                </span>
+                <span style={{ opacity: 0.35 }}>·</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Text type="secondary" style={{ color: 'rgba(255,255,255,0.65)' }}>📱</Text>
+                  <Text style={{ color: '#fff' }}>{maskPhone(record.phone)}</Text>
+                </span>
+                {record.real_name && (
+                  <>
+                    <span style={{ opacity: 0.35 }}>·</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Text type="secondary" style={{ color: 'rgba(255,255,255,0.65)' }}>👤</Text>
+                      <Text style={{ color: '#fff' }}>{record.real_name}</Text>
+                    </span>
+                  </>
+                )}
+                <span style={{ opacity: 0.35 }}>·</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Text type="secondary" style={{ color: 'rgba(255,255,255,0.65)' }}>📅 注册于</Text>
+                  <Text style={{ color: '#fff' }}>{dayjs(record.created_at).format('YYYY-MM-DD')}</Text>
+                </span>
+                {record.distributor_name && (
+                  <>
+                    <span style={{ opacity: 0.35 }}>·</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Text type="secondary" style={{ color: 'rgba(255,255,255,0.65)' }}>🏢 分销商</Text>
+                      <Text style={{ color: '#fff' }}>{record.distributor_name}</Text>
+                    </span>
+                  </>
+                )}
               </div>
 
-              {/* 操作按钮组 */}
+              {/* 第三行：KPI 数据横排 */}
+              <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                  { icon: <WalletOutlined />, label: '余额', value: `¥${(record.balance ?? 0).toFixed(2)}`, highlight: '#ffd666' },
+                  { icon: <ThunderboltOutlined />, label: '积分', value: (record.points ?? 0).toLocaleString(), highlight: '#91caff' },
+                  { icon: <TrophyFilled />, label: '成长值', value: record.growth_value.toLocaleString(), highlight: '#ffd591' },
+                  { icon: <SafetyOutlined />, label: '认证进度', value: `${certProgress.done}/${certProgress.total}`, highlight: '#b7eb8f' },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    style={{
+                      flex: 1,
+                      minWidth: 90,
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 12,
+                      padding: '10px 14px',
+                      border: '1px solid rgba(255,255,255,0.22)',
+                      backdropFilter: 'blur(6px)',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, opacity: 0.82, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                      {kpi.icon} {kpi.label}
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: kpi.highlight }}>{kpi.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 第四行：操作按钮 */}
               <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {canEdit && (
                   <Button
@@ -906,12 +974,7 @@ const UserList = () => {
                       openEdit(record);
                       setDetailDrawer({ visible: false, record: null });
                     }}
-                    style={{
-                      borderColor: 'rgba(255,255,255,0.5)',
-                      color: '#fff',
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 8,
-                    }}
+                    style={{ borderColor: 'rgba(255,255,255,0.5)', color: '#fff', background: 'rgba(255,255,255,0.15)', borderRadius: 8, height: 32 }}
                   >
                     编辑信息
                   </Button>
@@ -928,12 +991,7 @@ const UserList = () => {
                       size="small"
                       danger={record.status === 1}
                       icon={record.status === 1 ? <LockOutlined /> : <UnlockOutlined />}
-                      style={{
-                        borderColor: 'rgba(255,255,255,0.5)',
-                        color: record.status === 1 ? '#ffccc7' : '#fff',
-                        background: 'rgba(255,255,255,0.15)',
-                        borderRadius: 8,
-                      }}
+                      style={{ borderColor: 'rgba(255,255,255,0.5)', color: record.status === 1 ? '#ffccc7' : '#fff', background: 'rgba(255,255,255,0.15)', borderRadius: 8, height: 32 }}
                     >
                       {record.status === 1 ? '锁定账号' : '解锁账号'}
                     </Button>
