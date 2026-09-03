@@ -289,8 +289,45 @@ const UserList = () => {
   const [balanceForm] = Form.useForm();
   const [pointsForm] = Form.useForm();
 
-  // 快捷标签选项
-  const QUICK_TAGS = ['VIP用户', '活跃用户', '新用户', '待跟进', '投诉用户', '合作意向', '重要客户'];
+  // 标签分组配置（带主题色和emoji）
+  const TAG_CATEGORIES: { key: string; label: string; icon: string; color: string; bg: string; border: string; tags: string[] }[] = [
+    {
+      key: 'premium',
+      label: '高价值客户',
+      icon: '👑',
+      color: '#d48806',
+      bg: 'linear-gradient(135deg, #fffbe6 0%, #fff1b8 100%)',
+      border: '#ffe58f',
+      tags: ['VIP用户', '重要客户'],
+    },
+    {
+      key: 'growth',
+      label: '活跃增长',
+      icon: '🌱',
+      color: '#389e0d',
+      bg: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)',
+      border: '#b7eb8f',
+      tags: ['活跃用户', '新用户'],
+    },
+    {
+      key: 'pipeline',
+      label: '跟进转化',
+      icon: '📋',
+      color: '#722ed1',
+      bg: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
+      border: '#d3adf7',
+      tags: ['待跟进', '合作意向'],
+    },
+    {
+      key: 'risk',
+      label: '风险关注',
+      icon: '⚠️',
+      color: '#cf1322',
+      bg: 'linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%)',
+      border: '#ffa39e',
+      tags: ['投诉用户'],
+    },
+  ];
 
   // 加载分销商和优惠券选项
   const loadMoreOptions = async () => {
@@ -2121,61 +2158,246 @@ const UserList = () => {
         )}
       </Modal>
 
-      {/* 设置标签 */}
+      {/* 设置用户标签 - 精美卡片式 */}
       <Modal
-        title={
-          <Space>
-            <TagOutlined style={{ color: '#722ed1' }} />
-            <span>设置用户标签</span>
-          </Space>
-        }
         open={actionType === 'tags'}
         zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
-        width={520}
-        okText="保存标签"
+        width={640}
+        okText="💾  保存标签"
         cancelText="取消"
+        okButtonProps={{ size: 'large', style: { minWidth: 120, height: 40, fontWeight: 600 } }}
+        cancelButtonProps={{ size: 'large', style: { height: 40 } }}
+        styles={{
+          body: { padding: 0 },
+          footer: { padding: '16px 24px', borderTop: '1px solid #f0f0f0', background: '#fafafa' },
+        }}
+        title={null}
       >
-        {actionUser && (
-          <div>
-            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f5f5f5', borderRadius: 6, fontSize: 13 }}>
-              目标用户：<Text strong>{actionUser.nickname || actionUser.username}</Text>
-            </div>
-            <Form form={tagsForm} layout="vertical">
-              <Form.Item label="快捷标签">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {QUICK_TAGS.map((tag) => (
-                    <Tag.CheckableTag
-                      key={tag}
-                      checked={(tagsForm.getFieldValue('tags') ?? []).includes(tag)}
-                      onChange={(checked) => {
-                        const current: string[] = tagsForm.getFieldValue('tags') ?? [];
-                        tagsForm.setFieldsValue({
-                          tags: checked ? [...current, tag] : current.filter((t) => t !== tag),
-                        });
-                      }}
-                    >
-                      {tag}
-                    </Tag.CheckableTag>
-                  ))}
-                </div>
-              </Form.Item>
-              <Form.Item
-                label="自定义标签"
-                name="tags"
-                tooltip="按回车添加标签,最多20个"
+        {actionUser && (() => {
+          const currentTags: string[] = tagsForm.getFieldValue('tags') ?? [];
+          const toggleTag = (tag: string, checked: boolean) => {
+            const next = checked ? [...currentTags, tag] : currentTags.filter((t) => t !== tag);
+            tagsForm.setFieldsValue({ tags: next });
+          };
+          const clearAllTags = () => tagsForm.setFieldsValue({ tags: [] });
+
+          return (
+            <div style={{ paddingBottom: 8 }}>
+              {/* 顶部渐变用户卡片 */}
+              <div
+                style={{
+                  margin: '-16px -16px 0',
+                  padding: '24px 24px 20px',
+                  background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                  color: '#fff',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
               >
-                <Select
-                  mode="tags"
-                  placeholder="输入标签后按回车添加"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Form>
-          </div>
-        )}
+                {/* 装饰光晕 */}
+                <div style={{ position: 'absolute', top: -40, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(114,46,209,0.4) 0%, transparent 70%)' }} />
+                <div style={{ position: 'absolute', bottom: -30, left: 100, width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(22,119,255,0.3) 0%, transparent 70%)' }} />
+
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <Avatar
+                    src={actionUser.avatar}
+                    size={56}
+                    style={{ background: 'linear-gradient(135deg, #722ed1, #1677ff)', border: '2px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
+                  >
+                    {(actionUser.nickname || actionUser.username || 'U').charAt(0)}
+                  </Avatar>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      为「{actionUser.nickname || actionUser.username}」设置标签
+                      {currentTags.length > 0 && (
+                        <span style={{
+                          fontSize: 11,
+                          padding: '2px 10px',
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #722ed1, #9254de)',
+                          fontWeight: 500,
+                        }}>
+                          已选 {currentTags.length} 个
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+                      {actionUser.level_name || '普通会员'} · {actionUser.phone || '无手机号'}
+                    </div>
+                  </div>
+                  {currentTags.length > 0 && (
+                    <Button
+                      size="small"
+                      type="text"
+                      onClick={clearAllTags}
+                      style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}
+                    >
+                      清空
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* 统计条 */}
+              <div
+                style={{
+                  margin: '16px 24px 0',
+                  padding: '10px 16px',
+                  background: currentTags.length > 0 ? 'linear-gradient(90deg, #f9f0ff 0%, #e6f4ff 100%)' : '#fafafa',
+                  borderRadius: 10,
+                  border: `1px solid ${currentTags.length > 0 ? '#d3adf7' : '#f0f0f0'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <TagOutlined style={{ color: '#722ed1' }} />
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                    {currentTags.length > 0
+                      ? `已选择 ${currentTags.length} 个标签，占 20 个上限的 ${Math.round((currentTags.length / 20) * 100)}%`
+                      : '尚未选择任何标签，点击下方快捷标签或自定义添加'}
+                  </Typography.Text>
+                </div>
+                {currentTags.length > 0 && (
+                  <div style={{ width: 80, height: 6, background: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: `${Math.min((currentTags.length / 20) * 100, 100)}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #722ed1, #1677ff)',
+                        borderRadius: 3,
+                        transition: 'width 0.3s',
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* 分组标签区域 */}
+              <div style={{ padding: '16px 24px 0' }}>
+                {TAG_CATEGORIES.map((cat) => {
+                  const selectedInCat = currentTags.filter((t) => cat.tags.includes(t));
+                  return (
+                    <div key={cat.key} style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 14 }}>{cat.icon}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: cat.color }}>{cat.label}</span>
+                          {selectedInCat.length > 0 && (
+                            <span style={{
+                              fontSize: 10,
+                              padding: '0 6px',
+                              height: 16,
+                              lineHeight: '16px',
+                              borderRadius: 8,
+                              background: cat.color,
+                              color: '#fff',
+                              fontWeight: 500,
+                            }}>
+                              {selectedInCat.length}/{cat.tags.length}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 8,
+                          padding: '10px 12px',
+                          background: cat.bg,
+                          borderRadius: 10,
+                          border: `1px solid ${cat.border}`,
+                        }}
+                      >
+                        {cat.tags.map((tag) => {
+                          const checked = currentTags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              onClick={() => toggleTag(tag, !checked)}
+                              style={{
+                                cursor: 'pointer',
+                                border: checked ? `2px solid ${cat.color}` : `1.5px dashed ${cat.border}`,
+                                borderRadius: 20,
+                                padding: '4px 14px',
+                                fontSize: 13,
+                                fontWeight: checked ? 600 : 500,
+                                background: checked ? '#fff' : 'rgba(255,255,255,0.7)',
+                                color: checked ? cat.color : '#666',
+                                transition: 'all 0.2s',
+                                boxShadow: checked ? `0 2px 8px ${cat.color}30` : 'none',
+                                transform: checked ? 'scale(1.02)' : 'scale(1)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}
+                            >
+                              {checked && '✓ '}{tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 自定义标签区 */}
+              <div style={{ padding: '8px 24px 4px' }}>
+                <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 14 }}>🏷️</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1677ff' }}>自定义标签</span>
+                  <span style={{ fontSize: 11, color: '#999', marginLeft: 4 }}>输入后按回车添加</span>
+                </div>
+                <Form form={tagsForm} layout="vertical">
+                  <Form.Item name="tags" style={{ marginBottom: 0 }}>
+                    <Select
+                      mode="tags"
+                      placeholder="输入新标签,按回车添加..."
+                      style={{ width: '100%', minHeight: 40 }}
+                      tagRender={(props) => {
+                        const isQuick = TAG_CATEGORIES.some((c) => c.tags.includes(props.label as string));
+                        const themeColor = isQuick
+                          ? TAG_CATEGORIES.find((c) => c.tags.includes(props.label as string))?.color ?? '#1677ff'
+                          : '#1677ff';
+                        return (
+                          <Tag
+                            closable
+                            onClose={(e) => { e.preventDefault(); props.onClose(); }}
+                            style={{
+                              margin: '2px 4px 2px 0',
+                              padding: '0 8px',
+                              height: 24,
+                              lineHeight: '22px',
+                              borderRadius: 12,
+                              border: `1px solid ${themeColor}`,
+                              background: `${themeColor}15`,
+                              color: themeColor,
+                              fontSize: 12,
+                              fontWeight: 500,
+                            }}
+                          >
+                            {props.label}
+                          </Tag>
+                        );
+                      }}
+                    />
+                  </Form.Item>
+                </Form>
+              </div>
+
+              {/* 底部提示 */}
+              <div style={{ padding: '12px 24px 4px', fontSize: 11, color: '#bbb', textAlign: 'center' }}>
+                🏷️ 标签帮助客服快速识别用户特征,提升服务效率 · 最多添加 20 个标签
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* 重置密码 */}
