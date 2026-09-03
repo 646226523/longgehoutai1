@@ -1047,6 +1047,7 @@ const UserList = () => {
                 </Popconfirm>
               )}
               <Dropdown
+                getPopupContainer={() => document.body}
                 menu={{
                   items: [
                     {
@@ -1900,7 +1901,8 @@ const UserList = () => {
         open={detailDrawer.visible}
         onClose={() => setDetailDrawer({ visible: false, record: null })}
         destroyOnHidden
-        styles={{ body: { padding: 0 } }}
+        zIndex={100}
+        styles={{ body: { padding: 0, overflow: 'visible' } }}
       >
         {renderDetailDrawer()}
       </Drawer>
@@ -2053,7 +2055,7 @@ const UserList = () => {
           await handleAudit();
           return true;
         }}
-        modalProps={{ destroyOnHidden: true, maskClosable: false }}
+        modalProps={{ destroyOnHidden: true, maskClosable: false, zIndex: 1500 }}
         width={480}
       >
         <div style={{ marginBottom: 8, color: '#888' }}>
@@ -2080,6 +2082,7 @@ const UserList = () => {
           </Space>
         }
         open={actionType === 'distributor'}
+        zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
@@ -2127,6 +2130,7 @@ const UserList = () => {
           </Space>
         }
         open={actionType === 'tags'}
+        zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
@@ -2183,6 +2187,7 @@ const UserList = () => {
           </Space>
         }
         open={actionType === 'reset-pwd'}
+        zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
@@ -2217,6 +2222,7 @@ const UserList = () => {
           </Space>
         }
         open={actionType === 'coupon'}
+        zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
@@ -2257,6 +2263,7 @@ const UserList = () => {
           </Space>
         }
         open={actionType === 'balance'}
+        zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
@@ -2301,6 +2308,7 @@ const UserList = () => {
           </Space>
         }
         open={actionType === 'points'}
+        zIndex={1500}
         onCancel={closeMoreAction}
         onOk={submitMoreAction}
         confirmLoading={actionLoading}
