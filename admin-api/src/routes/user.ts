@@ -64,6 +64,50 @@ interface UserRow {
   updated_at: number;
 }
 
+// 等级表行
+interface LevelRow {
+  id: number;
+  min_growth: number;
+  sort: number;
+}
+
+// 计算用户等级进度信息(纯函数,便于单元测试)
+function computeLevelProgress(
+  levelId: number | null,
+  growth: number,
+  allLevels: LevelRow[]
+): {
+  level_min_growth: number | null;
+  next_level_min_growth: number | null;
+  growth_to_next: number | null;
+} {
+  if (levelId == null) {
+    return { level_min_growth: null, next_level_min_growth: null, growth_to_next: null };
+  }
+  const sorted = allLevels.slice().sort((a, b) => a.sort - b.sort);
+  const idx = sorted.findIndex((l) => l.id === levelId);
+  if (idx < 0) {
+    return { level_min_growth: null, next_level_min_growth: null, growth_to_next: null };
+  }
+  const current = sorted[idx];
+  const next = sorted[idx + 1];
+  return {
+    level_min_growth: current.min_growth,
+    next_level_min_growth: next ? next.min_growth : null,
+    growth_to_next: next ? Math.max(0, next.min_growth - growth) : null,
+  };
+}
+
+// 预查询所有启用的等级(按 sort ASC),缓存到模块级变量避免重复查询
+let _levelsCache: LevelRow[] | null = null;
+function getAllLevels(): LevelRow[] {
+  if (_levelsCache) return _levelsCache;
+  _levelsCache = db
+    .prepare('SELECT id, min_growth, sort FROM member_levels WHERE status = 1 ORDER BY sort ASC')
+    .all() as LevelRow[];
+  return _levelsCache;
+}
+
 // GET /api/user/users - 用户分页列表(支持用户名/手机/状态/认证状态筛选)
 userRouter.get('/users', requirePermission('user:view'), (req: AuthedRequest, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
@@ -110,6 +154,8 @@ userRouter.get('/users', requirePermission('user:view'), (req: AuthedRequest, re
     )
     .all(...params, pageSize, (page - 1) * pageSize) as UserRow[];
 
+  const levels = getAllLevels();
+
   const list = rows.map((r) => ({
     id: r.id,
     username: r.username,
@@ -135,6 +181,7 @@ userRouter.get('/users', requirePermission('user:view'), (req: AuthedRequest, re
     tags: (() => { try { return JSON.parse(r.tags_json || '[]'); } catch { return []; } })(),
     created_at: r.created_at,
     updated_at: r.updated_at,
+    ...computeLevelProgress(r.member_level_id, r.growth_value, levels),
   }));
 
   return ok(res, { list, total });
@@ -272,12 +319,14 @@ userRouter.get('/users/:id', requirePermission('user:view'), (req: AuthedRequest
   if (!row) {
     return fail(res, 404, '用户不存在');
   }
+  const levels = getAllLevels();
   const result = {
     ...row,
     balance: row.balance ?? 0,
     points: row.points ?? 0,
     is_blacklisted: row.is_blacklisted ?? 0,
     tags: (() => { try { return JSON.parse(row.tags_json || '[]'); } catch { return []; } })(),
+    ...computeLevelProgress(row.member_level_id, row.growth_value, levels),
   };
   return ok(res, result);
 });
@@ -1133,6 +1182,44 @@ userRouter.patch(
     db.prepare('UPDATE users SET is_blacklisted = ?, updated_at = ? WHERE id = ?')
       .run(next, Date.now(), id);
     return ok(res, { is_blacklisted: next }, next ? '已加入黑名单' : '已移出黑名单');
+  }
+);
+
+// GET /api/user/users/:id/pigeons - 查询某用户的鸽子列表(通过 owner_name/phone 匹配 gene_profiles)
+userRouter.get(
+  '/users/:id/pigeons',
+  requirePermission('user:view'),
+  (req: AuthedRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return fail(res, 400, '无效的用户 ID');
+
+    const user = db
+      .prepare('SELECT username, nickname, real_name, phone FROM users WHERE id = ?')
+      .get(id) as { username: string; nickname?: string; real_name?: string; phone?: string } | undefined;
+    if (!user) return fail(res, 404, '用户不存在');
+
+    // 用 real_name/nickname/username 匹配 owner_name, phone 匹配 owner_phone
+    const names = [user.real_name, user.nickname, user.username].filter(Boolean);
+    const phone = user.phone;
+
+    const rows = db
+      .prepare(
+        `SELECT id, ring_number, name, gender, breed, bloodline, color, eye_color,
+                birth_date, photo_url, owner_name, owner_phone, status
+         FROM gene_profiles
+         WHERE (owner_name IN (${names.map(() => '?').join(',')})
+                OR owner_phone = ?)
+           AND status = 1
+         ORDER BY id DESC`
+      )
+      .all(...names, phone) as Array<{
+        id: number; ring_number: string; name: string; gender: string;
+        breed: string; bloodline: string; color?: string; eye_color?: string;
+        birth_date?: string; photo_url: string; owner_name: string; owner_phone?: string;
+        status: number;
+      }>;
+
+    return ok(res, rows);
   }
 );
 

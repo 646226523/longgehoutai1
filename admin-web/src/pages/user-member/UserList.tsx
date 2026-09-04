@@ -60,7 +60,7 @@ import {
   ThunderboltOutlined,
   BlockOutlined,
 } from '@ant-design/icons';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
@@ -83,10 +83,12 @@ import {
   updateUserTags,
   adjustUserBalance,
   adjustUserPoints,
+  getUserPigeons,
   type CouponItem,
   type DistributorItem,
   type MemberLevelItem,
   type UserItem,
+  type UserPigeonItem,
 } from '../../services/user';
 
 const { Text, Title } = Typography;
@@ -207,45 +209,6 @@ const generateActivityLogs = (record: UserItem) => {
   return logs;
 };
 
-// 鸽子Mock数据（使用内联SVG，避免外部图片被墙）
-const PIGEON_SVG = {
-  gray: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNlOGY0ZmMiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNiM2Q5ZjIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMDAsMTYwKSI+PGVsbGlwc2UgY3g9IjAiIGN5PSIwIiByeD0iOTAiIHJ5PSI1NSIgZmlsbD0iIzRhNTU2OCIvPjxlbGxpcHNlIGN4PSIyMCIgY3k9Ii0yMCIgcng9IjQ1IiByeT0iMzUiIGZpbGw9IiMyZDM3NDgiLz48Y2lyY2xlIGN4PSI0NSIgY3k9Ii0yOCIgcj0iMTgiIGZpbGw9IiMyZDM3NDgiLz48Y2lyY2xlIGN4PSI1MCIgY3k9Ii0zMiIgcj0iMyIgZmlsbD0iI2Y2ZTA1ZSIvPjxwYXRoIGQ9Ik02MCwtMjIgTDc4LC0xNSBMNjAsLTEwIFoiIGZpbGw9IiNkZDZiMjAiLz48cGF0aCBkPSJNLTYwLC0xMCBRLTEwMCwtNDAgLTEyMCwtMjAgUS05MCwtNSAtNjAsMCBaIiBmaWxsPSIjMmQzNzQ4Ii8+PHBhdGggZD0iTS01MCwxMCBRLTEwMCw1MCAtMTMwLDQwIFEtOTAsMjAgLTUwLDE1IFoiIGZpbGw9IiMxYTIwMmMiLz48cGF0aCBkPSJNNzAsMjAgUTExMCw2MCAxMDAsODAgUTcwLDUwIDYwLDMwIFoiIGZpbGw9IiMyZDM3NDgiLz48cGF0aCBkPSJNODAsMzUgUTEzMCw3MCAxMjUsOTUgUTg1LDYwIDc1LDQwIFoiIGZpbGw9IiMxYTIwMmMiLz48L2c+PC9zdmc+',
-  red: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmY1ZjUiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmZWIyYjIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMDAsMTYwKSI+PGVsbGlwc2UgY3g9IjAiIGN5PSIwIiByeD0iOTUiIHJ5PSI1OCIgZmlsbD0iI2M1MzAzMCIvPjxlbGxpcHNlIGN4PSIyMiIgY3k9Ii0yMiIgcng9IjQ4IiByeT0iMzgiIGZpbGw9IiM5YjJjMmMiLz48Y2lyY2xlIGN4PSI0OCIgY3k9Ii0zMCIgcj0iMjAiIGZpbGw9IiM5YjJjMmMiLz48Y2lyY2xlIGN4PSI1MyIgY3k9Ii0zNCIgcj0iMyIgZmlsbD0iI2Y2ZTA1ZSIvPjxwYXRoIGQ9Ik02NSwtMjMgTDg1LC0xNiBMNjUsLTEwIFoiIGZpbGw9IiNmNmFkNTUiLz48cGF0aCBkPSJNLTY1LC04IFEtMTA1LC00NSAtMTI1LC0yMiBRLTk1LC0yIC02NSwzIFoiIGZpbGw9IiM5YjJjMmMiLz48cGF0aCBkPSJNLTU1LDEyIFEtMTA1LDU1IC0xMzUsNDIgUS05NSwyMiAtNTUsMTcgWiIgZmlsbD0iIzc0MmEyYSIvPjxwYXRoIGQ9Ik03NSwyMiBRMTE1LDY1IDEwNSw4NSBRNzUsNTIgNjUsMzIgWiIgZmlsbD0iIzliMmMyYyIvPjxwYXRoIGQ9Ik04NSwzOCBRMTM1LDc1IDEzMCwxMDAgUTg1LDYyIDc4LDQyIFoiIGZpbGw9IiM3NDJhMmEiLz48L2c+PC9zdmc+',
-  green: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyB2aWV3Qm94PScwIDAgNDAwIDMwMCc+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nYmcnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz48c3RvcCBvZmZzZXQ9JzAlJyBzdG9wLWNvbG9yPScjZjBmZmY0Jy8+PHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjOWFlNmI0Jy8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSc0MDAnIGhlaWdodD0nMzAwJyBmaWxsPSd1cmwoI2JnKScvPgo8ZyB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgyMDAsMTYwKSc+CjxlbGxpcHNlIGN4PScwJyBjeT0nMCcgcng9Jzg4JyByeT0nNTMnIGZpbGw9JyMyNzY3NDknLz4KPGVsbGlwc2UgY3g9JzIwJyBjeT0nLTIwJyByeD0nNDInIHJ5PSczMicgZmlsbD0nIzFjNDUzMicvPgo8Y2lyY2xlIGN4PSc0MicgY3k9Jy0yNicgcj0nMTYnIGZpbGw9JyMxYzQ1MzInLz4KPGNpcmNsZSBjeD0nNDYnIGN5PSctMzAnIHI9JzMnIGZpbGw9JyNmNmUwNWUnLz4KPHBhdGggZD0nTTU2LC0yMCBMNzIsLTE0IEw1NiwtOCBaJyBmaWxsPScjZGQ2YjIwJy8+CjxwYXRoIGQ9J00tNTgsLTggUS05OCwtNDAgLTExNSwtMTggUS04OCwtMiAtNTgsMiBaJyBmaWxsPScjMWM0NTMyJy8+CjxwYXRoIGQ9J00tNDgsMTIgUS05NSw1MCAtMTIwLDQwIFEtODUsMjAgLTQ4LDE1IFonIGZpbGw9JyMwZDI4MTgnLz4KPHBhdGggZD0nTTY4LDIwIFExMDUsNTggOTYsNzggUTY4LDQ4IDU4LDI4IFonIGZpbGw9JyMxYzQ1MzInLz4KPHBhdGggZD0nTTc4LDM1IFExMjUsNzAgMTIwLDkyIFE3OCw1OCA3MCwzOCBaJyBmaWxsPScjMGQyODE4Jy8+CjwvZz4KPC9zdmc+',
-};
-
-const generatePigeonList = (_record: UserItem) => {
-  return [
-    {
-      id: 1,
-      ring_number: '2026-CN-001',
-      name: '闪电号',
-      breed: '詹森',
-      gender: '雄',
-      status: '参赛中',
-      photo_url: PIGEON_SVG.gray,
-    },
-    {
-      id: 2,
-      ring_number: '2026-CN-002',
-      name: '极速号',
-      breed: '慕利门',
-      gender: '雌',
-      status: '休息',
-      photo_url: PIGEON_SVG.red,
-    },
-    {
-      id: 3,
-      ring_number: '2026-CN-003',
-      name: '冠军号',
-      breed: '盖比',
-      gender: '雄',
-      status: '训练中',
-      photo_url: PIGEON_SVG.green,
-    },
-  ];
-};
-
 // NFT资产Mock数据
 const generateNftList = (record: UserItem) => {
   return [
@@ -307,6 +270,39 @@ const UserList = () => {
     | 'distributor' | 'tags' | 'reset-pwd' | 'coupon' | 'balance' | 'points' | 'blacklist' | null
   >(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // 鸽子档案数据(按用户缓存)
+  const [pigeonsMap, setPigeonsMap] = useState<Map<number, UserPigeonItem[]>>(new Map());
+
+  // 打开详情抽屉时,拉取用户的鸽子档案
+  useEffect(() => {
+    const record = detailDrawer.record;
+    if (!detailDrawer.visible || !record?.id) return;
+    if (pigeonsMap.has(record.id)) return; // 已有缓存
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getUserPigeons(record.id);
+        if (cancelled) return;
+        setPigeonsMap((prev) => {
+          const next = new Map(prev);
+          next.set(record.id, data || []);
+          return next;
+        });
+      } catch (err) {
+        console.error('加载鸽子档案失败:', err);
+        if (!cancelled) {
+          setPigeonsMap((prev) => {
+            const next = new Map(prev);
+            next.set(record.id, []);
+            return next;
+          });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [detailDrawer.visible, detailDrawer.record?.id]);
 
   // 表单
   const [distForm] = Form.useForm();
@@ -1244,7 +1240,7 @@ const UserList = () => {
                           <div>
                             <div style={{ fontSize: 11, color: '#8c8c8c' }}>赛鸽</div>
                             <div style={{ fontSize: 18, fontWeight: 700, color: '#722ed1' }}>
-                              {generatePigeonList(record).length}
+                              {(pigeonsMap.get(record.id) ?? []).length}
                             </div>
                           </div>
                           <div>
@@ -1278,13 +1274,26 @@ const UserList = () => {
                             <TrophyFilled style={{ fontSize: 36, opacity: 0.4 }} />
                           </div>
                           <div style={{ marginTop: 12 }}>
-                            <Progress
-                              percent={Math.min((record.growth_value / 1000) * 100, 100)}
-                              strokeColor="#fff"
-                              trailColor="rgba(255,255,255,0.2)"
-                              showInfo={false}
-                              size="small"
-                            />
+                            {(() => {
+                              // 根据后端返回的等级阈值动态计算进度和差值
+                              const curMin = record.level_min_growth ?? 0;
+                              const nextMin = record.next_level_min_growth;
+                              let percent: number;
+                              if (nextMin != null && nextMin > curMin) {
+                                percent = Math.min(((record.growth_value - curMin) / (nextMin - curMin)) * 100, 100);
+                              } else {
+                                percent = 100;
+                              }
+                              return (
+                                <Progress
+                                  percent={percent}
+                                  strokeColor="#fff"
+                                  trailColor="rgba(255,255,255,0.2)"
+                                  showInfo={false}
+                                  size="small"
+                                />
+                              );
+                            })()}
                             <div
                               style={{
                                 display: 'flex',
@@ -1295,7 +1304,11 @@ const UserList = () => {
                               }}
                             >
                               <span>{record.growth_value.toLocaleString()} 成长值</span>
-                              <span>还差 {Math.max(0, 1000 - record.growth_value)}</span>
+                              {record.growth_to_next != null ? (
+                                <span>还差 {record.growth_to_next.toLocaleString()}</span>
+                              ) : (
+                                <span>已达最高等级 ⭐</span>
+                              )}
                             </div>
                           </div>
                         </Card>
@@ -1762,7 +1775,7 @@ const UserList = () => {
                       styles={{ body: { padding: 16 } }}
                       style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
                     >
-                      {generatePigeonList(record).length > 0 ? (
+                      {(pigeonsMap.get(record.id) ?? []).length > 0 ? (
                         <div
                           style={{
                             display: 'grid',
@@ -1770,12 +1783,11 @@ const UserList = () => {
                             gap: 12,
                           }}
                         >
-                          {generatePigeonList(record).map((p: any) => {
-                            const statusColor: Record<string, string> = {
-                              参赛中: 'red',
-                              训练中: 'blue',
-                              休息: 'default',
-                            };
+                          {(pigeonsMap.get(record.id) ?? []).map((p: UserPigeonItem) => {
+                            const genderMap: Record<string, string> = { male: '雄', female: '雌', unknown: '未知' };
+                            const genderLabel = genderMap[p.gender] ?? p.gender;
+                            const statusLabel = p.status === 1 ? '在档' : '已停用';
+                            const statusColor: Record<string, string> = { 在档: 'green', 已停用: 'default' };
                             return (
                               <div
                                 key={p.id}
@@ -1857,10 +1869,10 @@ const UserList = () => {
                                     }}
                                   >
                                     <span style={{ fontSize: 12, color: '#8c8c8c' }}>
-                                      {p.breed} · {p.gender}
+                                      {p.breed} · {genderLabel}
                                     </span>
-                                    <Tag color={statusColor[p.status] || 'default'} style={{ margin: 0 }}>
-                                      {p.status}
+                                    <Tag color={statusColor[statusLabel] || 'default'} style={{ margin: 0 }}>
+                                      {statusLabel}
                                     </Tag>
                                   </div>
                                 </div>

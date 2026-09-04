@@ -1,4 +1,4 @@
-import { http } from './request';
+﻿import { http } from './request';
 
 // ==================== 通用分页结果 ====================
 export interface PageResult<T> {
@@ -25,6 +25,12 @@ export interface UserItem {
   member_level_id: number | null;
   level_name: string | null;
   level_code: string | null;
+  /** 当前等级起始成长值门槛 */
+  level_min_growth?: number | null;
+  /** 下一等级起始门槛；已是最高等级时 null */
+  next_level_min_growth?: number | null;
+  /** 距离下一级还差多少成长值；已是最高等级时 null */
+  growth_to_next?: number | null;
   cert_status: string; // none/real/loft_owner/pigeon_loft
   real_name_status: string; // none/pending/approved/rejected
   loft_owner_status: string; // none/pending/approved/rejected
@@ -64,6 +70,9 @@ export interface AuditItem {
   member_level_id: number | null;
   level_name: string | null;
   level_code: string | null;
+  level_min_growth?: number | null;
+  next_level_min_growth?: number | null;
+  growth_to_next?: number | null;
   cert_status: string;
   real_name_status: string;
   loft_owner_status: string;
@@ -364,4 +373,26 @@ export async function adjustUserPoints(userId: number, amount: number, reason?: 
 // 加入/移出黑名单
 export async function toggleUserBlacklist(userId: number, isBlacklisted: number): Promise<{ is_blacklisted: number }> {
   return http.patch(`/user/users/${userId}/blacklist`, { is_blacklisted: isBlacklisted });
+}
+
+/** 用户的鸽子档案(从 gene_profiles 通过 owner_name/phone 匹配) */
+export interface UserPigeonItem {
+  id: number;
+  ring_number: string;
+  name: string;
+  gender: string; // male/female/unknown
+  breed: string;
+  bloodline: string;
+  color?: string;
+  eye_color?: string;
+  birth_date?: string;
+  photo_url: string;
+  owner_name: string;
+  owner_phone?: string;
+  status: number;
+}
+
+// 查询某用户的鸽子档案列表
+export async function getUserPigeons(userId: number): Promise<UserPigeonItem[]> {
+  return http.get(`/user/users/${userId}/pigeons`);
 }
