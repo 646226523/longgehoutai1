@@ -173,7 +173,7 @@ export function initAuctionDb(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_auction_deals_item ON auction_deals(item_id);
   `);
 
-  // ============ 迁移:为已有 auction_sessions 表添加新列(容错)============
+  // ============ 迁移:为已有 auction_items 表添加新列(容错)============
   const sessionColumns = [
     { name: 'session_code', def: 'TEXT' },
     { name: 'auction_type', def: "TEXT DEFAULT 'online'" },
@@ -194,6 +194,23 @@ export function initAuctionDb(db: Database): void {
       // 表不存在或其他错误,静默跳过
     }
   }
+
+  // auction_items 补充 image 列
+  try {
+    const itemCols = (db.prepare("PRAGMA table_info('auction_items')").all() as Array<{ name: string }>);
+    if (!itemCols.some((c) => c.name === 'image')) {
+      db.exec("ALTER TABLE auction_items ADD COLUMN image TEXT");
+      // 给已有拍品补图片 URL
+      const images = [
+        'https://images.unsplash.com/photo-1522858547137-f1dcec554f55?w=400&h=300&fit=crop',
+        'https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=400&h=300&fit=crop',
+        'https://images.unsplash.com/photo-1452570053594-1b985d6ea890?w=400&h=300&fit=crop',
+      ];
+      const items = db.prepare('SELECT id FROM auction_items WHERE image IS NULL').all() as Array<{ id: number }>;
+      const up = db.prepare('UPDATE auction_items SET image = ? WHERE id = ?');
+      for (const item of items) up.run(images[(item.id - 1) % images.length], item.id);
+    }
+  } catch { /* 静默 */ }
 
   // ============ 初始示例数据(仅首次建库时写入)============
   const count = (db.prepare('SELECT COUNT(*) AS c FROM auction_sessions').get() as { c: number }).c;

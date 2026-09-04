@@ -137,6 +137,21 @@ export interface AuctionBidCreateParams {
 }
 
 // ==================== 成交单 ====================
+export interface AuctionBid {
+  id: number;
+  bidder: string;
+  bid_amount: number;
+  created_at: number;
+}
+
+export interface DealTimelineStep {
+  status: string;
+  label: string;
+  time: number | null;
+  done: boolean;
+  current: boolean;
+}
+
 export interface AuctionDeal {
   id: number;
   session_id: number;
@@ -154,7 +169,15 @@ export interface AuctionDeal {
   // 列表/详情关联字段
   session_name?: string | null;
   item_name?: string | null;
+  item_start_price?: number | null;
+  item_increment?: number | null;
+  item_description?: string | null;
+  item_image?: string | null;
   nft_asset?: NftAssetBrief | null;
+  // 详情增强字段
+  bids?: AuctionBid[];
+  bid_count?: number;
+  timeline?: DealTimelineStep[];
 }
 
 export interface AuctionDealListParams {

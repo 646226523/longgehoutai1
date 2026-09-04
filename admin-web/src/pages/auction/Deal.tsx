@@ -6,18 +6,24 @@ import {
 import {
   App,
   Button,
-  Descriptions,
+  Card,
   Drawer,
+  Empty,
+  Image,
   Popconfirm,
   Space,
   Spin,
+  Steps,
   Tag,
+  Typography,
 } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   EyeOutlined,
+  TrophyOutlined,
   TruckOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -288,62 +294,455 @@ const AuctionDeal = () => {
         toolBarRender={() => [<RefreshButton key="refresh" actionRef={actionRef as any} />]}
       />
 
-      {/* 详情抽屉 */}
+      {/* 详情抽屉 - 方案 B 卡片网格布局 */}
       <Drawer
-        title="成交单详情"
+        title={
+          <Space>
+            <span>成交单详情</span>
+            {detail && (
+              <Tag color={STATUS_COLOR[detail.status] ?? 'default'}>
+                {detail.status_label}
+              </Tag>
+            )}
+          </Space>
+        }
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
-        width={720}
+        width={800}
         destroyOnHidden
+        styles={{ body: { padding: 0, background: '#f5f7fa' } }}
       >
         {detailLoading ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin tip="加载中...">
-              <div style={{ minHeight: 200, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-            </Spin>
+          <div style={{ textAlign: 'center', padding: 80 }}>
+            <Spin tip="加载成交单详情..." />
           </div>
         ) : !detail ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>暂无数据</div>
+          <div style={{ textAlign: 'center', padding: 80 }}>
+            <Empty description="暂无成交单数据" />
+          </div>
         ) : (
-          <Descriptions column={2} bordered size="small">
-            <Descriptions.Item label="成交单号" span={2}>
-              #{detail.id}
-            </Descriptions.Item>
-            <Descriptions.Item label="所属场次" span={2}>
-              {detail.session_name ?? `场次 #${detail.session_id}`}
-            </Descriptions.Item>
-            <Descriptions.Item label="拍品" span={2}>
-              {detail.item_name ?? `拍品 #${detail.item_id}`}
-            </Descriptions.Item>
-            <Descriptions.Item label="卖家">{detail.seller}</Descriptions.Item>
-            <Descriptions.Item label="买家">{detail.buyer ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="成交价">¥{detail.final_price}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={STATUS_COLOR[detail.status] ?? 'default'}>
-                {STATUS_LABEL[detail.status] ?? detail.status}
-              </Tag>
-            </Descriptions.Item>
-            {detail.nft_asset && (
-              <Descriptions.Item label="关联 NFT 资产" span={2}>
-                {detail.nft_asset.name}
-                {detail.nft_asset.token_id ? ` (${detail.nft_asset.token_id})` : ''}
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="成交时间">
-              {detail.deal_time ? dayjs(detail.deal_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="付款时间">
-              {detail.paid_time ? dayjs(detail.paid_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="交割时间" span={2}>
-              {detail.delivered_at
-                ? dayjs(detail.delivered_at).format('YYYY-MM-DD HH:mm:ss')
-                : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="创建时间" span={2}>
-              {dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-          </Descriptions>
+          <div style={{ padding: 16 }}>
+            {/* ===== 顶部拍品大卡片 ===== */}
+            <Card
+              size="small"
+              bordered={false}
+              style={{ marginBottom: 16, borderRadius: 10 }}
+              bodyStyle={{ padding: 0 }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 16,
+                  padding: 16,
+                }}
+              >
+                <div
+                  style={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    background: '#f0f2f5',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {detail.item_image ? (
+                    <Image
+                      src={detail.item_image ?? ''}
+                      alt={detail.item_name ?? ''}
+                      width={96}
+                      height={96}
+                      style={{ objectFit: 'cover' }}
+                      preview={{ mask: '查看大图' }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: 36, opacity: 0.35 }}>📦</div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Typography.Title
+                    level={5}
+                    style={{ margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    {detail.item_name}
+                    <Tag color="blue">拍品 #{detail.item_id}</Tag>
+                  </Typography.Title>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: '#8b949e',
+                      marginBottom: 8,
+                      display: 'flex',
+                      gap: 16,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span>🏛️ {detail.session_name ?? `场次 #${detail.session_id}`}</span>
+                    {detail.item_increment != null && <span>📈 加价幅度 ¥{detail.item_increment}</span>}
+                    <span>🎟️ 成交单 #{detail.id}</span>
+                  </div>
+                  {detail.item_description && (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: '#57606a',
+                        background: '#f6f8fa',
+                        padding: '6px 10px',
+                        borderRadius: 4,
+                        marginBottom: 8,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {detail.item_description}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#ff4d4f' }}>
+                      ¥{detail.final_price.toLocaleString()}
+                    </span>
+                    {detail.item_start_price != null && detail.item_start_price > 0 && (
+                      <>
+                        <span style={{ fontSize: 12, color: '#8b949e' }}>
+                          起拍 ¥{detail.item_start_price.toLocaleString()}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color:
+                              detail.final_price >= detail.item_start_price ? '#52c41a' : '#ff4d4f',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {detail.final_price >= detail.item_start_price ? '+' : ''}
+                          {(
+                            ((detail.final_price - detail.item_start_price) /
+                              detail.item_start_price) *
+                            100
+                          ).toFixed(0)}
+                          %
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <Tag
+                    color={STATUS_COLOR[detail.status] ?? 'default'}
+                    style={{ fontSize: 13, padding: '4px 12px', marginBottom: 10 }}
+                  >
+                    {detail.status_label}
+                  </Tag>
+                  <div style={{ fontSize: 11, color: '#8b949e' }}>
+                    <div>
+                      成交于
+                      <br />
+                      {detail.deal_time
+                        ? dayjs(detail.deal_time).format('YYYY-MM-DD HH:mm')
+                        : '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* ===== 2x2 卡片网格 ===== */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
+              {/* 左上: 交易双方 */}
+              <Card
+                size="small"
+                title={
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    <UserOutlined /> 交易双方
+                  </span>
+                }
+                bordered={false}
+                style={{ borderRadius: 10 }}
+              >
+                <div style={{ fontSize: 13 }}>
+                  <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                    <div style={{ color: '#8b949e', fontSize: 11, marginBottom: 4 }}>卖家</div>
+                    <div style={{ fontWeight: 600 }}>{detail.seller}</div>
+                  </div>
+                  <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                    <div style={{ color: '#8b949e', fontSize: 11, marginBottom: 4 }}>买家</div>
+                    <div style={{ fontWeight: 600 }}>{detail.buyer ?? '-'}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ color: '#8b949e', fontSize: 11, marginBottom: 4 }}>NFT 资产</div>
+                    <div>
+                      {detail.nft_asset ? (
+                        <span>
+                          <Tag color="purple" style={{ marginRight: 6 }}>
+                            #{detail.nft_asset.token_id ?? '—'}
+                          </Tag>
+                          {detail.nft_asset.name}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#8b949e' }}>— 未关联 —</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 右上: 状态时间线 */}
+              <Card
+                size="small"
+                title={
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    <CheckCircleOutlined /> 成交状态
+                  </span>
+                }
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '16px 16px 4px' }}
+              >
+                {detail.timeline && detail.timeline.length > 0 ? (
+                  <Steps
+                    direction="vertical"
+                    size="small"
+                    current={detail.timeline.findIndex((s) => s.current) >= 0
+                      ? detail.timeline.findIndex((s) => s.current)
+                      : detail.timeline.findIndex((s) => s.done)}
+                    status={detail.status === 'cancelled' ? 'error' : 'process'}
+                    items={detail.timeline.map((step) => ({
+                      title: (
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: step.current ? '#1677ff' : 'inherit',
+                          }}
+                        >
+                          {step.label}
+                        </span>
+                      ),
+                      description: step.time ? (
+                        <span style={{ fontSize: 11, color: '#8b949e' }}>
+                          {dayjs(step.time).format('MM-DD HH:mm')}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: '#d0d7de' }}>—</span>
+                      ),
+                    }))}
+                  />
+                ) : (
+                  <div style={{ color: '#8b949e', fontSize: 12 }}>暂无时间线数据</div>
+                )}
+              </Card>
+
+              {/* 左下: 竞价记录 */}
+              <Card
+                size="small"
+                title={
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    <TrophyOutlined /> 竞价记录
+                    {detail.bid_count != null && (
+                      <span style={{ color: '#8b949e', fontSize: 12, fontWeight: 400, marginLeft: 6 }}>
+                        ({detail.bid_count} 次)
+                      </span>
+                    )}
+                  </span>
+                }
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '8px 16px 12px' }}
+              >
+                {detail.bids && detail.bids.length > 0 ? (
+                  <div>
+                    {detail.bids.slice(0, 5).map((b, idx) => (
+                      <div
+                        key={b.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '7px 0',
+                          borderBottom: idx < detail.bids!.length - 1 ? '1px solid #f0f2f5' : 'none',
+                          fontSize: 12.5,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: '50%',
+                            background:
+                              idx === 0
+                                ? '#fff7e6'
+                                : idx === 1
+                                ? '#f6f8fa'
+                                : '#f6f8fa',
+                            color: idx < 2 ? '#d48806' : '#8b949e',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 10,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span style={{ flex: 1, fontWeight: idx === 0 ? 600 : 400 }}>
+                          {b.bidder}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            color: idx === 0 ? '#ff4d4f' : '#1f2328',
+                            marginRight: 12,
+                          }}
+                        >
+                          ¥{b.bid_amount.toLocaleString()}
+                        </span>
+                        <span style={{ color: '#8b949e', fontSize: 11 }}>
+                          {dayjs(b.created_at).format('HH:mm:ss')}
+                        </span>
+                      </div>
+                    ))}
+                    {detail.bids.length > 5 && (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          paddingTop: 6,
+                          color: '#1677ff',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        还有 {detail.bids.length - 5} 条竞价记录 →
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ color: '#8b949e', fontSize: 12, padding: '10px 0' }}>
+                    暂无竞价记录
+                  </div>
+                )}
+              </Card>
+
+              {/* 右下: 快捷操作 */}
+              <Card
+                size="small"
+                title={
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    🎯 快捷操作
+                  </span>
+                }
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '12px 16px 16px' }}
+              >
+                {canDeal && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {detail.status === 'pending_payment' && (
+                      <Popconfirm
+                        title="确认已收到付款？"
+                        description="此操作将成交单推进到「已付款」阶段"
+                        onConfirm={() => {
+                          handleConfirmPayment(detail);
+                        }}
+                      >
+                        <Button
+                          type="primary"
+                          block
+                          icon={<CheckCircleOutlined />}
+                        >
+                          确认已付款
+                        </Button>
+                      </Popconfirm>
+                    )}
+                    {(detail.status === 'pending_payment' ||
+                      detail.status === 'paid' ||
+                      detail.status === 'delivering') && (
+                      <Popconfirm
+                        title={
+                          detail.status === 'pending_payment'
+                            ? '成交单尚未付款,确定取消?'
+                            : detail.status === 'paid'
+                            ? '确认进入交割阶段?'
+                            : '确认已完成交割?'
+                        }
+                        onConfirm={() => {
+                          if (detail.status === 'pending_payment') {
+                            handleCancel(detail);
+                          } else {
+                            handleConfirmDelivery(detail);
+                          }
+                        }}
+                      >
+                        {detail.status === 'pending_payment' ? (
+                          <Button danger block icon={<CloseCircleOutlined />}>
+                            取消成交（拍品流拍）
+                          </Button>
+                        ) : (
+                          <Button block icon={<TruckOutlined />}>
+                            {detail.status === 'paid' ? '🚚 开始交割' : '✅ 完成交割'}
+                          </Button>
+                        )}
+                      </Popconfirm>
+                    )}
+                    {detail.status === 'completed' && (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          padding: '12px 0',
+                          color: '#52c41a',
+                          fontSize: 13,
+                        }}
+                      >
+                        ✅ 已完成交割
+                      </div>
+                    )}
+                    {detail.status === 'cancelled' && (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          padding: '12px 0',
+                          color: '#ff4d4f',
+                          fontSize: 13,
+                        }}
+                      >
+                        ✗ 成交已取消
+                      </div>
+                    )}
+                    {detail.status === 'pending_payment' ||
+                    detail.status === 'paid' ||
+                    detail.status === 'delivering' ? null : (
+                      <div style={{ height: 12 }} />
+                    )}
+                  </div>
+                )}
+                {!canDeal && (
+                  <div style={{ color: '#8b949e', fontSize: 12, padding: '10px 0' }}>
+                    无操作权限
+                  </div>
+                )}
+                <div
+                  style={{
+                    marginTop: 10,
+                    paddingTop: 10,
+                    borderTop: '1px solid #f0f2f5',
+                    fontSize: 11,
+                    color: '#8b949e',
+                  }}
+                >
+                  <div>创建时间: {dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}</div>
+                </div>
+              </Card>
+            </div>
+          </div>
         )}
       </Drawer>
     </>

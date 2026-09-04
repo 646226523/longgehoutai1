@@ -1225,7 +1225,7 @@ auctionRouter.get(
   }
 );
 
-// GET /api/auction/deals/:id - 成交详情
+// GET /api/auction/deals/:id - 成交详情(含竞价历史/时间线/拍品增强信息)
 auctionRouter.get(
   '/deals/:id',
   requirePermission('auction:deal'),
@@ -1237,7 +1237,8 @@ auctionRouter.get(
       .prepare(
         `SELECT d.id, d.session_id, d.item_id, d.nft_asset_id, d.seller, d.buyer, d.final_price,
                 d.status, d.deal_time, d.paid_time, d.delivered_at, d.created_at,
-                s.name AS session_name, i.name AS item_name, i.start_price AS item_start_price
+                s.name AS session_name, i.name AS item_name, i.start_price AS item_start_price,
+                i.increment AS item_increment, i.description AS item_description, i.image AS item_image
          FROM auction_deals d
          LEFT JOIN auction_sessions s ON s.id = d.session_id
          LEFT JOIN auction_items i ON i.id = d.item_id
@@ -1248,17 +1249,70 @@ auctionRouter.get(
           session_name: string | null;
           item_name: string | null;
           item_start_price: number | null;
+          item_increment: number | null;
+          item_description: string | null;
+          item_image: string | null;
         })
       | undefined;
     if (!deal) return fail(res, 404, '成交单不存在');
+
+    // 竞价历史(按出价金额倒序,取 Top 10)
+    const bids = db
+      .prepare(
+        `SELECT id, bidder, bid_amount, created_at FROM auction_bids
+         WHERE item_id = ? ORDER BY bid_amount DESC, id DESC LIMIT 10`
+      )
+      .all(deal.item_id) as Array<{ id: number; bidder: string; bid_amount: number; created_at: number }>;
+
+    const bidCount = (db.prepare('SELECT COUNT(*) AS c FROM auction_bids WHERE item_id = ?').get(deal.item_id) as { c: number }).c;
+
+    // 状态时间线(按成交状态构造)
+    const timeline = buildDealTimeline(deal);
 
     return ok(res, {
       ...deal,
       status_label: DEAL_STATUS_LABEL[deal.status] ?? deal.status,
       nft_asset: getNftAssetBrief(deal.nft_asset_id),
+      bids,
+      bid_count: bidCount,
+      timeline,
     });
   }
 );
+
+// 构造成交状态时间线(供详情页 Steps 组件消费)
+function buildDealTimeline(deal: AuctionDealRow & { deal_time: number | null; paid_time: number | null; delivered_at: number | null; created_at: number }): Array<{
+  status: string;
+  label: string;
+  time: number | null;
+  done: boolean;
+  current: boolean;
+}> {
+  const now = Date.now();
+  const steps = [
+    { status: DEAL_STATUS.PENDING_PAYMENT, label: '拍卖成交', time: deal.deal_time, fallbackTime: deal.created_at },
+    { status: DEAL_STATUS.PAID, label: '确认付款', time: deal.paid_time, fallbackTime: null as number | null },
+    { status: DEAL_STATUS.DELIVERING, label: '开始交割', time: deal.delivered_at, fallbackTime: null as number | null },
+    { status: DEAL_STATUS.COMPLETED, label: '交割完成', time: deal.delivered_at, fallbackTime: null as number | null },
+    { status: DEAL_STATUS.CANCELLED, label: '已取消', time: null as number | null, fallbackTime: null as number | null },
+  ];
+  const result: Array<{ status: string; label: string; time: number | null; done: boolean; current: boolean }> = [];
+  let currentHit = false;
+  for (const s of steps) {
+    const isCurrent = deal.status === s.status;
+    const done = isCurrent || (s.time != null && s.time <= now);
+    if (s.status === DEAL_STATUS.CANCELLED && deal.status !== DEAL_STATUS.CANCELLED) continue;
+    if (!currentHit && isCurrent) currentHit = true;
+    result.push({
+      status: s.status,
+      label: s.label,
+      time: s.time ?? s.fallbackTime,
+      done,
+      current: isCurrent || (!currentHit && !done && result.length > 0 && result[result.length - 1].done),
+    });
+  }
+  return result;
+}
 
 // POST /api/auction/deals/:id/confirm-payment - 确认付款(待付款 → 已付款)
 auctionRouter.post(
