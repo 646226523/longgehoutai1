@@ -314,8 +314,9 @@ const AuctionDeal = () => {
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 80 }}>
-            <Spin tip="加载成交单详情..." />
-          </div>
+              <Spin />
+              <div style={{ marginTop: 8, color: '#8b949e', fontSize: 13 }}>加载成交单详情...</div>
+            </div>
         ) : !detail ? (
           <div style={{ textAlign: 'center', padding: 80 }}>
             <Empty description="暂无成交单数据" />
@@ -642,7 +643,7 @@ const AuctionDeal = () => {
                 }
                 bordered={false}
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '12px 16px 16px' }}
+                styles={{ body: { padding: '12px 16px 16px' } }}
               >
                 {canDeal && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

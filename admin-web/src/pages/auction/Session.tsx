@@ -1393,8 +1393,9 @@ const AuctionSession = () => {
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: 80 }}>
-            <Spin tip="加载场次详情..." />
-          </div>
+              <Spin />
+              <div style={{ marginTop: 8, color: '#8b949e', fontSize: 13 }}>加载场次详情...</div>
+            </div>
         ) : !detail ? (
           <div style={{ textAlign: 'center', padding: 80 }}>
             <Empty description="暂无场次数据" />
