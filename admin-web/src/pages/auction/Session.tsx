@@ -23,6 +23,7 @@ import {
   Segmented,
   Select,
   Space,
+  Spin,
   Table,
   Tag,
   DatePicker,
@@ -1372,65 +1373,299 @@ const AuctionSession = () => {
       />
 
       {/* 详情抽屉 */}
+      {/* 拍卖场次详情 - 卡片网格布局 */}
       <Drawer
-        title="拍卖场次详情"
+        title={
+          <Space>
+            <span>拍卖场次详情</span>
+            {detail && (
+              <Tag color={STATUS_COLOR[detail.status] ?? 'default'}>
+                {detail.status_label}
+              </Tag>
+            )}
+          </Space>
+        }
         open={detailVisible}
         onClose={() => setDetailVisible(false)}
-        width={720}
+        width={800}
         destroyOnHidden
+        styles={{ body: { padding: 0, background: '#f5f7fa' } }}
       >
         {detailLoading ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>加载中...</div>
+          <div style={{ textAlign: 'center', padding: 80 }}>
+            <Spin tip="加载场次详情..." />
+          </div>
         ) : !detail ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>暂无数据</div>
+          <div style={{ textAlign: 'center', padding: 80 }}>
+            <Empty description="暂无场次数据" />
+          </div>
         ) : (
-          <Descriptions column={2} bordered size="small">
-            <Descriptions.Item label="场次名称" span={2}>
-              {detail.name}
-            </Descriptions.Item>
-            <Descriptions.Item label="场次编号">
-              {detail.session_code || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={STATUS_COLOR[detail.status] ?? 'default'}>
-                {STATUS_LABEL[detail.status] ?? detail.status}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="拍卖方式">
-              <Tag>
-                {AUCTION_TYPE_LABEL[detail.auction_type || 'online'] || detail.auction_type}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="拍品数">{detail.item_count ?? 0}</Descriptions.Item>
-            <Descriptions.Item label="开始时间">
-              {detail.start_time ? dayjs(detail.start_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="结束时间">
-              {detail.end_time ? dayjs(detail.end_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="成交数">{detail.deal_count ?? 0}</Descriptions.Item>
-            <Descriptions.Item label="保证金">¥{detail.deposit ?? 5000}</Descriptions.Item>
-            <Descriptions.Item label="默认起拍价" span={1}>¥{detail.default_start_price ?? 5000}</Descriptions.Item>
-            <Descriptions.Item label="默认加价步长">¥{detail.default_bid_step ?? 500}</Descriptions.Item>
-            <Descriptions.Item label="委托出价">
-              {detail.allow_entrusted_bid !== 0 ? '已开启' : '已关闭'}
-            </Descriptions.Item>
-            <Descriptions.Item label="自动加价">
-              {detail.allow_auto_bid !== 0 ? '已开启' : '已关闭'}
-            </Descriptions.Item>
-            <Descriptions.Item label="拍卖地点" span={2}>
-              {detail.location || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="场次描述" span={2}>
-              {detail.description || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="创建时间">
-              {dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-            <Descriptions.Item label="更新时间">
-              {dayjs(detail.updated_at).format('YYYY-MM-DD HH:mm:ss')}
-            </Descriptions.Item>
-          </Descriptions>
+          <div style={{ padding: 16 }}>
+            {/* ===== 顶部场次大卡片 ===== */}
+            <Card
+              size="small"
+              bordered={false}
+              style={{ marginBottom: 16, borderRadius: 10 }}
+              bodyStyle={{ padding: 0 }}
+            >
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
+                  color: 'white',
+                  padding: '20px 24px',
+                  borderRadius: '10px 10px 0 0',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>{detail.name}</div>
+                  <div
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '4px 14px',
+                      borderRadius: 999,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {STATUS_LABEL[detail.status] ?? detail.status}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    opacity: 0.9,
+                    display: 'flex',
+                    gap: 16,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span>🏛️ {detail.location ?? '线上拍卖大厅'}</span>
+                  <span>🎯 {AUCTION_TYPE_LABEL[detail.auction_type || 'online'] ?? '线上拍卖'}</span>
+                  {detail.session_code && <span>🔖 {detail.session_code}</span>}
+                </div>
+              </div>
+              {/* KPI 栏 */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  borderTop: '1px solid #f0f2f5',
+                }}
+              >
+                {[
+                  { label: '拍品数', value: detail.item_count ?? 0, color: '#1677ff' },
+                  { label: '已成交', value: detail.deal_count ?? 0, color: '#52c41a' },
+                  { label: '保证金', value: '¥' + (detail.deposit ?? 5000).toLocaleString(), color: '#fa8c16' },
+                  {
+                    label: '场次时长',
+                    value:
+                      detail.start_time && detail.end_time
+                        ? `${Math.round(((detail.end_time - detail.start_time) / 3600000))}小时`
+                        : '-',
+                    color: '#722ed1',
+                  },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    style={{
+                      textAlign: 'center',
+                      padding: '16px 8px',
+                      borderRight: '1px solid #f0f2f5',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 4 }}>
+                      {kpi.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 700,
+                        color: kpi.color,
+                      }}
+                    >
+                      {kpi.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* ===== 2x2 卡片网格 ===== */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+              }}
+            >
+              {/* 左上: 时间信息 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>⏰ 场次时间</span>}
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '12px 16px' }}
+              >
+                <div style={{ fontSize: 13 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      padding: '7px 0',
+                      borderBottom: '1px solid #f0f2f5',
+                    }}
+                  >
+                    <span style={{ color: '#8b949e', width: 72, flexShrink: 0 }}>开始时间</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {detail.start_time
+                        ? dayjs(detail.start_time).format('YYYY-MM-DD HH:mm')
+                        : '-'}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      padding: '7px 0',
+                      borderBottom: '1px solid #f0f2f5',
+                    }}
+                  >
+                    <span style={{ color: '#8b949e', width: 72, flexShrink: 0 }}>结束时间</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {detail.end_time
+                        ? dayjs(detail.end_time).format('YYYY-MM-DD HH:mm')
+                        : '-'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', padding: '7px 0' }}>
+                    <span style={{ color: '#8b949e', width: 72, flexShrink: 0 }}>剩余/已进行</span>
+                    <span>
+                      {detail.start_time && detail.end_time ? (
+                        dayjs().isBefore(detail.start_time) ? (
+                          <Tag color="blue">未开始</Tag>
+                        ) : dayjs().isAfter(detail.end_time) ? (
+                          <Tag color="default">已结束</Tag>
+                        ) : (
+                          <Tag color="success">进行中</Tag>
+                        )
+                      ) : (
+                        '-'
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 右上: 拍卖参数 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>📊 拍卖参数</span>}
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '12px 16px' }}
+              >
+                <div style={{ fontSize: 13 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      padding: '7px 0',
+                      borderBottom: '1px solid #f0f2f5',
+                    }}
+                  >
+                    <span style={{ color: '#8b949e', width: 80, flexShrink: 0 }}>默认起拍价</span>
+                    <span style={{ fontWeight: 600 }}>¥{(detail.default_start_price ?? 5000).toLocaleString()}</span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      padding: '7px 0',
+                      borderBottom: '1px solid #f0f2f5',
+                    }}
+                  >
+                    <span style={{ color: '#8b949e', width: 80, flexShrink: 0 }}>加价步长</span>
+                    <span style={{ fontWeight: 600 }}>¥{(detail.default_bid_step ?? 500).toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', padding: '7px 0' }}>
+                    <span style={{ color: '#8b949e', width: 80, flexShrink: 0 }}>拍卖地点</span>
+                    <span>{detail.location ?? '线上拍卖大厅'}</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 左下: 功能开关 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>⚙️ 功能配置</span>}
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '12px 16px' }}
+              >
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <Tag color={detail.allow_entrusted_bid !== 0 ? 'green' : 'default'}>
+                    委托出价 {detail.allow_entrusted_bid !== 0 ? '✓' : '✗'}
+                  </Tag>
+                  <Tag color={detail.allow_auto_bid !== 0 ? 'green' : 'default'}>
+                    自动加价 {detail.allow_auto_bid !== 0 ? '✓' : '✗'}
+                  </Tag>
+                  <Tag color="blue">
+                    {AUCTION_TYPE_LABEL[detail.auction_type || 'online'] ?? '线上拍卖'}
+                  </Tag>
+                  <Tag color="orange">保证金 ¥{(detail.deposit ?? 5000).toLocaleString()}</Tag>
+                </div>
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 11,
+                    color: '#8b949e',
+                    paddingTop: 10,
+                    borderTop: '1px solid #f0f2f5',
+                  }}
+                >
+                  创建: {dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}
+                  <br />
+                  更新: {dayjs(detail.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                </div>
+              </Card>
+
+              {/* 右下: 场次描述 + 状态流转 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>📝 场次描述</span>}
+                bordered={false}
+                style={{ borderRadius: 10 }}
+                bodyStyle={{ padding: '12px 16px' }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: '#57606a',
+                    lineHeight: 1.7,
+                    background: '#f6f8fa',
+                    padding: '10px 12px',
+                    borderRadius: 6,
+                    marginBottom: 12,
+                    minHeight: 40,
+                  }}
+                >
+                  {detail.description || '暂无描述'}
+                </div>
+                <div style={{ fontSize: 11, color: '#8b949e' }}>
+                  <Typography.Link onClick={() => {
+                    setDetailVisible(false);
+                    setDrawerVisible(true);
+                    navigate('/auction/session?tab=items');
+                  }}>
+                    查看该场次拍品列表 →
+                  </Typography.Link>
+                </div>
+              </Card>
+            </div>
+          </div>
         )}
       </Drawer>
     </>
