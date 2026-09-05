@@ -1258,68 +1258,260 @@ const DetectionOrder = () => {
         </div>
       </DrawerForm>
 
-      {/* 详情抽屉 */}
+      {/* 详情抽屉 - 卡片网格布局 */}
       <Drawer
-        title="预约订单详情"
-        open={detailVisible}
-        onClose={() => setDetailVisible(false)}
-        width={560}
-        destroyOnHidden
-      >
-        {detail && (
-          <div style={{ lineHeight: 2 }}>
-            <p>
-              <strong>订单号:</strong>
-              {detail.order_no}
-            </p>
-            <p>
-              <strong>状态:</strong>
+        title={
+          <Space>
+            <span>预约订单详情</span>
+            {detail && (
               <Tag color={ORDER_STATUS_MAP[detail.status]?.color ?? 'default'}>
                 {ORDER_STATUS_MAP[detail.status]?.label ?? detail.status}
               </Tag>
-            </p>
-            <p>
-              <strong>预约人:</strong>
-              {detail.user_name}
-              {detail.phone ? `(${detail.phone})` : ''}
-            </p>
-            <p>
-              <strong>足环号:</strong>
-              {detail.ring_number || '-'}
-            </p>
-            {detail.gene_profile && (
-              <p>
-                <strong>关联档案:</strong>
-                {detail.gene_profile.ring_number} {detail.gene_profile.name}
-                {detail.gene_profile.owner_name ? ` - 鸽主:${detail.gene_profile.owner_name}` : ''}
-              </p>
             )}
-            <p>
-              <strong>检测机构:</strong>
-              {detail.test_org || '-'}
-            </p>
-            <p>
-              <strong>检测项目:</strong>
-              {detail.project}
-            </p>
-            <p>
-              <strong>预约日期:</strong>
-              {detail.scheduled_date || '-'}
-            </p>
-            <p>
-              <strong>备注:</strong>
-              {detail.remark || '-'}
-            </p>
-            <p>
-              <strong>创建时间:</strong>
-              {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm') : '-'}
-            </p>
-            <p>
-              <strong>关联报告:</strong>
-              {detail.reports && detail.reports.length > 0
-                ? detail.reports.map((r) => r.report_no).join(', ')
-                : '暂无'}
-            </p>
+          </Space>
+        }
+        open={detailVisible}
+        onClose={() => setDetailVisible(false)}
+        width={800}
+        destroyOnHidden
+        styles={{ body: { padding: 0, background: '#f5f7fa' } }}
+      >
+        {!detail ? (
+          <div style={{ textAlign: 'center', padding: 80, color: '#8b949e' }}>暂无数据</div>
+        ) : (
+          <div style={{ padding: 16 }}>
+            {/* ===== 顶部渐变订单卡 ===== */}
+            <Card
+              size="small"
+              variant="borderless"
+              style={{ marginBottom: 12, borderRadius: 10 }}
+              styles={{ body: { padding: 0 } }}
+            >
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
+                  color: 'white',
+                  padding: '20px 24px',
+                  borderRadius: '10px 10px 0 0',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 6,
+                  }}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 1 }}>
+                    🧬 基因检测预约订单
+                  </div>
+                  <div
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '4px 14px',
+                      borderRadius: 999,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {ORDER_STATUS_MAP[detail.status]?.label ?? detail.status}
+                  </div>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+                  {detail.order_no}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.9, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                  <span>👤 {detail.user_name} {detail.phone && `· ${detail.phone}`}</span>
+                  <span>🔬 {detail.test_org}</span>
+                  <span>📋 {detail.project}</span>
+                </div>
+              </div>
+              {/* KPI 栏 */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  borderTop: '1px solid #f0f2f5',
+                }}
+              >
+                {[
+                  { label: '鸽子足环', value: detail.ring_number ?? '-', color: '#1677ff' },
+                  { label: '预约日期', value: detail.scheduled_date ?? '未排期', color: '#52c41a' },
+                  { label: '报告数', value: detail.reports?.length ?? 0, color: '#722ed1' },
+                  { label: '创建时间', value: detail.created_at ? dayjs(detail.created_at).format('MM-DD HH:mm') : '-', color: '#8b949e' },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    style={{
+                      textAlign: 'center',
+                      padding: '14px 6px',
+                      borderRight: '1px solid #f0f2f5',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 4 }}>{kpi.label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: kpi.color }}>
+                      {kpi.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* ===== 2x2 卡片网格 ===== */}
+            <div
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
+            >
+              {/* 左上: 鸽子档案 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>🕊️ 鸽子档案</span>}
+                variant="borderless"
+                style={{ borderRadius: 10 }}
+                styles={{ body: { padding: '12px 16px' } }}
+              >
+                {detail.gene_profile ? (
+                  <div style={{ fontSize: 13 }}>
+                    <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                      <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>鸽子名称</span>
+                      <span style={{ fontWeight: 600 }}>{detail.gene_profile.name}</span>
+                    </div>
+                    <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                      <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>足环号</span>
+                      <Tag color="blue">{detail.gene_profile.ring_number}</Tag>
+                    </div>
+                    <div style={{ padding: '8px 0' }}>
+                      <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>鸽主</span>
+                      <span>{detail.gene_profile.owner_name ?? '-'}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ color: '#8b949e', fontSize: 12, padding: '12px 0' }}>
+                    未关联鸽子档案
+                  </div>
+                )}
+              </Card>
+
+              {/* 右上: 检测信息 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>🔬 检测信息</span>}
+                variant="borderless"
+                style={{ borderRadius: 10 }}
+                styles={{ body: { padding: '12px 16px' } }}
+              >
+                <div style={{ fontSize: 13 }}>
+                  <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                    <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>检测机构</span>
+                    <span>{detail.test_org ?? '-'}</span>
+                  </div>
+                  <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                    <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>检测项目</span>
+                    <Tag color="purple">{detail.project}</Tag>
+                  </div>
+                  <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f2f5' }}>
+                    <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>预约日期</span>
+                    <span>{detail.scheduled_date ?? '未排期'}</span>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <span style={{ color: '#8b949e', width: 70, display: 'inline-block' }}>备注</span>
+                    <span>{detail.remark || '—'}</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 左下: 状态时间线 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>📌 订单状态</span>}
+                variant="borderless"
+                style={{ borderRadius: 10 }}
+                styles={{ body: { padding: '14px 16px 4px' } }}
+              >
+                <Steps
+                  direction="vertical"
+                  size="small"
+                  status={detail.status === 'cancelled' ? 'error' : 'process'}
+                  current={
+                    ['pending', 'scheduled', 'testing', 'completed', 'cancelled'].indexOf(detail.status) >= 0
+                      ? ['pending', 'scheduled', 'testing', 'completed', 'cancelled'].indexOf(detail.status)
+                      : 0
+                  }
+                  items={[
+                    { title: '待确认', description: '等待运营确认' },
+                    { title: '已排期', description: detail.scheduled_date || '—' },
+                    { title: '检测中', description: '样本送检中' },
+                    { title: '已完成', description: detail.reports?.length > 0 ? `${detail.reports.length} 份报告` : '—' },
+                  ]}
+                />
+              </Card>
+
+              {/* 右下: 关联报告 */}
+              <Card
+                size="small"
+                title={<span style={{ fontSize: 13, fontWeight: 600 }}>📄 关联报告 ({detail.reports?.length ?? 0})</span>}
+                variant="borderless"
+                style={{ borderRadius: 10 }}
+                styles={{ body: { padding: '8px 16px 12px' } }}
+              >
+                {detail.reports && detail.reports.length > 0 ? (
+                  <div>
+                    {detail.reports.map((r) => (
+                      <div
+                        key={r.id}
+                        style={{
+                          padding: '10px 0',
+                          borderBottom: '1px solid #f0f2f5',
+                          fontSize: 12.5,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontWeight: 600 }}>
+                            📋 {r.report_no}
+                          </span>
+                          <Tag color="purple">{r.project}</Tag>
+                        </div>
+                        <div style={{ color: '#8b949e', fontSize: 11, marginBottom: 4 }}>
+                          {r.test_org} · {r.test_date || '-'}
+                        </div>
+                        {r.result && (
+                          <div
+                            style={{
+                              background: '#f6f8fa',
+                              padding: '6px 10px',
+                              borderRadius: 4,
+                              fontSize: 11.5,
+                              color: '#57606a',
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {r.result}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: '#8b949e', fontSize: 12, padding: '12px 0', textAlign: 'center' }}>
+                    暂无检测报告
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 11,
+                color: '#8b949e',
+                paddingTop: 10,
+                borderTop: '1px solid #f0f2f5',
+                textAlign: 'right',
+              }}
+            >
+              创建: {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+              {detail.updated_at && ` · 更新: ${dayjs(detail.updated_at).format('YYYY-MM-DD HH:mm:ss')}`}
+            </div>
           </div>
         )}
       </Drawer>
