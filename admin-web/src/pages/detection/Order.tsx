@@ -1,5 +1,5 @@
 import {
-  DrawerForm,
+  ProForm,
   ProFormDatePicker,
   ProFormSelect,
   ProFormText,
@@ -1056,7 +1056,7 @@ const DetectionOrder = () => {
       )}
 
       {/* 新增/编辑抽屉 */}
-      <DrawerForm
+      <Drawer
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span>{editing ? '编辑预约订单' : '新增预约订单'}</span>
@@ -1074,37 +1074,66 @@ const DetectionOrder = () => {
           </div>
         }
         open={drawerVisible}
-        onOpenChange={setDrawerVisible}
-        onFinish={handleSubmit}
-        formRef={formRef}
-        drawerProps={{
-          destroyOnHidden: false,
-          maskClosable: false,
-          width: 'min(92vw, 960px)',
-          styles: { body: { padding: 0 } },
+        onClose={() => {
+          setDrawerVisible(false);
         }}
-        initialValues={
-          editing
-            ? {
-                user_name: editing.user_name,
-                phone: editing.phone ?? undefined,
-                gene_profile_id: editing.gene_profile_id ?? undefined,
-                ring_number: editing.ring_number,
-                org_id: editing.org_id ?? undefined,
-                test_org: editing.test_org,
-                project: editing.project,
-                scheduled_date: editing.scheduled_date ? dayjs(editing.scheduled_date) : undefined,
-                remark: editing.remark ?? undefined,
-              }
-            : {}
+        destroyOnClose={false}
+        maskClosable={false}
+        width="min(92vw, 960px)"
+        styles={{ body: { padding: 0 } }}
+        footer={
+          <div style={{ textAlign: 'right', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button
+              onClick={() => {
+                setDrawerVisible(false);
+                setFormValues({});
+                setSelectedTimeSlot('');
+                setSelectedDateValue(null);
+                setCurrentStep(0);
+              }}
+            >
+              取消
+            </Button>
+            {!editing && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const values = await formRef.current?.validateFields();
+                    await handleSubmit({ ...values, is_draft: true });
+                  } catch {
+                    // 校验失败
+                  }
+                }}
+              >
+                保存草稿
+              </Button>
+            )}
+            <Button type="primary" onClick={() => formRef.current?.submit?.()}>
+              {editing ? '保存修改' : '确认提交'}
+            </Button>
+          </div>
         }
-        submitter={{
-          searchConfig: {
-            submitText: editing ? '保存修改' : '确认提交',
-            resetText: '取消',
-          },
-        }}
       >
+        <ProForm
+          formRef={formRef}
+          onFinish={handleSubmit}
+          submitter={false}
+          initialValues={
+            editing
+              ? {
+                  user_name: editing.user_name,
+                  phone: editing.phone ?? undefined,
+                  gene_profile_id: editing.gene_profile_id ?? undefined,
+                  ring_number: editing.ring_number,
+                  org_id: editing.org_id ?? undefined,
+                  test_org: editing.test_org,
+                  project: editing.project,
+                  scheduled_date: editing.scheduled_date ? dayjs(editing.scheduled_date) : undefined,
+                  remark: editing.remark ?? undefined,
+                }
+              : {}
+          }
+        >
         {/* 主布局：单栏自适应，顶部概览+表单+底部费用 */}
         <div style={{ height: 'calc(100vh - 180px)', minHeight: 580, display: 'flex', flexDirection: 'column' }}>
           {/* ============ 顶部：订单概览（sticky） ============ */}
@@ -1740,7 +1769,8 @@ const DetectionOrder = () => {
             </Card>
           </div>
         </div>
-      </DrawerForm>
+        </ProForm>
+      </Drawer>
 
       {/* 详情抽屉 - 卡片网格布局 */}
       <Drawer
