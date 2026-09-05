@@ -326,9 +326,9 @@ const AuctionDeal = () => {
             {/* ===== 顶部拍品大卡片 ===== */}
             <Card
               size="small"
-              bordered={false}
+              variant="borderless"
               style={{ marginBottom: 16, borderRadius: 10 }}
-              bodyStyle={{ padding: 0 }}
+              styles={{ body: { padding: 0 } }}
             >
               <div
                 style={{
@@ -466,7 +466,7 @@ const AuctionDeal = () => {
                     <UserOutlined /> 交易双方
                   </span>
                 }
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
               >
                 <div style={{ fontSize: 13 }}>
@@ -504,9 +504,9 @@ const AuctionDeal = () => {
                     <CheckCircleOutlined /> 成交状态
                   </span>
                 }
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '16px 16px 4px' }}
+                styles={{ body: { padding: '16px 16px 4px' } }}
               >
                 {detail.timeline && detail.timeline.length > 0 ? (
                   <Steps
@@ -555,9 +555,9 @@ const AuctionDeal = () => {
                     )}
                   </span>
                 }
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '8px 16px 12px' }}
+                styles={{ body: { padding: '8px 16px 12px' } }}
               >
                 {detail.bids && detail.bids.length > 0 ? (
                   <div>
@@ -641,7 +641,7 @@ const AuctionDeal = () => {
                     🎯 快捷操作
                   </span>
                 }
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
                 styles={{ body: { padding: '12px 16px 16px' } }}
               >

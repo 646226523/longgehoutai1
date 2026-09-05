@@ -1405,9 +1405,9 @@ const AuctionSession = () => {
             {/* ===== 顶部场次大卡片 ===== */}
             <Card
               size="small"
-              bordered={false}
+              variant="borderless"
               style={{ marginBottom: 16, borderRadius: 10 }}
-              bodyStyle={{ padding: 0 }}
+              styles={{ body: { padding: 0 } }}
             >
               <div
                 style={{
@@ -1510,9 +1510,9 @@ const AuctionSession = () => {
               <Card
                 size="small"
                 title={<span style={{ fontSize: 13, fontWeight: 600 }}>⏰ 场次时间</span>}
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '12px 16px' }}
+                styles={{ body: { padding: '12px 16px' } }}
               >
                 <div style={{ fontSize: 13 }}>
                   <div
@@ -1566,9 +1566,9 @@ const AuctionSession = () => {
               <Card
                 size="small"
                 title={<span style={{ fontSize: 13, fontWeight: 600 }}>📊 拍卖参数</span>}
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '12px 16px' }}
+                styles={{ body: { padding: '12px 16px' } }}
               >
                 <div style={{ fontSize: 13 }}>
                   <div
@@ -1602,9 +1602,9 @@ const AuctionSession = () => {
               <Card
                 size="small"
                 title={<span style={{ fontSize: 13, fontWeight: 600 }}>⚙️ 功能配置</span>}
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '12px 16px' }}
+                styles={{ body: { padding: '12px 16px' } }}
               >
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   <Tag color={detail.allow_entrusted_bid !== 0 ? 'green' : 'default'}>
@@ -1637,9 +1637,9 @@ const AuctionSession = () => {
               <Card
                 size="small"
                 title={<span style={{ fontSize: 13, fontWeight: 600 }}>📝 场次描述</span>}
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 10 }}
-                bodyStyle={{ padding: '12px 16px' }}
+                styles={{ body: { padding: '12px 16px' } }}
               >
                 <div
                   style={{
