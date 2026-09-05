@@ -29,6 +29,7 @@ import {
   Space,
   Steps,
   Tag,
+  Tooltip,
 } from 'antd';
 import {
   CalendarOutlined,
@@ -164,86 +165,112 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
           fullscreen={false}
           fullCellRender={(day) => {
             const heat = getHeatStyle(day);
+            const count = getCount(day);
             const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
             const isToday = dayjs().isSame(day, 'day');
             const isOtherMonth = !day.isSame(currentMonth, 'month');
             const isWeekend = day.day() === 0 || day.day() === 6;
 
-            return (
-              <div
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: 54,
-                  padding: 2,
-                  boxSizing: 'border-box',
-                }}
-              >
-                {/* 日期小字（灰色角落） */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    left: 6,
-                    fontSize: 11,
-                    color: isOtherMonth ? '#d9d9d9' : isWeekend ? '#faad14' : '#8b949e',
-                    fontWeight: isToday ? 700 : 400,
-                  }}
-                >
-                  {day.date()}
-                  {isToday && (
-                    <span style={{ color: '#1677ff', marginLeft: 2, fontSize: 9 }}>今</span>
+            // Tooltip 内容
+            const tipTitle = (
+              <div style={{ fontSize: 12 }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  {day.format('YYYY 年 MM 月 DD 日')}
+                  {isToday && <span style={{ color: '#1677ff', marginLeft: 4 }}>· 今天</span>}
+                  {isWeekend && <span style={{ color: '#faad14', marginLeft: 4 }}>· 周末</span>}
+                </div>
+                <div style={{ color: '#8b949e' }}>
+                  {count > 0 ? (
+                    <>
+                      已排期 <strong style={{ color: '#1677ff' }}>{count}</strong> 单
+                      {count >= 10 && <span style={{ color: '#ff4d4f', marginLeft: 4 }}>⚠️ 已满</span>}
+                      {count >= 5 && count < 10 && <span style={{ color: '#faad14', marginLeft: 4 }}>⚠️ 较繁忙</span>}
+                    </>
+                  ) : (
+                    <span style={{ color: '#52c41a' }}>🎉 暂无排期，可安排</span>
                   )}
                 </div>
-
-                {/* 排单量色块 */}
-                {heat && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 4,
-                      left: 4,
-                      right: 4,
-                      height: 30,
-                      background: heat.bg,
-                      borderRadius: 5,
-                      color: heat.text,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: isSelected ? '0 0 0 2px #1677ff' : 'none',
-                    }}
-                  >
-                    {heat.label} 单
-                  </div>
-                )}
-
-                {/* 选中态（无排单量的日期也能选中） */}
-                {isSelected && !heat && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 4,
-                      left: 4,
-                      right: 4,
-                      height: 30,
-                      background: '#e6f4ff',
-                      border: '1px solid #1677ff',
-                      borderRadius: 5,
-                      color: '#1677ff',
-                      fontSize: 11,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 600,
-                    }}
-                  >
-                    在此排期
-                  </div>
-                )}
               </div>
+            );
+
+            return (
+              <Tooltip title={tipTitle} mouseEnterDelay={0.3} placement="top">
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: 54,
+                    padding: 2,
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {/* 日期小字（灰色角落） */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: 6,
+                      fontSize: 11,
+                      color: isOtherMonth ? '#d9d9d9' : isWeekend ? '#faad14' : '#8b949e',
+                      fontWeight: isToday ? 700 : 400,
+                    }}
+                  >
+                    {day.date()}
+                    {isToday && (
+                      <span style={{ color: '#1677ff', marginLeft: 2, fontSize: 9 }}>今</span>
+                    )}
+                  </div>
+
+                  {/* 排单量色块 */}
+                  {heat && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: 4,
+                        right: 4,
+                        height: 30,
+                        background: heat.bg,
+                        borderRadius: 5,
+                        color: heat.text,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: isSelected ? '0 0 0 2px #1677ff' : 'none',
+                      }}
+                    >
+                      {heat.label} 单
+                    </div>
+                  )}
+
+                  {/* 选中态（无排单量的日期也能选中） */}
+                  {isSelected && !heat && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: 4,
+                        right: 4,
+                        height: 30,
+                        background: '#e6f4ff',
+                        border: '1px solid #1677ff',
+                        borderRadius: 5,
+                        color: '#1677ff',
+                        fontSize: 11,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 600,
+                      }}
+                    >
+                      在此排期
+                    </div>
+                  )}
+                </div>
+              </Tooltip>
             );
           }}
         />
