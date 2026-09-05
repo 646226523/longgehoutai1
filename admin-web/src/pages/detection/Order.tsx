@@ -96,6 +96,7 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
   const [currentMonth, setCurrentMonth] = useState<Dayjs>(
     selectedDate ?? dayjs().startOf('month')
   );
+  const [calendarMode, setCalendarMode] = useState<'date' | 'month'>('date');
 
   // 选中某日 → 拉当日订单
   useEffect(() => {
@@ -170,10 +171,13 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
         <Calendar
           value={selectedDate ?? currentMonth}
           onSelect={(d) => onSelectDate(d)}
-          onPanelChange={(d) => setCurrentMonth(d)}
+          onPanelChange={(d, mode) => {
+            setCurrentMonth(d);
+            setCalendarMode(mode as 'date' | 'month');
+          }}
           fullscreen={false}
-          fullCellRender={(day, info) => {
-            const isYearView = (info as any)?.panel === 'month'; // antd: date=月视图, month=年视图
+          fullCellRender={(day) => {
+            const isYearView = calendarMode === 'month';
             const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
 
             // === 年视图：每个 cell 是一个月份 ===
