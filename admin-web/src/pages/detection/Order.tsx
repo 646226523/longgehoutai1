@@ -1099,30 +1099,9 @@ const DetectionOrder = () => {
             : {}
         }
         submitter={{
-          render: (props) => {
-            return [
-              <Button
-                key="cancel"
-                onClick={() => {
-                  setDrawerVisible(false);
-                  setFormValues({});
-                  setSelectedTimeSlot('');
-                  setSelectedDateValue(null);
-                  setCurrentStep(0);
-                }}
-              >
-                取消
-              </Button>,
-              <Button
-                key="submit"
-                type="primary"
-                onClick={() => {
-                  props.submit();
-                }}
-              >
-                {editing ? '保存修改' : '确认提交'}
-              </Button>,
-            ];
+          searchConfig: {
+            submitText: editing ? '保存修改' : '确认提交',
+            resetText: '取消',
           },
         }}
       >
