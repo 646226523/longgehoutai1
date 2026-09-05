@@ -1,6 +1,5 @@
 import {
   DrawerForm,
-  ModalForm,
   ProFormDatePicker,
   ProFormSelect,
   ProFormText,
@@ -18,7 +17,7 @@ import {
   Card,
   Checkbox,
   Col,
-  DatePicker,
+  Modal,
   Divider,
   Drawer,
   Form,
@@ -81,6 +80,187 @@ const ORDER_STATUS_MAP: Record<
 };
 
 // 检测项目默认价格（模拟数据，实际应由后端提供）
+// ===== 排期用日历热力图组件 =====
+
+interface ScheduleCalendarProps {
+  counts: Record<string, number>;
+  selectedDate: Dayjs | null;
+  onSelectDate: (d: Dayjs) => void;
+  orderCountLoaded?: boolean;
+}
+
+const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalendarProps) => {
+  const [dayOrders, setDayOrders] = useState<DetectionOrder[]>([]);
+  const [loadingDay, setLoadingDay] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState<Dayjs>(
+    selectedDate ?? dayjs().startOf('month')
+  );
+
+  // 选中某日 → 拉当日订单
+  useEffect(() => {
+    if (!selectedDate) return;
+    const dateStr = selectedDate.format('YYYY-MM-DD');
+    setLoadingDay(true);
+    getDetectionCalendarByDate(dateStr)
+      .then((list) => setDayOrders(list ?? []))
+      .catch(() => setDayOrders([]))
+      .finally(() => setLoadingDay(false));
+  }, [selectedDate?.format('YYYY-MM-DD')]);
+
+  // 获取某日的排单量
+  const getCount = (day: Dayjs) => {
+    const key = day.format('YYYY-MM-DD');
+    return counts[key] ?? 0;
+  };
+
+  // 热力图背景色（根据 count 等级）
+  const getHeatStyle = (day: Dayjs) => {
+    const count = getCount(day);
+    const base = { borderRadius: 4 } as React.CSSProperties;
+    if (count === 0) return base;
+    if (count <= 2) return { ...base, background: '#e6f4ff' };
+    if (count <= 5) return { ...base, background: '#bae0ff' };
+    if (count <= 10) return { ...base, background: '#7cc8ff' };
+    return { ...base, background: '#1677ff', color: 'white' };
+  };
+
+  return (
+    <div style={{ display: 'flex', minHeight: 480 }}>
+      {/* 左侧日历 */}
+      <div style={{ flex: 1, padding: 16, borderRight: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>
+            📅 选择排期日期
+          </div>
+          <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#8b949e', alignItems: 'center' }}>
+            <span>排单量:</span>
+            <span style={{ background: '#e6f4ff', padding: '2px 6px', borderRadius: 3 }}>1-2</span>
+            <span style={{ background: '#bae0ff', padding: '2px 6px', borderRadius: 3 }}>3-5</span>
+            <span style={{ background: '#7cc8ff', padding: '2px 6px', borderRadius: 3, color: 'white' }}>6-10</span>
+            <span style={{ background: '#1677ff', padding: '2px 6px', borderRadius: 3, color: 'white' }}>10+</span>
+          </div>
+        </div>
+        <Calendar
+          value={selectedDate ?? currentMonth}
+          onSelect={(d) => onSelectDate(d)}
+          onPanelChange={(d) => setCurrentMonth(d)}
+          fullscreen={false}
+          cellRender={(day) => {
+            const count = getCount(day);
+            const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
+            return (
+              <div
+                style={{
+                  padding: '4px 6px',
+                  minHeight: 42,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: isSelected ? 700 : 400 }}>
+                  {day.date()}
+                </div>
+                {count > 0 && (
+                  <div
+                    style={{
+                      ...getHeatStyle(day),
+                      fontSize: 10,
+                      textAlign: 'center',
+                      padding: '1px 0',
+                    }}
+                  >
+                    {count} 单
+                  </div>
+                )}
+              </div>
+            );
+          }}
+        />
+      </div>
+
+      {/* 右侧当日订单 */}
+      <div style={{ width: 340, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+          📋 {selectedDate ? selectedDate.format('YYYY-MM-DD') : '请选择日期'} 的排期
+        </div>
+
+        {!selectedDate ? (
+          <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '40px 0' }}>
+            左侧日历点选一个日期
+          </div>
+        ) : (
+          <>
+            {/* 当前订单排期预估 */}
+            <Card
+              size="small"
+              style={{ marginBottom: 12, borderRadius: 8 }}
+              styles={{ body: { padding: 12 } }}
+            >
+              <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 4 }}>当前订单排期预估</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#1677ff', marginBottom: 6 }}>
+                {selectedDate.format('YYYY年MM月DD日')}
+              </div>
+              <div style={{ fontSize: 11, color: '#8b949e' }}>
+                当天已有 <strong style={{ color: '#1f2328' }}>{dayOrders.length}</strong> 个排期
+                {dayOrders.length >= 5 && (
+                  <Tag color="orange" style={{ marginLeft: 6, fontSize: 11 }}>⚠️ 较繁忙</Tag>
+                )}
+                {dayOrders.length >= 10 && (
+                  <Tag color="red" style={{ marginLeft: 6, fontSize: 11 }}>⚠️ 爆满预警</Tag>
+                )}
+              </div>
+            </Card>
+
+            {/* 当日已有订单 */}
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+              当日已有订单 ({dayOrders.length})
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {loadingDay ? (
+                <div style={{ textAlign: 'center', padding: 20, color: '#8b949e' }}>加载中...</div>
+              ) : dayOrders.length === 0 ? (
+                <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '30px 0' }}>
+                  🎉 当日暂无排期<br />适合安排
+                </div>
+              ) : (
+                <div>
+                  {dayOrders.map((o) => (
+                    <div
+                      key={o.id}
+                      style={{
+                        padding: '8px 10px',
+                        background: 'white',
+                        borderRadius: 6,
+                        marginBottom: 6,
+                        borderLeft: `3px solid ${ORDER_STATUS_MAP[o.status]?.color ?? '#d9d9d9'}`,
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                        <span style={{ fontWeight: 600 }}>{o.order_no}</span>
+                        <Tag
+                          color={ORDER_STATUS_MAP[o.status]?.color ?? 'default'}
+                          style={{ margin: 0, fontSize: 10 }}
+                        >
+                          {ORDER_STATUS_MAP[o.status]?.label ?? o.status}
+                        </Tag>
+                      </div>
+                      <div style={{ color: '#8b949e', fontSize: 11 }}>
+                        {o.user_name} · {o.project}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ITEM_PRICES: Record<string, number> = {
   'DNA身份认证': 300,
   '遗传病筛查': 200,
@@ -304,24 +484,22 @@ const DetectionOrder = () => {
     setScheduleTarget(record);
     setScheduleDate(record.scheduled_date ? dayjs(record.scheduled_date) : null);
     setScheduleVisible(true);
+    // 打开排期弹窗前加载 3 个月范围的排单量（日历翻月也有数据）
+    const anchor = record.scheduled_date ? dayjs(record.scheduled_date) : dayjs();
+    const start = anchor.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
+    const end = anchor.add(2, 'month').endOf('month').format('YYYY-MM-DD');
+    getDetectionCalendar(start, end)
+      .then((rows: CalendarDayCount[] | null) => {
+        if (!rows) return;
+        const map: Record<string, number> = {};
+        rows.forEach((r) => {
+          map[r.date] = r.count;
+        });
+        setCalendarCounts(map);
+      })
+      .catch(() => {});
   };
 
-  // 提交排期
-  const handleScheduleSubmit = async () => {
-    if (!scheduleTarget || !scheduleDate) {
-      message.warning('请选择排期日期');
-      return false;
-    }
-    try {
-      await scheduleDetectionOrder(scheduleTarget.id, scheduleDate.format('YYYY-MM-DD'));
-      message.success('排期成功');
-      setScheduleVisible(false);
-      handleRefresh();
-      return true;
-    } catch {
-      return false;
-    }
-  };
 
   // 取消订单
   const handleCancel = async (record: DetectionOrder) => {
@@ -1516,36 +1694,51 @@ const DetectionOrder = () => {
         )}
       </Drawer>
 
-      {/* 排期弹窗 */}
-      <ModalForm
-        title="订单排期"
-        open={scheduleVisible}
-        onOpenChange={setScheduleVisible}
-        onFinish={handleScheduleSubmit}
-        modalProps={{ destroyOnHidden: true, maskClosable: false }}
-        submitter={{ searchConfig: { submitText: '确认排期' } }}
-        initialValues={
-          scheduleTarget?.scheduled_date
-            ? { scheduled_date: dayjs(scheduleTarget.scheduled_date) }
-            : {}
+      {/* 排期弹窗 - 日历热力图 + 当日订单 */}
+      <Modal
+        title={
+          <Space>
+            <span>订单排期</span>
+            {scheduleTarget && (
+              <span style={{ fontSize: 12, color: '#8b949e', fontWeight: 400 }}>
+                {scheduleTarget.order_no} · {scheduleTarget.user_name} · {scheduleTarget.project}
+              </span>
+            )}
+          </Space>
         }
+        open={scheduleVisible}
+        onCancel={() => setScheduleVisible(false)}
+        onOk={async () => {
+          if (!scheduleTarget || !scheduleDate) {
+            message.warning('请在日历中选择排期日期');
+            return;
+          }
+          try {
+            await scheduleDetectionOrder(scheduleTarget.id, scheduleDate.format('YYYY-MM-DD'));
+            message.success('排期成功');
+            setScheduleVisible(false);
+            handleRefresh();
+          } catch (e: any) {
+            message.error(e?.message || '排期失败');
+          }
+        }}
+        okText="确认排期"
+        cancelText="取消"
+        width={960}
+        destroyOnHidden
+        maskClosable={false}
+        styles={{ body: { padding: 0 } }}
       >
         {scheduleTarget && (
-          <p>
-            订单号:<strong>{scheduleTarget.order_no}</strong> / 预约人:
-            {scheduleTarget.user_name} / 检测项目:{scheduleTarget.project}
-          </p>
-        )}
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', marginBottom: 8 }}>排期日期</label>
-          <DatePicker
-            value={scheduleDate}
-            onChange={(v) => setScheduleDate(v as ScheduleValue)}
-            style={{ width: '100%' }}
-            placeholder="请选择排期日期"
+          <ScheduleCalendar
+            key={scheduleTarget.id}
+            counts={calendarCounts}
+            selectedDate={scheduleDate}
+            onSelectDate={setScheduleDate}
+            orderCountLoaded={true}
           />
-        </div>
-      </ModalForm>
+        )}
+      </Modal>
 
       {/* 日历点击日期查看当日订单 */}
       <Drawer
