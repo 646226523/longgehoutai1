@@ -114,9 +114,18 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
     return counts[key] ?? 0;
   };
 
-  // 热力图背景色（根据 count 等级）
-  const getHeatStyle = (day: Dayjs): { bg: string; text: string; label: string } | null => {
-    const count = getCount(day);
+  // 年视图：获取某月累计排单量（同月每天 count 之和）
+  const getMonthCount = (yearMonth: string) => {
+    // yearMonth 格式 "YYYY-MM"
+    let total = 0;
+    for (const [key, val] of Object.entries(counts)) {
+      if (key.startsWith(yearMonth)) total += val;
+    }
+    return total;
+  };
+
+  // 日视图热力图（根据 count 等级）
+  const getHeatStyle = (count: number): { bg: string; text: string; label: string } | null => {
     if (count === 0) return null;
     if (count <= 2) return { bg: '#e6f4ff', text: '#1677ff', label: `${count}` };
     if (count <= 5) return { bg: '#bae0ff', text: '#0958d9', label: `${count}` };
@@ -163,11 +172,103 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
           onSelect={(d) => onSelectDate(d)}
           onPanelChange={(d) => setCurrentMonth(d)}
           fullscreen={false}
-          mode="month"
-          fullCellRender={(day) => {
-            const heat = getHeatStyle(day);
-            const count = getCount(day);
+          fullCellRender={(day, info) => {
+            const isYearView = (info as any)?.panel === 'month'; // antd: date=月视图, month=年视图
             const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
+
+            // === 年视图：每个 cell 是一个月份 ===
+            if (isYearView) {
+              const yearMonth = day.format('YYYY-MM');
+              const total = getMonthCount(yearMonth);
+              const heat = getHeatStyle(total);
+              const monthName = day.format('M 月');
+              const isSelectedMonth = currentMonth.format('YYYY-MM') === yearMonth;
+
+              const yearTipTitle = (
+                <div style={{ fontSize: 12 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                    {day.format('YYYY 年 M 月')}
+                  </div>
+                  <div style={{ color: '#8b949e' }}>
+                    累计排单 <strong style={{ color: '#1677ff' }}>{total}</strong> 单
+                  </div>
+                </div>
+              );
+
+              return (
+                <Tooltip title={yearTipTitle} mouseEnterDelay={0.3} placement="top">
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: 54,
+                      padding: 2,
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {/* 月份名（小字灰色角落） */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        left: 6,
+                        fontSize: 11,
+                        color: isSelectedMonth ? '#1677ff' : '#8b949e',
+                        fontWeight: isSelectedMonth ? 700 : 400,
+                      }}
+                    >
+                      {monthName}
+                    </div>
+
+                    {/* 累计排单量色块 */}
+                    {heat ? (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          left: 4,
+                          right: 4,
+                          height: 30,
+                          background: heat.bg,
+                          borderRadius: 5,
+                          color: heat.text,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {heat.label} 单
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          left: 4,
+                          right: 4,
+                          height: 30,
+                          borderRadius: 5,
+                          fontSize: 10,
+                          color: '#d9d9d9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        无排单
+                      </div>
+                    )}
+                  </div>
+                </Tooltip>
+              );
+            }
+
+            // === 月视图：每个 cell 是一个日期 ===
+            const count = getCount(day);
+            const heat = getHeatStyle(count);
             const isToday = dayjs().isSame(day, 'day');
             const isOtherMonth = !day.isSame(currentMonth, 'month');
             const isWeekend = day.day() === 0 || day.day() === 6;
