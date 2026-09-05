@@ -96,6 +96,12 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
   const [currentMonth, setCurrentMonth] = useState<Dayjs>(
     selectedDate ?? dayjs().startOf('month')
   );
+  // 跟踪 Calendar 当前视图模式
+  const [panelMode, setPanelMode] = useState<'date' | 'month'>('date');
+  // 年视图下点击月份后选中的月份
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    (selectedDate ?? dayjs()).format('YYYY-MM')
+  );
 
   // 选中某日 → 拉当日订单
   useEffect(() => {
@@ -169,18 +175,125 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
         </div>
         <Calendar
           value={selectedDate ?? currentMonth}
-          onSelect={(d) => onSelectDate(d)}
-          onPanelChange={(d) => setCurrentMonth(d)}
+          onSelect={(d) => {
+            // 年视图下点击月份：切到月视图 + 选中该月第一天
+            if (panelMode === 'month') {
+              setSelectedMonth(d.format('YYYY-MM'));
+              setPanelMode('date');
+              setCurrentMonth(d.startOf('month'));
+              onSelectDate(d.startOf('month'));
+            } else {
+              onSelectDate(d);
+            }
+          }}
+          onPanelChange={(d, mode) => {
+            setCurrentMonth(d);
+            setPanelMode(mode as 'date' | 'month');
+          }}
           fullscreen={false}
-          // 月视图：每天一个 cell（1-31 号）
-          cellRender={(day) => {
+          fullCellRender={(day) => {
+            const isYearView = panelMode === 'month';
+
+            // === 年视图：每个 cell 是一个月份 ===
+            if (isYearView) {
+              const yearMonth = day.format('YYYY-MM');
+              const total = getMonthCount(yearMonth);
+              const heat = getHeatStyle(total);
+              const monthName = day.format('M 月');
+              const isSelectedMonth = selectedMonth === yearMonth;
+
+              const yearTipTitle = (
+                <div style={{ fontSize: 12 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                    {day.format('YYYY 年 M 月')}
+                  </div>
+                  <div style={{ color: '#8b949e' }}>
+                    累计排单 <strong style={{ color: '#1677ff' }}>{total}</strong> 单
+                  </div>
+                </div>
+              );
+
+              return (
+                <Tooltip title={yearTipTitle} mouseEnterDelay={0.3} placement="top">
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: 54,
+                      padding: 2,
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {/* 月份名 */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        left: 6,
+                        fontSize: 11,
+                        color: isSelectedMonth ? '#1677ff' : '#8b949e',
+                        fontWeight: isSelectedMonth ? 700 : 400,
+                      }}
+                    >
+                      {monthName}
+                    </div>
+
+                    {/* 累计排单量色块 */}
+                    {heat ? (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          left: 4,
+                          right: 4,
+                          height: 30,
+                          background: heat.bg,
+                          borderRadius: 5,
+                          color: heat.text,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: isSelectedMonth ? '0 0 0 2px #1677ff' : 'none',
+                        }}
+                      >
+                        {heat.label} 单
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          left: 4,
+                          right: 4,
+                          height: 30,
+                          borderRadius: 5,
+                          fontSize: 10,
+                          color: '#d9d9d9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        无排单
+                      </div>
+                    )}
+                  </div>
+                </Tooltip>
+              );
+            }
+
+            // === 月视图：每个 cell 是一个日期 ===
             const count = getCount(day);
             const heat = getHeatStyle(count);
+            const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
             const isToday = dayjs().isSame(day, 'day');
             const isOtherMonth = !day.isSame(currentMonth, 'month');
             const isWeekend = day.day() === 0 || day.day() === 6;
-            const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
 
+            // Tooltip 内容
             const tipTitle = (
               <div style={{ fontSize: 12 }}>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>
@@ -255,7 +368,7 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
                     </div>
                   )}
 
-                  {/* 选中态 */}
+                  {/* 选中态（无排单量的日期也能选中） */}
                   {isSelected && !heat && (
                     <div
                       style={{
@@ -282,105 +395,114 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
               </Tooltip>
             );
           }}
-          // 年视图：每月一个 cell（1-12 月）
-          monthCellRender={(date) => {
-            // date 是该月第一天，format('M') 正确输出 1-12
-            const month = date.month() + 1; // 0-based → 1-based
-            const yearMonth = date.format('YYYY-MM');
-            const total = getMonthCount(yearMonth);
-            const heat = getHeatStyle(total);
-
-            const tipTitle = (
-              <div style={{ fontSize: 12 }}>
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                  {date.format('YYYY 年 M 月')}
-                </div>
-                <div style={{ color: '#8b949e' }}>
-                  累计排单 <strong style={{ color: '#1677ff' }}>{total}</strong> 单
-                </div>
-              </div>
-            );
-
-            return (
-              <Tooltip title={tipTitle} mouseEnterDelay={0.3} placement="top">
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: 54,
-                    padding: 2,
-                    boxSizing: 'border-box',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {/* 月份名（小字灰色角落） */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      left: 6,
-                      fontSize: 11,
-                      color: '#8b949e',
-                      fontWeight: 400,
-                    }}
-                  >
-                    {month} 月
-                  </div>
-
-                  {/* 累计排单量色块 */}
-                  {heat ? (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 4,
-                        left: 4,
-                        right: 4,
-                        height: 30,
-                        background: heat.bg,
-                        borderRadius: 5,
-                        color: heat.text,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {heat.label} 单
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 4,
-                        left: 4,
-                        right: 4,
-                        height: 30,
-                        borderRadius: 5,
-                        fontSize: 10,
-                        color: '#d9d9d9',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      无排单
-                    </div>
-                  )}
-                </div>
-              </Tooltip>
-            );
-          }}
         />
       </div>
 
-      {/* 右侧当日订单 */}
+      {/* 右侧面板：月视图→当日订单 / 年视图→月份统计 */}
       <div style={{ width: 340, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
-          📋 {selectedDate ? selectedDate.format('YYYY-MM-DD') : '请选择日期'} 的排期
-        </div>
+        {panelMode === 'month' ? (
+          // ========== 年视图：月份统计 ==========
+          (() => {
+            const month = selectedMonth;
+            const total = getMonthCount(month);
+            // 取该月每天的 counts
+            const daily: { date: string; count: number }[] = [];
+            for (const [key, val] of Object.entries(counts)) {
+              if (key.startsWith(month)) daily.push({ date: key, count: val });
+            }
+            daily.sort((a, b) => a.date.localeCompare(b.date));
+            const maxDay = daily.reduce((m, d) => (d.count > m.count ? d : m), { date: '', count: 0 });
+            const minDay = daily.filter((d) => d.count > 0).reduce(
+              (m, d) => (d.count < m.count ? d : m),
+              { date: '', count: Infinity }
+            );
+            const avg = daily.length > 0 ? (total / daily.length).toFixed(1) : '0';
+            const maxCount = Math.max(1, ...daily.map((d) => d.count));
 
-        {!selectedDate ? (
+            return (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+                  📊 {month.replace('-', ' 年 ')} 月排单统计
+                </div>
+
+                {/* 3 个 KPI */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#8b949e' }}>总排单量</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1677ff' }}>{total}</div>
+                    <div style={{ fontSize: 10, color: '#8b949e' }}>单</div>
+                  </div>
+                  <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#8b949e' }}>日均排单</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#13c2c2' }}>{avg}</div>
+                    <div style={{ fontSize: 10, color: '#8b949e' }}>单/天</div>
+                  </div>
+                  <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#8b949e' }}>活跃天数</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#722ed1' }}>{daily.length}</div>
+                    <div style={{ fontSize: 10, color: '#8b949e' }}>天</div>
+                  </div>
+                </div>
+
+                {/* 最高/最低 */}
+                <Card size="small" style={{ marginBottom: 12, borderRadius: 8 }} styles={{ body: { padding: 12 } }}>
+                  {total === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#8b949e', fontSize: 12, padding: '20px 0' }}>
+                      🎉 该月暂无排单
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontSize: 12, color: '#8b949e' }}>🔥 最高峰</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#ff4d4f' }}>
+                          {maxDay.date.slice(8)} 日 · {maxDay.count} 单
+                        </div>
+                      </div>
+                      {minDay.count < Infinity && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontSize: 12, color: '#8b949e' }}>❄️ 最低谷</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#52c41a' }}>
+                            {minDay.date.slice(8)} 日 · {minDay.count} 单
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Card>
+
+                {/* 每日柱状图（迷你） */}
+                {daily.length > 0 && (
+                  <Card size="small" style={{ borderRadius: 8, flex: 1 }} styles={{ body: { padding: 12 } }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>每日排单量</div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
+                      {daily.map((d) => {
+                        const h = Math.max(4, (d.count / maxCount) * 72);
+                        const heat = getHeatStyle(d.count);
+                        return (
+                          <Tooltip key={d.date} title={`${d.date}: ${d.count} 单`} mouseEnterDelay={0.2}>
+                            <div
+                              style={{
+                                flex: 1,
+                                height: h,
+                                background: heat?.bg ?? '#f0f0f0',
+                                borderRadius: '3px 3px 0 0',
+                                minWidth: 4,
+                              }}
+                            />
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8b949e', marginTop: 4 }}>
+                      <span>{daily[0]?.date.slice(5)}</span>
+                      <span>{daily[daily.length - 1]?.date.slice(5)}</span>
+                    </div>
+                  </Card>
+                )}
+              </>
+            );
+          })()
+        ) : !selectedDate ? (
           <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '40px 0' }}>
             左侧日历点选一个日期
           </div>
