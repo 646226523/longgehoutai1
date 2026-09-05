@@ -705,6 +705,7 @@ const DetectionOrder = () => {
     setSelectedTimeSlot('');
     setSelectedDateValue(null);
     setCurrentStep(0);
+    formRef.current?.resetFields();
     setDrawerVisible(true);
     loadOptions();
   };
@@ -723,6 +724,17 @@ const DetectionOrder = () => {
       remark: record.remark ?? undefined,
     });
     setSelectedDateValue(record.scheduled_date ? dayjs(record.scheduled_date) : null);
+    formRef.current?.setFieldsValue({
+      user_name: record.user_name,
+      phone: record.phone ?? undefined,
+      gene_profile_id: record.gene_profile_id ?? undefined,
+      ring_number: record.ring_number,
+      org_id: record.org_id ?? undefined,
+      test_org: record.test_org,
+      project: record.project,
+      scheduled_date: record.scheduled_date ? dayjs(record.scheduled_date) : undefined,
+      remark: record.remark ?? undefined,
+    });
     setDrawerVisible(true);
     loadOptions();
   };
@@ -1066,7 +1078,7 @@ const DetectionOrder = () => {
         onFinish={handleSubmit}
         formRef={formRef}
         drawerProps={{
-          destroyOnHidden: true,
+          destroyOnHidden: false,
           maskClosable: false,
           width: 'min(92vw, 960px)',
           styles: { body: { padding: 0 } },
@@ -1087,33 +1099,31 @@ const DetectionOrder = () => {
             : {}
         }
         submitter={{
-          render: () => [
-            <Button
-              key="cancel"
-              onClick={() => {
-                setDrawerVisible(false);
-                setFormValues({});
-                setSelectedTimeSlot('');
-                setSelectedDateValue(null);
-                setCurrentStep(0);
-              }}
-            >
-              取消
-            </Button>,
-            !editing && (
+          render: (props) => {
+            return [
               <Button
-                key="draft"
+                key="cancel"
                 onClick={() => {
-                  formRef.current?.submit?.();
+                  setDrawerVisible(false);
+                  setFormValues({});
+                  setSelectedTimeSlot('');
+                  setSelectedDateValue(null);
+                  setCurrentStep(0);
                 }}
               >
-                保存草稿
-              </Button>
-            ),
-            <Button key="submit" type="primary" onClick={() => formRef.current?.submit?.()}>
-              {editing ? '保存修改' : '确认提交'}
-            </Button>,
-          ],
+                取消
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                onClick={() => {
+                  props.submit();
+                }}
+              >
+                {editing ? '保存修改' : '确认提交'}
+              </Button>,
+            ];
+          },
         }}
       >
         {/* 主布局：单栏自适应，顶部概览+表单+底部费用 */}
