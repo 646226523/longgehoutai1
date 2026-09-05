@@ -163,6 +163,7 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
           onSelect={(d) => onSelectDate(d)}
           onPanelChange={(d) => setCurrentMonth(d)}
           fullscreen={false}
+          mode="month"
           fullCellRender={(day) => {
             const heat = getHeatStyle(day);
             const count = getCount(day);
