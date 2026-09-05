@@ -1,13 +1,7 @@
 import {
-  ProForm,
-  ProFormDatePicker,
-  ProFormSelect,
-  ProFormText,
-  ProFormTextArea,
   ProTable,
   type ActionType,
   type ProColumns,
-  type ProFormInstance,
 } from '@ant-design/pro-components';
 import {
   App,
@@ -15,17 +9,15 @@ import {
   Button,
   Calendar,
   Card,
-  Checkbox,
-  Col,
-  Modal,
-  Divider,
+  DatePicker,
   Drawer,
   Form,
+  Input,
   List,
+  Modal,
   Popconfirm,
-  Radio,
-  Row,
   Segmented,
+  Select,
   Space,
   Steps,
   Tag,
@@ -33,11 +25,7 @@ import {
 } from 'antd';
 import {
   CalendarOutlined,
-  CheckCircleFilled,
-  ClockCircleOutlined,
-  CloseCircleFilled,
   EyeOutlined,
-  InfoCircleOutlined,
   PlusOutlined,
   TableOutlined,
 } from '@ant-design/icons';
@@ -578,26 +566,6 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
   );
 };
 
-const ITEM_PRICES: Record<string, number> = {
-  'DNA身份认证': 300,
-  '遗传病筛查': 200,
-  '亲子鉴定': 350,
-  '品系鉴定': 250,
-  '疾 病检测': 180,
-  '性别鉴定': 120,
-  '加急服务': 150,
-};
-
-// 可选排期时段（模拟数据）
-const TIME_SLOTS = [
-  { id: '09:00-10:00', label: '09:00 - 10:00', status: 'available' as const },
-  { id: '10:00-11:00', label: '10:00 - 11:00', status: 'available' as const },
-  { id: '11:00-12:00', label: '11:00 - 12:00', status: 'full' as const },
-  { id: '14:00-15:00', label: '14:00 - 15:00', status: 'available' as const },
-  { id: '15:00-16:00', label: '15:00 - 16:00', status: 'limited' as const },
-  { id: '16:00-17:00', label: '16:00 - 17:00', status: 'available' as const },
-];
-
 // 排期弹窗的日期选择器值类型
 type ScheduleValue = Dayjs | null;
 
@@ -608,7 +576,11 @@ const DetectionOrder = () => {
   const canView = hasPermission(currentUser, 'detection:view');
   const actionRef = useRef<ActionType>();
   const { tableLoading, handleRefresh } = useTableRefresh(actionRef, { messageApi: message });
-  const formRef = useRef<ProFormInstance>();
+  const [formRef] = Form.useForm();
+
+  // 提交按钮状态
+  const [canSubmit, setCanSubmit] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // 视图切换:列表 / 排期日历
   const [view, setView] = useState<'list' | 'calendar'>('list');
@@ -639,26 +611,6 @@ const DetectionOrder = () => {
   const [dateOrders, setDateOrders] = useState<DetectionOrder[]>([]);
   const [dateDrawerVisible, setDateDrawerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
-
-  // ===== 新增表单的实时联动状态（用于右侧预览） =====
-  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [selectedDateValue, setSelectedDateValue] = useState<Dayjs | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
-
-  // 派生值：供右侧预览使用
-  const getFormNumber = (key: string): number | undefined => {
-    const v = formValues[key];
-    return typeof v === 'number' ? v : undefined;
-  };
-  const getFormString = (key: string): string => {
-    const v = formValues[key];
-    return typeof v === 'string' ? v : '';
-  };
-  const selectedProfileId = getFormNumber('gene_profile_id');
-  const selectedProfile: GeneProfileOption | undefined = selectedProfileId
-    ? profileOptions.find((p) => p.id === selectedProfileId)
-    : undefined;
 
 
   // 切换到日历视图时加载当月排期数据
@@ -701,21 +653,17 @@ const DetectionOrder = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setFormValues({});
-    setSelectedTimeSlot('');
-    setSelectedDateValue(null);
-    setCurrentStep(0);
-    formRef.current?.resetFields();
+    setCanSubmit(false);
+    formRef.resetFields();
     setDrawerVisible(true);
     loadOptions();
   };
 
   const openEdit = (record: DetectionOrder) => {
     setEditing(record);
-    setFormValues({
+    formRef.setFieldsValue({
       user_name: record.user_name,
       phone: record.phone ?? undefined,
-      gene_profile_id: record.gene_profile_id ?? undefined,
       ring_number: record.ring_number,
       org_id: record.org_id ?? undefined,
       test_org: record.test_org,
@@ -723,18 +671,7 @@ const DetectionOrder = () => {
       scheduled_date: record.scheduled_date ? dayjs(record.scheduled_date) : undefined,
       remark: record.remark ?? undefined,
     });
-    setSelectedDateValue(record.scheduled_date ? dayjs(record.scheduled_date) : null);
-    formRef.current?.setFieldsValue({
-      user_name: record.user_name,
-      phone: record.phone ?? undefined,
-      gene_profile_id: record.gene_profile_id ?? undefined,
-      ring_number: record.ring_number,
-      org_id: record.org_id ?? undefined,
-      test_org: record.test_org,
-      project: record.project,
-      scheduled_date: record.scheduled_date ? dayjs(record.scheduled_date) : undefined,
-      remark: record.remark ?? undefined,
-    });
+    setCanSubmit(!!record.user_name && !!record.project);
     setDrawerVisible(true);
     loadOptions();
   };
@@ -747,6 +684,31 @@ const DetectionOrder = () => {
       setDetailVisible(true);
     } catch {
       // 拦截器已提示错误
+    }
+  };
+  // Drawer 提交按钮: 先校验, 失败时滚动+高亮
+  const handleDrawerSubmit = async () => {
+    try {
+      const values = await formRef.validateFields();
+      setSubmitting(true);
+      await handleSubmit(values);
+    } catch (err: any) {
+      const firstField = err?.errorFields?.[0];
+      if (firstField?.name?.length) {
+        message.warning('请先完善必填项');
+        setTimeout(() => {
+          const name = firstField.name[0];
+          const el = document.querySelector('label[for="' + name + '"]')?.closest('.ant-form-item');
+          el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+          if (el instanceof HTMLElement) {
+            el.style.transition = 'box-shadow 0.3s';
+            el.style.boxShadow = '0 0 0 2px #ff4d4f';
+            setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+          }
+        }, 50);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -788,11 +750,8 @@ const DetectionOrder = () => {
       message.success('新增成功');
     }
     setDrawerVisible(false);
-    // 重置表单联动状态
-    setFormValues({});
-    setSelectedTimeSlot('');
-    setSelectedDateValue(null);
-    setCurrentStep(0);
+    formRef.resetFields();
+    setCanSubmit(false);
     handleRefresh();
     return true;
   };
@@ -1055,721 +1014,124 @@ const DetectionOrder = () => {
         </Card>
       )}
 
-      {/* 新增/编辑抽屉 */}
+      {/* 新增/编辑抽屉 - 原生 Form + 3 步卡片 */}
       <Drawer
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Space>
             <span>{editing ? '编辑预约订单' : '新增预约订单'}</span>
-            <Steps
-              size="small"
-              current={currentStep}
-              items={[
-                { title: '选择检测对象' },
-                { title: '选择检测服务' },
-                { title: '确认排期' },
-                { title: '提交确认' },
-              ]}
-              style={{ minWidth: 420 }}
-            />
-          </div>
+            <Tag color="blue">{editing ? '订单号 ' + editing.order_no : '新建订单'}</Tag>
+          </Space>
         }
         open={drawerVisible}
-        onClose={() => {
-          setDrawerVisible(false);
-        }}
+        onClose={() => { setDrawerVisible(false); }}
         destroyOnClose={false}
         maskClosable={false}
         width="min(92vw, 960px)"
-        styles={{ body: { padding: 0 } }}
-        footer={
-          <div style={{ textAlign: 'right', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button
-              onClick={() => {
-                setDrawerVisible(false);
-                setFormValues({});
-                setSelectedTimeSlot('');
-                setSelectedDateValue(null);
-                setCurrentStep(0);
-              }}
-            >
-              取消
-            </Button>
-            {!editing && (
-              <Button
-                onClick={async () => {
-                  try {
-                    const values = await formRef.current?.validateFields();
-                    await handleSubmit({ ...values, is_draft: true });
-                  } catch {
-                    // 校验失败
-                  }
-                }}
-              >
-                保存草稿
-              </Button>
-            )}
-            <Button type="primary" onClick={() => formRef.current?.submit?.()}>
-              {editing ? '保存修改' : '确认提交'}
-            </Button>
-          </div>
+        extra={
+          <Button
+            type="primary"
+            disabled={!canSubmit}
+            loading={submitting}
+            onClick={handleDrawerSubmit}
+          >
+            {editing ? '保存修改' : '确认提交'}
+          </Button>
         }
       >
-        <ProForm
-          formRef={formRef}
-          onFinish={handleSubmit}
-          submitter={false}
+        <Form
+          form={formRef}
+          layout="vertical"
+          preserve={false}
           initialValues={
-            editing
-              ? {
-                  user_name: editing.user_name,
-                  phone: editing.phone ?? undefined,
-                  gene_profile_id: editing.gene_profile_id ?? undefined,
-                  ring_number: editing.ring_number,
-                  org_id: editing.org_id ?? undefined,
-                  test_org: editing.test_org,
-                  project: editing.project,
-                  scheduled_date: editing.scheduled_date ? dayjs(editing.scheduled_date) : undefined,
-                  remark: editing.remark ?? undefined,
-                }
-              : {}
+            editing ? {
+              user_name: editing.user_name,
+              phone: editing.phone ?? undefined,
+              ring_number: editing.ring_number,
+              project: editing.project,
+              remark: editing.remark ?? undefined,
+            } : {}
           }
+          onValuesChange={(_, all) => setCanSubmit(!!(all.user_name && all.project))}
+          onFinish={handleSubmit}
         >
-        {/* 主布局：单栏自适应，顶部概览+表单+底部费用 */}
-        <div style={{ height: 'calc(100vh - 180px)', minHeight: 580, display: 'flex', flexDirection: 'column' }}>
-          {/* ============ 顶部：订单概览（sticky） ============ */}
-          <div
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              background: 'linear-gradient(135deg, #f0f5ff 0%, #ffffff 100%)',
-              borderBottom: '1px solid #e6f4ff',
-              padding: '10px 20px',
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: '#1677ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>📋</div>
-                <span style={{ fontWeight: 600, fontSize: 13, color: '#333' }}>订单概览</span>
-              </div>
-              <Divider type="vertical" style={{ height: 20 }} />
-              {/* 足环号 */}
-              <div style={{ fontSize: 12, color: '#555' }}>
-                <span style={{ color: '#999' }}>足环：</span>
-                <span style={{ fontWeight: 500 }}>{getFormString('ring_number') || '未填写'}</span>
-              </div>
-              {/* 检测机构 */}
-              <div style={{ fontSize: 12, color: '#555' }}>
-                <span style={{ color: '#999' }}>机构：</span>
-                <span style={{ fontWeight: 500 }}>{getFormString('test_org') || '未选择'}</span>
-              </div>
-              {/* 检测项目 */}
-              <div style={{ fontSize: 12, color: '#555', flex: 1, minWidth: 200 }}>
-                <span style={{ color: '#999' }}>项目：</span>
-                <span style={{ fontWeight: 500 }}>
-                  {(() => {
-                    const p = formValues['project'];
-                    const list = Array.isArray(p) ? (p as string[]) : p ? [p as string] : [];
-                    return list.length > 0 ? list.join('、') : '未选择';
-                  })()}
-                </span>
-              </div>
-              {/* 合计金额 */}
-              <div
-                style={{
-                  marginLeft: 'auto',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 4,
-                  padding: '4px 12px',
-                  background: '#fffbe6',
-                  border: '1px solid #ffe58f',
-                  borderRadius: 6,
-                }}
-              >
-                <span style={{ fontSize: 12, color: '#d48806' }}>合计</span>
-                <span style={{ fontSize: 18, fontWeight: 700, color: '#fa8c16' }}>
-                  ¥{(() => {
-                    const p = formValues['project'];
-                    const list = Array.isArray(p) ? (p as string[]) : p ? [p as string] : [];
-                    return list.reduce((sum, name) => sum + (ITEM_PRICES[name] ?? 0), 0);
-                  })()}
-                </span>
-              </div>
-            </div>
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '8px 4px' }}>
 
-          {/* ============ 表单内容区（可滚动） ============ */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '16px 20px',
-            }}
-          >
-            {/* ===== ① 选择检测对象 ===== */}
+            {/* Step 1: 检测对象 */}
             <Card
               size="small"
-              title={
-                <Space>
-                  <Tag color="blue" style={{ borderRadius: 10 }}>
-                    ①
-                  </Tag>
-                  <span style={{ fontWeight: 600 }}>选择检测对象</span>
-                  <span style={{ color: '#999', fontSize: 12, fontWeight: 400 }}>
-                    搜索基因档案或手动输入足环号
-                  </span>
-                </Space>
-              }
-              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #e6f4ff' }}
-              styles={{ header: { borderBottom: '1px solid #f0f0f0', background: '#fafcff' } }}
+              styles={{ body: { padding: 20 } }}
+              style={{ borderLeft: '3px solid #1677ff' }}
+              title={<Space><span style={{ fontSize: 16 }}>1️⃣</span><span style={{ fontWeight: 600 }}>检测对象</span><span style={{ color: '#ff4d4f', fontSize: 12 }}>* 必填</span></Space>}
             >
-              <ProFormSelect
-                name="gene_profile_id"
-                label="选择基因档案（可选）"
-                placeholder="🔍 搜索足环号或鸽名"
-                showSearch
-                allowClear
-                options={profileOptions.map((o) => ({
-                  label: `${o.ring_number} ${o.name}${o.breed ? ' · ' + o.breed : ''}`,
-                  value: o.id,
-                }))}
-                fieldProps={{
-                  optionFilterProp: 'label',
-                  onChange: (value: number | undefined) => {
-                    setCurrentStep(value ? 1 : 0);
-                    if (value) {
-                      const profile = profileOptions.find((p) => p.id === value);
-                      if (profile) {
-                        formRef.current?.setFieldsValue({ ring_number: profile.ring_number });
-                        setFormValues((prev) => ({ ...prev, gene_profile_id: value }));
-                      }
-                    } else {
-                      setFormValues((prev) => ({ ...prev, gene_profile_id: undefined }));
-                    }
-                  },
-                }}
-              />
-              {/* 已选档案信息卡片 */}
-              {!!formValues.gene_profile_id && (() => {
-                const p = profileOptions.find(
-                  (o) => o.id === (formValues.gene_profile_id as number)
-                );
-                if (!p) return null;
-                return (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: '12px 16px',
-                      background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%)',
-                      border: '1px solid #b7eb8f',
-                      borderRadius: 8,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}
-                  >
-                    <CheckCircleFilled style={{ color: '#52c41a', fontSize: 20 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, color: '#389e0d', marginBottom: 2 }}>
-                        ✅ 已关联基因档案
-                      </div>
-                      <div style={{ fontSize: 13, color: '#555' }}>
-                        <strong>{p.name}</strong>
-                        {p.breed && ` · ${p.breed}`}
-                        {p.gender && ` · ${p.gender === 'male' ? '♂ 雄' : p.gender === 'female' ? '♀ 雌' : ''}`}
-                        {p.owner_name && ` · 鸽主：${p.owner_name}`}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-                        足环号：{p.ring_number}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-              <div style={{ marginTop: 12 }}>
-                <ProFormText
-                  name="ring_number"
-                  label={<span><span style={{ color: '#ff4d4f' }}>*</span> 足环号</span>}
-                  placeholder="请输入足环号(已选档案时自动带出)"
-                  rules={[{ required: true, message: '请输入足环号' }]}
-                  fieldProps={{
-                    onChange: (e) => {
-                      setFormValues((prev) => ({ ...prev, ring_number: e.target.value }));
-                    },
-                  }}
-                />
-                {!formValues.gene_profile_id && !!formValues.ring_number && (
-                  <div
-                    style={{
-                      marginTop: -8,
-                      marginBottom: 12,
-                      padding: '8px 12px',
-                      background: '#fffbe6',
-                      border: '1px solid #ffe58f',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      color: '#d48806',
-                    }}
-                  >
-                    <InfoCircleOutlined /> 该足环号未关联基因档案，将在提交时自动创建新档案
-                  </div>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Form.Item label="预约人姓名" name="user_name" rules={[{ required: true, message: '请输入预约人姓名' }]}>
+                  <Input placeholder="请输入鸽主真实姓名" maxLength={32} />
+                </Form.Item>
+                <Form.Item label="联系电话" name="phone" rules={[{ pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }]}>
+                  <Input placeholder="选填，用于联系鸽主" maxLength={11} />
+                </Form.Item>
+                <Form.Item label="鸽子足环号" name="ring_number">
+                  <Input placeholder="选填，如 CHN-2023-000001" maxLength={40} />
+                </Form.Item>
+                <div />
               </div>
-              <Row gutter={12}>
-                <Col span={12}>
-                  <ProFormText
-                    name="user_name"
-                    label="预约人姓名"
-                    placeholder="请输入预约人姓名"
-                    rules={[{ required: true, message: '请输入预约人姓名' }]}
-                    fieldProps={{
-                      onChange: (e) => {
-                        setFormValues((prev) => ({ ...prev, user_name: e.target.value }));
-                      },
+            </Card>
+
+            {/* Step 2: 检测服务 */}
+            <Card
+              size="small"
+              styles={{ body: { padding: 20 } }}
+              style={{ borderLeft: '3px solid #52c41a' }}
+              title={<Space><span style={{ fontSize: 16 }}>2️⃣</span><span style={{ fontWeight: 600 }}>检测服务</span><span style={{ color: '#ff4d4f', fontSize: 12 }}>* 必填</span></Space>}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Form.Item label="检测机构" name="org_id">
+                  <Select
+                    allowClear
+                    placeholder="选填，从已有机构选择"
+                    options={orgOptions.map(o => ({ label: o.name, value: o.id }))}
+                    onChange={(v) => {
+                      if (v) {
+                        const org = orgOptions.find(o => o.id === v);
+                        if (org) formRef.setFieldsValue({ test_org: org.name });
+                      } else {
+                        formRef.setFieldsValue({ test_org: undefined });
+                      }
                     }}
                   />
-                </Col>
-                <Col span={12}>
-                  <ProFormText
-                    name="phone"
-                    label="联系电话"
-                    placeholder="请输入联系电话"
-                    fieldProps={{
-                      onChange: (e) => {
-                        setFormValues((prev) => ({ ...prev, phone: e.target.value }));
-                      },
-                    }}
+                </Form.Item>
+                <Form.Item label="检测机构名称(手填)" name="test_org">
+                  <Input placeholder="未选机构时可手填" maxLength={64} />
+                </Form.Item>
+                <Form.Item label="检测项目" name="project" rules={[{ required: true, message: '请选择检测项目' }]}>
+                  <Select
+                    placeholder="请选择需要的检测项目"
+                    options={itemTypes.map(t => ({ label: t.name, value: t.name }))}
                   />
-                </Col>
-              </Row>
-            </Card>
-
-            {/* ===== ② 选择检测服务 ===== */}
-            <Card
-              size="small"
-              title={
-                <Space>
-                  <Tag color="cyan" style={{ borderRadius: 10 }}>
-                    ②
-                  </Tag>
-                  <span style={{ fontWeight: 600 }}>选择检测服务</span>
-                  <span style={{ color: '#999', fontSize: 12, fontWeight: 400 }}>
-                    选择机构和检测项目
-                  </span>
-                </Space>
-              }
-              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #e6fffb' }}
-              styles={{ header: { borderBottom: '1px solid #f0f0f0', background: '#fafcff' } }}
-            >
-              <ProFormSelect
-                name="org_id"
-                label={<span><span style={{ color: '#ff4d4f' }}>*</span> 检测机构</span>}
-                placeholder="选择检测机构"
-                showSearch
-                allowClear
-                rules={[{ required: true, message: '请选择检测机构' }]}
-                options={orgOptions.map((o) => ({
-                  label: `${o.name}${o.code ? `(${o.code})` : ''}`,
-                  value: o.id,
-                }))}
-                fieldProps={{
-                  optionFilterProp: 'label',
-                  onChange: (value: number | undefined) => {
-                    if (value) {
-                      const org = orgOptions.find((o) => o.id === value);
-                      if (org) {
-                        // 自动带出机构信息（不再需要 test_org 字段）
-                        formRef.current?.setFieldsValue({
-                          test_org: org.name,
-                        });
-                        setFormValues((prev) => ({
-                          ...prev,
-                          org_id: value,
-                          test_org: org.name,
-                        }));
-                        setCurrentStep(2);
-                      }
-                    } else {
-                      setFormValues((prev) => ({ ...prev, org_id: undefined, test_org: '' }));
-                    }
-                  },
-                }}
-              />
-              {/* 已选机构信息 */}
-              {!!formValues.org_id && (() => {
-                const org = orgOptions.find((o) => o.id === (formValues.org_id as number));
-                if (!org) return null;
-                return (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: '12px 16px',
-                      background: '#f0f5ff',
-                      border: '1px solid #adc6ff',
-                      borderRadius: 8,
-                      display: 'flex',
-                      gap: 16,
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, color: '#1d39c4', marginBottom: 4 }}>
-                        {org.name}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#666', marginBottom: 2 }}>
-                        {org.code && <>机构编码：{org.code}</>}
-                      </div>
-                    </div>
-                    {org.projects && (
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
-                          可检测项目：
-                        </div>
-                        <div style={{ fontSize: 12, color: '#333' }}>{org.projects}</div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              <Divider style={{ margin: '16px 0' }} />
-
-              {/* 隐藏字段：存储机构名称（用于提交） */}
-              <ProFormText name="test_org" hidden />
-
-              {/* 多选检测项目 */}
-              <Form.Item
-                label={<span><span style={{ color: '#ff4d4f' }}>*</span> 检测项目（可多选）</span>}
-                required
-              >
-                <Checkbox.Group
-                  style={{ width: '100%' }}
-                  onChange={(checkedValues) => {
-                    setFormValues((prev) => ({ ...prev, project: checkedValues }));
-                    if (checkedValues.length > 0) setCurrentStep(2);
-                  }}
-                >
-                  <Row gutter={[12, 12]}>
-                    {itemTypes.length > 0 ? (
-                      itemTypes.map((item) => {
-                        const price = ITEM_PRICES[item.name] ?? 0;
-                        const isUrgent = item.name.includes('加急');
-                        return (
-                          <Col span={12} key={item.name}>
-                            <div
-                              style={{
-                                padding: '8px 12px',
-                                border: '1px solid #e8e8e8',
-                                borderRadius: 6,
-                                transition: 'all 0.2s',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <Checkbox
-                                value={item.name}
-                                style={{ display: 'flex', alignItems: 'center' }}
-                              >
-                                <span style={{ fontWeight: 500 }}>{item.name}</span>
-                                <Tag
-                                  color={isUrgent ? 'orange' : 'blue'}
-                                  style={{ marginLeft: 8, fontSize: 11 }}
-                                >
-                                  {isUrgent ? `+¥${price}` : `¥${price}`}
-                                </Tag>
-                              </Checkbox>
-                            </div>
-                          </Col>
-                        );
-                      })
-                    ) : (
-                      <Col span={24}>
-                        <div style={{ padding: 16, color: '#999', textAlign: 'center' }}>
-                          加载检测项目中...
-                        </div>
-                      </Col>
-                    )}
-                  </Row>
-                </Checkbox.Group>
-                {/* 自定义校验：至少选一项 */}
-                <ProFormText
-                  name="project"
-                  hidden
-                  rules={[
-                    {
-                      validator: (_, value) => {
-                        if (!value || (Array.isArray(value) && value.length === 0)) {
-                          return Promise.reject(new Error('请至少选择一个检测项目'));
-                        }
-                        return Promise.resolve();
-                      },
-                    },
-                  ]}
-                />
-              </Form.Item>
-            </Card>
-
-            {/* ===== ③ 确认排期 ===== */}
-            <Card
-              size="small"
-              title={
-                <Space>
-                  <Tag color="gold" style={{ borderRadius: 10 }}>
-                    ③
-                  </Tag>
-                  <span style={{ fontWeight: 600 }}>确认排期</span>
-                  <span style={{ color: '#999', fontSize: 12, fontWeight: 400 }}>
-                    选择预约日期和时段
-                  </span>
-                </Space>
-              }
-              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #fff1b8' }}
-              styles={{ header: { borderBottom: '1px solid #f0f0f0', background: '#fafcff' } }}
-            >
-              <ProFormDatePicker
-                name="scheduled_date"
-                label="预约日期"
-                placeholder="请选择预约日期"
-                fieldProps={{
-                  style: { width: '100%' },
-                  onChange: (date: Dayjs | null) => {
-                    setSelectedDateValue(date);
-                    setSelectedTimeSlot('');
-                    if (date) setCurrentStep(3);
-                  },
-                }}
-              />
-              {/* 时段选择 */}
-              {selectedDateValue && (
-                <div style={{ marginTop: 12 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: '#666',
-                      marginBottom: 8,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    <ClockCircleOutlined />
-                    可选时段（{selectedDateValue.format('YYYY-MM-DD dddd')}）
-                  </div>
-                  <Radio.Group
-                    value={selectedTimeSlot}
-                    onChange={(e) => setSelectedTimeSlot(e.target.value)}
-                    style={{ width: '100%' }}
-                  >
-                    <Row gutter={[8, 8]}>
-                      {TIME_SLOTS.map((slot) => {
-                        const isFull = slot.status === 'full';
-                        const isLimited = slot.status === 'limited';
-                        const color = isFull
-                          ? '#d9d9d9'
-                          : isLimited
-                            ? '#faad14'
-                            : '#52c41a';
-                        return (
-                          <Col span={8} key={slot.id}>
-                            <Radio
-                              value={slot.id}
-                              disabled={isFull}
-                              style={{
-                                width: '100%',
-                                margin: 0,
-                                padding: '8px 12px',
-                                border: `1px solid ${color}`,
-                                borderRadius: 6,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 4,
-                              }}
-                            >
-                              {isFull ? (
-                                <CloseCircleFilled style={{ color: '#bfbfbf' }} />
-                              ) : isLimited ? (
-                                <ClockCircleOutlined style={{ color: '#faad14' }} />
-                              ) : (
-                                <CheckCircleFilled style={{ color: '#52c41a' }} />
-                              )}
-                              <span style={{ color: isFull ? '#999' : '#333', fontSize: 13 }}>
-                                {slot.label}
-                              </span>
-                              <Tag
-                                color={isFull ? 'default' : isLimited ? 'warning' : 'success'}
-                                style={{ fontSize: 10, marginLeft: 4 }}
-                              >
-                                {isFull ? '已满' : isLimited ? '紧张' : '可约'}
-                              </Tag>
-                            </Radio>
-                          </Col>
-                        );
-                      })}
-                    </Row>
-                  </Radio.Group>
-                </div>
-              )}
-            </Card>
-
-            {/* ===== ④ 备注与提交 ===== */}
-            <Card
-              size="small"
-              title={
-                <Space>
-                  <Tag color="green" style={{ borderRadius: 10 }}>
-                    ④
-                  </Tag>
-                  <span style={{ fontWeight: 600 }}>备注信息</span>
-                </Space>
-              }
-              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #d9f7be' }}
-              styles={{ header: { borderBottom: '1px solid #f0f0f0', background: '#fafcff' } }}
-            >
-              <ProFormTextArea
-                name="remark"
-                label="备注"
-                placeholder="请输入备注信息(可选)"
-                fieldProps={{
-                  autoSize: { minRows: 2, maxRows: 4 },
-                  onChange: (e) => {
-                    setFormValues((prev) => ({ ...prev, remark: e.target.value }));
-                  },
-                }}
-              />
-            </Card>
-
-            {/* ===== ⑤ 费用明细与提交确认 ===== */}
-            <Card
-              size="small"
-              title={
-                <Space>
-                  <Tag color="orange" style={{ borderRadius: 10 }}>
-                    ⑤
-                  </Tag>
-                  <span style={{ fontWeight: 600 }}>费用明细</span>
-                  <span style={{ color: '#999', fontSize: 12, fontWeight: 400 }}>
-                    确认订单信息和费用
-                  </span>
-                </Space>
-              }
-              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #ffd666', background: '#fffbe6' }}
-              styles={{ body: { padding: 16 } }}
-            >
-              {/* 预约信息汇总 */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <div style={{ padding: '10px 12px', background: '#fff', borderRadius: 6, border: '1px solid #f0f0f0' }}>
-                  <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>检测对象</div>
-                  <div style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>
-                    {getFormString('ring_number') || '未选择'}
-                  </div>
-                  {selectedProfile && (
-                    <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
-                      {selectedProfile.name}
-                    </div>
-                  )}
-                </div>
-                <div style={{ padding: '10px 12px', background: '#fff', borderRadius: 6, border: '1px solid #f0f0f0' }}>
-                  <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>检测机构</div>
-                  <div style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>
-                    {getFormString('test_org') || '未选择'}
-                  </div>
-                </div>
-                <div style={{ padding: '10px 12px', background: '#fff', borderRadius: 6, border: '1px solid #f0f0f0' }}>
-                  <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>预约排期</div>
-                  <div style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>
-                    {selectedDateValue
-                      ? `${selectedDateValue.format('YYYY-MM-DD')} ${selectedTimeSlot || ''}`.trim()
-                      : '未选择'}
-                  </div>
-                </div>
-              </div>
-
-              {/* 费用明细列表 */}
-              <div style={{ background: '#fff', borderRadius: 6, padding: 12, border: '1px solid #ffe58f' }}>
-                <div style={{ fontSize: 12, color: '#d48806', marginBottom: 8, fontWeight: 600 }}>
-                  💰 费用明细
-                </div>
-                {(() => {
-                  const projects = Array.isArray(formValues.project)
-                    ? (formValues.project as string[])
-                    : formValues.project
-                      ? [formValues.project as string]
-                      : [];
-                  if (projects.length === 0) {
-                    return (
-                      <div style={{ fontSize: 12, color: '#bbb', textAlign: 'center', padding: '12px 0' }}>
-                        选择检测项目后显示费用
-                      </div>
-                    );
-                  }
-                  let total = 0;
-                  return (
-                    <div>
-                      {projects.map((p) => {
-                        const price = ITEM_PRICES[p] ?? 0;
-                        total += price;
-                        const isUrgent = p.includes('加急');
-                        return (
-                          <div
-                            key={p}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              padding: '6px 0',
-                              fontSize: 13,
-                              borderBottom: '1px dashed #f0f0f0',
-                            }}
-                          >
-                            <span style={{ color: '#555' }}>
-                              {isUrgent ? '+ ' : ''}
-                              {p}
-                            </span>
-                            <span
-                              style={{
-                                color: isUrgent ? '#fa541c' : '#555',
-                                fontWeight: 500,
-                              }}
-                            >
-                              ¥{price}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      <Divider style={{ margin: '10px 0' }} />
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, color: '#d48806' }}>合计</span>
-                        <span
-                          style={{
-                            fontSize: 20,
-                            fontWeight: 700,
-                            color: '#fa8c16',
-                          }}
-                        >
-                          ¥{total}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
+                </Form.Item>
+                <div />
               </div>
             </Card>
+
+            {/* Step 3: 排期 */}
+            <Card
+              size="small"
+              styles={{ body: { padding: 20 } }}
+              style={{ borderLeft: '3px solid #fa8c16' }}
+              title={<Space><span style={{ fontSize: 16 }}>3️⃣</span><span style={{ fontWeight: 600 }}>排期安排</span><span style={{ color: '#999', fontSize: 12 }}>选填</span></Space>}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Form.Item label="预约日期" name="scheduled_date">
+                  <DatePicker style={{ width: '100%' }} placeholder="选填" />
+                </Form.Item>
+                <Form.Item label="订单备注" name="remark">
+                  <Input.TextArea rows={4} placeholder="选填，特别说明或注意事项" maxLength={200} showCount />
+                </Form.Item>
+              </div>
+            </Card>
+
           </div>
-        </div>
-        </ProForm>
+        </Form>
       </Drawer>
 
       {/* 详情抽屉 - 卡片网格布局 */}
