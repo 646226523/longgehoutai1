@@ -114,15 +114,22 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
   };
 
   // 热力图背景色（根据 count 等级）
-  const getHeatStyle = (day: Dayjs) => {
+  const getHeatStyle = (day: Dayjs): { bg: string; text: string; label: string } | null => {
     const count = getCount(day);
-    const base = { borderRadius: 4 } as React.CSSProperties;
-    if (count === 0) return base;
-    if (count <= 2) return { ...base, background: '#e6f4ff' };
-    if (count <= 5) return { ...base, background: '#bae0ff' };
-    if (count <= 10) return { ...base, background: '#7cc8ff' };
-    return { ...base, background: '#1677ff', color: 'white' };
+    if (count === 0) return null;
+    if (count <= 2) return { bg: '#e6f4ff', text: '#1677ff', label: `${count}` };
+    if (count <= 5) return { bg: '#bae0ff', text: '#0958d9', label: `${count}` };
+    if (count <= 10) return { bg: '#7cc8ff', text: '#ffffff', label: `${count}` };
+    return { bg: '#1677ff', text: '#ffffff', label: `${count}+` };
   };
+
+  // 排单量颜色等级 → 图例
+  const HEAT_LEGEND = [
+    { bg: '#e6f4ff', text: '#1677ff', range: '1-2' },
+    { bg: '#bae0ff', text: '#0958d9', range: '3-5' },
+    { bg: '#7cc8ff', text: '#ffffff', range: '6-10' },
+    { bg: '#1677ff', text: '#ffffff', range: '10+' },
+  ];
 
   return (
     <div style={{ display: 'flex', minHeight: 480 }}>
@@ -132,12 +139,22 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
           <div style={{ fontSize: 14, fontWeight: 600 }}>
             📅 选择排期日期
           </div>
-          <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#8b949e', alignItems: 'center' }}>
-            <span>排单量:</span>
-            <span style={{ background: '#e6f4ff', padding: '2px 6px', borderRadius: 3 }}>1-2</span>
-            <span style={{ background: '#bae0ff', padding: '2px 6px', borderRadius: 3 }}>3-5</span>
-            <span style={{ background: '#7cc8ff', padding: '2px 6px', borderRadius: 3, color: 'white' }}>6-10</span>
-            <span style={{ background: '#1677ff', padding: '2px 6px', borderRadius: 3, color: 'white' }}>10+</span>
+          <div style={{ display: 'flex', gap: 4, fontSize: 10, color: '#8b949e', alignItems: 'center' }}>
+            {HEAT_LEGEND.map((l) => (
+              <span
+                key={l.range}
+                style={{
+                  background: l.bg,
+                  color: l.text,
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  fontSize: 10,
+                  fontWeight: 600,
+                }}
+              >
+                {l.range}
+              </span>
+            ))}
           </div>
         </div>
         <Calendar
@@ -145,32 +162,85 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
           onSelect={(d) => onSelectDate(d)}
           onPanelChange={(d) => setCurrentMonth(d)}
           fullscreen={false}
-          cellRender={(day) => {
-            const count = getCount(day);
+          fullCellRender={(day) => {
+            const heat = getHeatStyle(day);
             const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
+            const isToday = dayjs().isSame(day, 'day');
+            const isOtherMonth = !day.isSame(currentMonth, 'month');
+            const isWeekend = day.day() === 0 || day.day() === 6;
+
             return (
               <div
                 style={{
-                  padding: '4px 6px',
-                  minHeight: 42,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
+                  position: 'relative',
+                  width: '100%',
+                  height: 54,
+                  padding: 2,
+                  boxSizing: 'border-box',
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: isSelected ? 700 : 400 }}>
+                {/* 日期小字（灰色角落） */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 4,
+                    left: 6,
+                    fontSize: 11,
+                    color: isOtherMonth ? '#d9d9d9' : isWeekend ? '#faad14' : '#8b949e',
+                    fontWeight: isToday ? 700 : 400,
+                  }}
+                >
                   {day.date()}
+                  {isToday && (
+                    <span style={{ color: '#1677ff', marginLeft: 2, fontSize: 9 }}>今</span>
+                  )}
                 </div>
-                {count > 0 && (
+
+                {/* 排单量色块 */}
+                {heat && (
                   <div
                     style={{
-                      ...getHeatStyle(day),
-                      fontSize: 10,
-                      textAlign: 'center',
-                      padding: '1px 0',
+                      position: 'absolute',
+                      bottom: 4,
+                      left: 4,
+                      right: 4,
+                      height: 30,
+                      background: heat.bg,
+                      borderRadius: 5,
+                      color: heat.text,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: isSelected ? '0 0 0 2px #1677ff' : 'none',
                     }}
                   >
-                    {count} 单
+                    {heat.label} 单
+                  </div>
+                )}
+
+                {/* 选中态（无排单量的日期也能选中） */}
+                {isSelected && !heat && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      left: 4,
+                      right: 4,
+                      height: 30,
+                      background: '#e6f4ff',
+                      border: '1px solid #1677ff',
+                      borderRadius: 5,
+                      color: '#1677ff',
+                      fontSize: 11,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 600,
+                    }}
+                  >
+                    在此排期
                   </div>
                 )}
               </div>
