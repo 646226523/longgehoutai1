@@ -501,9 +501,12 @@ server.middlewares.use('/api/detection/orders/options', (req, res, next) => {
   res.end(JSON.stringify({ code: 0, message: 'success', data: list }));
 });
 
-// POST /api/detection/orders - 新增订单
+// POST /api/detection/orders - 新增订单（仅精确匹配,子路由透传后端）
 server.middlewares.use('/api/detection/orders', (req, res, next) => {
   if (req.method !== 'POST') { next(); return; }
+  const url = new URL(req.url, 'http://localhost');
+  // 子路由如 /confirm /cancel /schedule 直接透传到后端
+  if (url.pathname !== '/') { next(); return; }
   let body = '';
   req.on('data', (chunk) => (body += chunk));
   req.on('end', () => {
