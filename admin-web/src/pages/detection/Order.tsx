@@ -96,7 +96,6 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
   const [currentMonth, setCurrentMonth] = useState<Dayjs>(
     selectedDate ?? dayjs().startOf('month')
   );
-  const [calendarMode, setCalendarMode] = useState<'date' | 'month'>('date');
 
   // 选中某日 → 拉当日订单
   useEffect(() => {
@@ -171,113 +170,17 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
         <Calendar
           value={selectedDate ?? currentMonth}
           onSelect={(d) => onSelectDate(d)}
-          onPanelChange={(d, mode) => {
-            setCurrentMonth(d);
-            setCalendarMode(mode as 'date' | 'month');
-          }}
+          onPanelChange={(d) => setCurrentMonth(d)}
           fullscreen={false}
-          fullCellRender={(day) => {
-            const isYearView = calendarMode === 'month';
-            const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
-
-            // === 年视图：每个 cell 是一个月份 ===
-            if (isYearView) {
-              const yearMonth = day.format('YYYY-MM');
-              const total = getMonthCount(yearMonth);
-              const heat = getHeatStyle(total);
-              const monthName = day.format('M 月');
-              const isSelectedMonth = currentMonth.format('YYYY-MM') === yearMonth;
-
-              const yearTipTitle = (
-                <div style={{ fontSize: 12 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                    {day.format('YYYY 年 M 月')}
-                  </div>
-                  <div style={{ color: '#8b949e' }}>
-                    累计排单 <strong style={{ color: '#1677ff' }}>{total}</strong> 单
-                  </div>
-                </div>
-              );
-
-              return (
-                <Tooltip title={yearTipTitle} mouseEnterDelay={0.3} placement="top">
-                  <div
-                    style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: 54,
-                      padding: 2,
-                      boxSizing: 'border-box',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {/* 月份名（小字灰色角落） */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        left: 6,
-                        fontSize: 11,
-                        color: isSelectedMonth ? '#1677ff' : '#8b949e',
-                        fontWeight: isSelectedMonth ? 700 : 400,
-                      }}
-                    >
-                      {monthName}
-                    </div>
-
-                    {/* 累计排单量色块 */}
-                    {heat ? (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          left: 4,
-                          right: 4,
-                          height: 30,
-                          background: heat.bg,
-                          borderRadius: 5,
-                          color: heat.text,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {heat.label} 单
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          left: 4,
-                          right: 4,
-                          height: 30,
-                          borderRadius: 5,
-                          fontSize: 10,
-                          color: '#d9d9d9',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        无排单
-                      </div>
-                    )}
-                  </div>
-                </Tooltip>
-              );
-            }
-
-            // === 月视图：每个 cell 是一个日期 ===
+          // 月视图：每天一个 cell（1-31 号）
+          cellRender={(day) => {
             const count = getCount(day);
             const heat = getHeatStyle(count);
             const isToday = dayjs().isSame(day, 'day');
             const isOtherMonth = !day.isSame(currentMonth, 'month');
             const isWeekend = day.day() === 0 || day.day() === 6;
+            const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
 
-            // Tooltip 内容
             const tipTitle = (
               <div style={{ fontSize: 12 }}>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>
@@ -352,7 +255,7 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
                     </div>
                   )}
 
-                  {/* 选中态（无排单量的日期也能选中） */}
+                  {/* 选中态 */}
                   {isSelected && !heat && (
                     <div
                       style={{
@@ -373,6 +276,95 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
                       }}
                     >
                       在此排期
+                    </div>
+                  )}
+                </div>
+              </Tooltip>
+            );
+          }}
+          // 年视图：每月一个 cell（1-12 月）
+          monthCellRender={(date) => {
+            // date 是该月第一天，format('M') 正确输出 1-12
+            const month = date.month() + 1; // 0-based → 1-based
+            const yearMonth = date.format('YYYY-MM');
+            const total = getMonthCount(yearMonth);
+            const heat = getHeatStyle(total);
+
+            const tipTitle = (
+              <div style={{ fontSize: 12 }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  {date.format('YYYY 年 M 月')}
+                </div>
+                <div style={{ color: '#8b949e' }}>
+                  累计排单 <strong style={{ color: '#1677ff' }}>{total}</strong> 单
+                </div>
+              </div>
+            );
+
+            return (
+              <Tooltip title={tipTitle} mouseEnterDelay={0.3} placement="top">
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: 54,
+                    padding: 2,
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {/* 月份名（小字灰色角落） */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: 6,
+                      fontSize: 11,
+                      color: '#8b949e',
+                      fontWeight: 400,
+                    }}
+                  >
+                    {month} 月
+                  </div>
+
+                  {/* 累计排单量色块 */}
+                  {heat ? (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: 4,
+                        right: 4,
+                        height: 30,
+                        background: heat.bg,
+                        borderRadius: 5,
+                        color: heat.text,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {heat.label} 单
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: 4,
+                        right: 4,
+                        height: 30,
+                        borderRadius: 5,
+                        fontSize: 10,
+                        color: '#d9d9d9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      无排单
                     </div>
                   )}
                 </div>
