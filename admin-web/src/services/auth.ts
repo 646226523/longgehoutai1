@@ -1,4 +1,4 @@
-import { http, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './request';
+import { http, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, LOGIN_PATH } from './request';
 import type { CurrentUser } from '../access';
 
 export interface LoginParams {
@@ -33,7 +33,8 @@ export function logout(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_INFO_KEY);
-  window.location.href = '/login';
+  // 使用 replace 而非 href，避免登出后 history 栈残留业务页面
+  window.location.replace(LOGIN_PATH);
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {

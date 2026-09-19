@@ -13,7 +13,7 @@ function showError(content: string) {
 
 // 后端 API 基础地址(通过 vite proxy 转发到 3015)
 const BASE_URL = '/api';
-const LOGIN_PATH = '/login';
+export const LOGIN_PATH = '/login';
 
 // Token 在 localStorage 中的存储 key
 export const ACCESS_TOKEN_KEY = 'admin_access_token';
@@ -314,8 +314,23 @@ request.interceptors.response.use(
   }
 );
 
+// 重定向去重标记：防止同一次 401 流程中被调用两次（如 request.ts + App.tsx 双重触发）
+let isRedirecting = false;
+
 // 跳转登录页(清空 Token)
 function redirectToLogin() {
+  // 幂等保护：已在重定向流程中则直接返回，避免并发触发两次 document 级导航
+  if (isRedirecting) {
+    // eslint-disable-next-line no-console
+    console.info('[HTTP] redirectToLogin 已在进行中,跳过本次调用');
+    return;
+  }
+  isRedirecting = true;
+  // 500ms 后自动清除标记，防止极端情况下永久卡死
+  setTimeout(() => {
+    isRedirecting = false;
+  }, 500);
+
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   if (!window.location.pathname.startsWith(LOGIN_PATH)) {

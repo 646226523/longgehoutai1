@@ -7,7 +7,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import DataCenter from './pages/datacenter/index';
 import { getCurrentUser, USER_INFO_KEY } from './services/auth';
-import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './services/request';
+import { ACCESS_TOKEN_KEY } from './services/request';
 import type { CurrentUser } from './access';
 import { CurrentUserContext } from './app-context';
 import { setAppInstance } from './utils/antd-app-instance';
@@ -63,17 +63,16 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       })
       .catch((err: unknown) => {
         const axiosErr = err as { response?: { status?: number }; code?: string };
+        // 401 已由 request.ts axios 响应拦截器统一处理（刷新 token → 跳转登录），
+        // 此处只需静默忽略（request.ts 会触发 window.location.replace('/login')）
         if (axiosErr.response?.status === 401) {
-          localStorage.removeItem(ACCESS_TOKEN_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
-          localStorage.removeItem(USER_INFO_KEY);
-          window.location.replace('/login');
-        } else if (axiosErr.code && ['ERR_ABORTED'].includes(axiosErr.code)) {
+          return;
+        }
+        if (axiosErr.code && ['ERR_ABORTED'].includes(axiosErr.code)) {
           // 浏览器导航/组件卸载导致的请求中断,静默忽略
           return;
-        } else {
-          setNetworkError(true);
         }
+        setNetworkError(true);
       })
       .finally(() => setLoading(false));
   }, [token]);
