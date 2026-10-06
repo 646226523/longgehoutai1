@@ -1,4 +1,4 @@
-﻿// 用户与会员体系 - 用户管理
+// 用户与会员体系 - 用户管理
 // 功能:ProTable 分页列表(用户名/手机/状态/认证状态筛选)、编辑、封禁/解封、
 //      实名认证审核(通过/驳回)、鸽主认证审核、详情抽屉(精美用户档案详情)
 //      更多操作:变更分销商/设置标签/重置密码/发放优惠券/调整余额/调整积分/黑名单
@@ -8,6 +8,7 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
+import { buildAvatarUrl } from '@/utils/avatar';
 import {
   App,
   Avatar,
@@ -125,17 +126,7 @@ function formatUserId(id: number): string {
   return 'A' + String(id).padStart(3, '0');
 }
 
-/** 生成用户头像 URL — 优先用后端返回的真实图片(http开头)，否则用 DiceBear API 生成独特 SVG 头像 */
-function buildAvatarUrl(record: UserItem): string {
-  const avatar = record.avatar;
-  // 只有 http/https 开头的真实图片(用户上传的 JPG/PNG)才使用
-  if (avatar && typeof avatar === 'string' && avatar.startsWith('http')) {
-    return avatar;
-  }
-  // 其他情况（空字符串、data:SVG占位图等）都用 DiceBear 在线头像
-  const seed = encodeURIComponent(`${record.id}-${record.nickname || record.username || 'user'}`);
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
-}
+// buildAvatarUrl 已抽到 src/utils/avatar.ts, 统一从 @/utils/avatar import
 
 const getLevelTheme = (levelCode: string | null, _levelName: string | null) => {
   if (!levelCode) return { gradient: 'linear-gradient(135deg, #f0f0f0 0%, #d9d9d9 100%)', color: '#8c8c8c' };
@@ -307,7 +298,7 @@ const UserList = () => {
   // 表单
   const [distForm] = Form.useForm();
   const [tagsForm] = Form.useForm();
-  const [resetPwdForm] = Form.useForm();
+  const [resetPwdInput, setResetPwdInput] = useState('');
   const [couponForm] = Form.useForm();
   const [balanceForm] = Form.useForm();
   const [pointsForm] = Form.useForm();
@@ -380,9 +371,6 @@ const UserList = () => {
         case 'tags':
           tagsForm.setFieldsValue({ tags: record.tags ?? [] });
           break;
-        case 'reset-pwd':
-          resetPwdForm.resetFields();
-          break;
         case 'coupon':
           couponForm.resetFields();
           break;
@@ -415,8 +403,13 @@ const UserList = () => {
           break;
         }
         case 'reset-pwd': {
-          const values = await resetPwdForm.validateFields();
-          const res = await resetUserPassword(actionUser.id, values.new_password);
+          const custom = resetPwdInput.trim();
+          if (custom && custom.length < 6) {
+            message.error('自定义密码至少6位');
+            setActionLoading(false);
+            return;
+          }
+          const res = await resetUserPassword(actionUser.id, custom || undefined);
           modal.info({
             title: '密码已重置',
             content: (
@@ -471,6 +464,7 @@ const UserList = () => {
   const closeMoreAction = () => {
     setActionType(null);
     setActionUser(null);
+    setResetPwdInput('');
   };
 
   const ensureLevelOptions = () => {
@@ -2327,7 +2321,7 @@ const UserList = () => {
 
                 <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 16 }}>
                   <Avatar
-                    src={actionUser.avatar}
+                    src={buildAvatarUrl(actionUser)}
                     size={56}
                     style={{ background: 'linear-gradient(135deg, #722ed1, #1677ff)', border: '2px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
                   >
@@ -2550,11 +2544,17 @@ const UserList = () => {
               目标用户：<Text strong>{actionUser.nickname || actionUser.username}</Text>
               <Text type="secondary"> ({actionUser.username})</Text>
             </div>
-            <Form form={resetPwdForm} layout="vertical">
-              <Form.Item label="自定义新密码(可选)" name="new_password" extra="不填则自动生成8位随机密码">
-                <Input.Password placeholder="至少6位,留空自动生成" />
-              </Form.Item>
-            </Form>
+            <div>
+              <div style={{ fontSize: 13, color: '#595959', marginBottom: 6 }}>自定义新密码（可选）</div>
+              <Input.Password
+                value={resetPwdInput}
+                onChange={(e) => setResetPwdInput(e.target.value)}
+                placeholder="至少6位，留空自动生成8位随机密码"
+              />
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                不填则系统自动生成并显示新密码
+              </div>
+            </div>
           </div>
         )}
       </Modal>
@@ -2629,13 +2629,15 @@ const UserList = () => {
                 rules={[{ required: true, message: '请输入调整金额(正数增加/负数扣除)' }]}
                 extra="正数表示增加余额,负数表示扣除余额"
               >
-                <InputNumber
-                  placeholder="例:100 增加 / -50 扣除"
-                  style={{ width: '100%' }}
-                  precision={2}
-                  step={10}
-                  addonBefore="¥"
-                />
+                <Space.Compact style={{ width: '100%' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', backgroundColor: '#f5f5f5', border: '1px solid #d9d9d9', borderRadius: '6px 0 0 6px', color: 'rgba(0,0,0,0.65)' }}>¥</span>
+                  <InputNumber
+                    placeholder="例:100 增加 / -50 扣除"
+                    style={{ width: '100%' }}
+                    precision={2}
+                    step={10}
+                  />
+                </Space.Compact>
               </Form.Item>
               <Form.Item label="调整原因" name="reason">
                 <Input.TextArea rows={2} placeholder="可填写调整原因(如:人工补偿/活动奖励等)" maxLength={100} showCount />
@@ -2674,13 +2676,15 @@ const UserList = () => {
                 rules={[{ required: true, message: '请输入调整数量(正数增加/负数扣除)' }]}
                 extra="正数表示增加积分,负数表示扣除积分"
               >
-                <InputNumber
-                  placeholder="例:100 增加 / -50 扣除"
-                  style={{ width: '100%' }}
-                  precision={0}
-                  step={10}
-                  addonAfter="分"
-                />
+                <Space.Compact style={{ width: '100%' }}>
+                  <InputNumber
+                    placeholder="例:100 增加 / -50 扣除"
+                    style={{ width: '100%' }}
+                    precision={0}
+                    step={10}
+                  />
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', backgroundColor: '#f5f5f5', border: '1px solid #d9d9d9', borderRadius: '0 6px 6px 0', color: 'rgba(0,0,0,0.65)' }}>分</span>
+                </Space.Compact>
               </Form.Item>
               <Form.Item label="调整原因" name="reason">
                 <Input.TextArea rows={2} placeholder="可填写调整原因(如:签到奖励/违规扣除等)" maxLength={100} showCount />

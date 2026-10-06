@@ -17,6 +17,7 @@ import arbitrationRouter from './routes/arbitration';
 import statisticsRouter from './routes/statistics';
 import uploadRouter from './routes/upload';
 import publicRouter from './routes/public';
+import publicViewsRouter from './routes/public-views';
 import type { ApiResponse } from './types';
 
 const app = express();
@@ -33,7 +34,7 @@ app.use(
 );
 
 // 解析 JSON 请求体
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // 请求日志中间件(简易)
@@ -52,8 +53,9 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json(body);
 });
 
-// 公开路由(无需鉴权):公网 IP 查询
+// 公开路由(无需鉴权):公网 IP 查询 + C 端公开只读数据
 app.use('/api', publicRouter);
+app.use('/api/public', publicViewsRouter);
 
 // 挂载业务路由(全部加 /api 前缀)
 app.use('/api/auth', authRoutes);

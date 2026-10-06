@@ -1,4 +1,4 @@
-﻿import { Database, initSQL } from './sqlite-compat';
+import { Database, initSQL } from './sqlite-compat';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
@@ -451,6 +451,10 @@ function initSeedData(): void {
     ['session_timeout', '30', '会话超时', 'security', '会话空闲超时时间(分钟)', 4],
     ['admin_page_size', '10', '默认分页大小', 'general', '列表默认每页条数', 3],
     ['upload_max_size', '10', '上传文件大小上限', 'general', '单文件上传大小上限(MB)', 4],
+    ['platform_logo_url', '', '平台 LOGO 图片', 'general', 'C 端展示，建议 200×200 PNG/SVG', 10],
+    ['platform_name', '龙鸽基因', '平台名称', 'general', '全站品牌名', 11],
+    ['platform_subtitle', '赛鸽数字资产平台', '平台副标题', 'general', '登录/注册页副标题文案', 12],
+    ['admin_login_banner', '[]', '管理后台登录页轮播图', 'general', 'JSON 数组，每项 {url,caption,link}；空数组使用默认', 13],
     ['map_provider', 'none', '地图服务商', 'map', '地图服务商：amap(高德)/baidu(百度)/tencent(腾讯)/none(内置SVG)', 1],
     ['map_amap_key', '', '高德地图 Key', 'map', '高德开放平台申请的 Web 端(JS API) Key', 2],
     ['map_baidu_key', '', '百度地图 Key', 'map', '百度地图开放平台申请的浏览器端 AK', 3],

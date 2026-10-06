@@ -11,3 +11,25 @@ body {
     Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   background-color: #f0f2f5;
 }
+
+/* ==================== Drawer / Modal 按钮间距统一 20px ==================== */
+
+/* Drawer extra 裸按钮数组 */
+.ant-drawer-extra > .ant-btn + .ant-btn {
+  margin-left: 20px;
+}
+
+/* Drawer extra 内 Space 包裹的按钮 */
+.ant-drawer-extra .ant-space {
+  gap: 20px !important;
+}
+
+/* Modal footer 裸按钮数组 */
+.ant-modal-footer > .ant-btn + .ant-btn {
+  margin-left: 20px;
+}
+
+/* Modal footer 内 Space 包裹的按钮 */
+.ant-modal-footer .ant-space {
+  gap: 20px !important;
+}

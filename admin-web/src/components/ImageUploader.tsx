@@ -31,6 +31,10 @@ interface ImageUploaderProps {
   onChange?: (url: UploaderValue) => void;
   disabled?: boolean;
   maxCount?: number;
+  /** Optional size/dimension hint shown under the placeholder text (e.g. "建议 400×400px") */
+  sizeHint?: string;
+  /** When true, clicking an existing single-image preview opens the file picker to replace it. Default: true */
+  allowReplace?: boolean;
 }
 
 const toArr = (v: UploaderValue): string[] => {
@@ -49,6 +53,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   onChange,
   disabled = false,
   maxCount = 1,
+  sizeHint,
+  allowReplace = true,
 }) => {
   const { message } = App.useApp();
   const multi = maxCount > 1;
@@ -57,6 +63,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [previewList, setPreviewList] = useState<string[]>([]);
   const [loadErrors, setLoadErrors] = useState<Record<number, boolean>>({});
   const [loadError, setLoadError] = useState(false);
+  const [isContainerHovered, setIsContainerHovered] = useState(false);
 
   useEffect(() => {
     setPreviewList(toArr(value));
@@ -213,7 +220,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     [handleFile]
   );
 
-  const canAddMore = multi ? previewList.length < maxCount : previewList.length === 0;
+  const canAddMore = multi
+    ? previewList.length < maxCount
+    : allowReplace
+      ? true
+      : previewList.length === 0;
 
   const handleClick = useCallback(() => {
     if (disabled || !canAddMore) return;
@@ -369,6 +380,22 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     userSelect: 'none',
   };
 
+  const replaceOverlayStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#fff',
+    fontSize: 12,
+    gap: 4,
+    userSelect: 'none',
+    cursor: 'pointer',
+    zIndex: 1,
+  };
+
   if (multi) {
     return (
       <div>
@@ -454,6 +481,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 <Text type="secondary" style={{ fontSize: 11 }}>
                   {previewList.length}/{maxCount}
                 </Text>
+                {sizeHint && (
+                  <Text style={{ fontSize: 11, color: '#fa8c16' }}>
+                    {sizeHint}
+                  </Text>
+                )}
               </div>
             </div>
           )}
@@ -476,6 +508,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onPaste={handlePaste}
+        onMouseEnter={() => setIsContainerHovered(true)}
+        onMouseLeave={() => setIsContainerHovered(false)}
         tabIndex={0}
         role="button"
       >
@@ -500,10 +534,22 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 onError={() => setLoadError(true)}
               />
             )}
+            {!disabled && allowReplace && isContainerHovered && (
+              <div
+                style={replaceOverlayStyle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                <span style={{ fontSize: 20, lineHeight: 1 }}>↻</span>
+                <span>点击替换</span>
+              </div>
+            )}
             {!disabled && (
               <button
                 type="button"
-                style={removeBtnStyle}
+                style={{ ...removeBtnStyle, zIndex: 2 }}
                 onClick={handleRemove}
                 title="移除图片"
               >
@@ -527,6 +573,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             <Text type="secondary" style={{ fontSize: 11 }}>
               JPG / PNG / WEBP · ≤ 5MB
             </Text>
+            {sizeHint && (
+              <Text style={{ fontSize: 11, color: '#fa8c16' }}>
+                {sizeHint}
+              </Text>
+            )}
           </div>
         )}
       </div>

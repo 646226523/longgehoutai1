@@ -11,8 +11,11 @@ function showError(content: string) {
   }
 }
 
-// 后端 API 基础地址(通过 vite proxy 转发到 3015)
-const BASE_URL = '/api';
+// 后端 API 基础地址
+// 开发环境: 通过 vite proxy 转发到 localhost:3015, 用相对路径 '/api'
+// 生产环境: 可通过 VITE_API_BASE 环境变量配置绝对地址(如 'https://api.example.com/api')
+//           若未配置, 默认走相对路径 '/api', 要求前后端同域部署或有网关层代理
+const BASE_URL = (import.meta.env.VITE_API_BASE as string | undefined) || '/api';
 export const LOGIN_PATH = '/login';
 
 // Token 在 localStorage 中的存储 key
@@ -269,7 +272,7 @@ request.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
       try {
-        const res = await axios.post('/api/auth/refresh', { refreshToken });
+        const res = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
         const { accessToken, refreshToken: newRefreshToken } = res.data?.data ?? res.data;
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
         if (newRefreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);

@@ -1,4 +1,5 @@
 import { ProLayout } from '@ant-design/pro-components';
+import { buildAvatarUrl } from '@/utils/avatar';
 import type { MenuDataItem, ProLayoutProps } from '@ant-design/pro-components';
 import { App, Dropdown, Spin } from 'antd';
 import {
@@ -208,7 +209,7 @@ const AdminLayout = () => {
       type: 'sub',
     },
     avatarProps: {
-      src: currentUser?.avatar,
+      src: currentUser ? buildAvatarUrl(currentUser) : '',
       size: 'small',
       title: currentUser?.nickname || currentUser?.username || '管理员',
       render: (_, dom) => (

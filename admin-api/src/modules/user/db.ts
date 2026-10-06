@@ -108,6 +108,15 @@ export function initUserDb(db: DB): void {
   if (!columnNames.has('id_card_handheld')) {
     db.exec('ALTER TABLE users ADD COLUMN id_card_handheld TEXT');
   }
+  if (!columnNames.has('loft_photo_front')) {
+    db.exec('ALTER TABLE users ADD COLUMN loft_photo_front TEXT');
+  }
+  if (!columnNames.has('loft_photo_back')) {
+    db.exec('ALTER TABLE users ADD COLUMN loft_photo_back TEXT');
+  }
+  if (!columnNames.has('loft_handheld')) {
+    db.exec('ALTER TABLE users ADD COLUMN loft_handheld TEXT');
+  }
 
   // ============ 更多操作功能字段 ============
   if (!columnNames.has('balance')) {
@@ -124,6 +133,32 @@ export function initUserDb(db: DB): void {
   }
   if (!columnNames.has('tags_json')) {
     db.exec("ALTER TABLE users ADD COLUMN tags_json TEXT DEFAULT '[]'");
+  }
+
+  // ============ C 端用户密码登录支持 ============
+  if (!columnNames.has('password_hash')) {
+    db.exec('ALTER TABLE users ADD COLUMN password_hash TEXT');
+  }
+
+  // ============ C 端个人信息扩展字段 ============
+  const extraUserCols: Array<[string, string]> = [
+    ['signature', 'TEXT'],
+    ['gender', 'TEXT'],
+    ['birthday', 'TEXT'],
+    ['province', 'TEXT'],
+    ['city', 'TEXT'],
+    ['district', 'TEXT'],
+    ['wallet_address', 'TEXT'],
+    ['email', 'TEXT'],
+    ['loft_name', 'TEXT'],
+    ['loft_location', 'TEXT'],
+    ['associations', 'TEXT'],
+    ['loft_intro', 'TEXT'],
+  ];
+  for (const [col, type] of extraUserCols) {
+    if (!columnNames.has(col)) {
+      db.exec(`ALTER TABLE users ADD COLUMN ${col} ${type}`);
+    }
   }
 
   // ============ 分销商表 ============
@@ -341,9 +376,9 @@ const users = [
         real_name_status: 'approved',
         loft_owner_status: 'approved',
         audit_remark: null,
-        id_card_front: generateIdCardFrontSvg('李建国', '110101199001011234'),
-        id_card_back: generateIdCardBackSvg(),
-        id_card_handheld: generateHandheldIdCardSvg('李建国'),
+        id_card_front: '',
+        id_card_back: '',
+        id_card_handheld: '',
       },
       {
         username: '13800000002',
@@ -359,9 +394,9 @@ const users = [
         real_name_status: 'approved',
         loft_owner_status: 'none',
         audit_remark: null,
-        id_card_front: generateIdCardFrontSvg('王秀兰', '110101199203074321'),
-        id_card_back: generateIdCardBackSvg(),
-        id_card_handheld: generateHandheldIdCardSvg('王秀兰'),
+        id_card_front: '',
+        id_card_back: '',
+        id_card_handheld: '',
       },
       {
         username: '13800000003',
@@ -377,9 +412,9 @@ const users = [
         real_name_status: 'pending',
         loft_owner_status: 'none',
         audit_remark: null,
-        id_card_front: generateIdCardFrontSvg('张伟', '310101199506120011'),
-        id_card_back: generateIdCardBackSvg(),
-        id_card_handheld: generateHandheldIdCardSvg('张伟'),
+        id_card_front: '',
+        id_card_back: '',
+        id_card_handheld: '',
       },
       {
         username: '13800000004',
@@ -395,9 +430,9 @@ const users = [
         real_name_status: 'rejected',
         loft_owner_status: 'none',
         audit_remark: '身份证照片不清晰,请重新上传',
-        id_card_front: generateIdCardFrontSvg('陈晓明', '440101198811050034'),
-        id_card_back: generateIdCardBackSvg(),
-        id_card_handheld: generateHandheldIdCardSvg('陈晓明'),
+        id_card_front: '',
+        id_card_back: '',
+        id_card_handheld: '',
       },
       {
         username: '13800000005',
@@ -413,9 +448,9 @@ const users = [
         real_name_status: 'approved',
         loft_owner_status: 'pending',
         audit_remark: null,
-        id_card_front: generateIdCardFrontSvg('赵敏', '330101199012250056'),
-        id_card_back: generateIdCardBackSvg(),
-        id_card_handheld: generateHandheldIdCardSvg('赵敏'),
+        id_card_front: '',
+        id_card_back: '',
+        id_card_handheld: '',
       },
     ];
     users.forEach((u) => {
@@ -423,17 +458,24 @@ const users = [
   });
   }
 
-  // 确保所有用户都有有效 avatar 和认证材料（修复已有用户数据）
-  const existingUsers = db.prepare('SELECT id, nickname, real_name, id_card, avatar FROM users').all() as Array<{ id: number; nickname: string; real_name: string | null; id_card: string | null; avatar: string | null }>;
-  const updateUser = db.prepare('UPDATE users SET avatar = ?, id_card_front = ?, id_card_back = ?, id_card_handheld = ? WHERE id = ?');
+  // 一次性清理：把历史 seed SVG 占位头像清空（让下面的空值修复重新生成干净的 seed）
+  db.prepare(`UPDATE users SET avatar = '' WHERE avatar LIKE 'data:image/svg+xml%'`).run();
+
+  // 一次性清理：把历史 seed SVG 占位数据清空（id_card_front/back/handheld）
+  db.prepare(`UPDATE users SET
+    id_card_front = '', id_card_back = '', id_card_handheld = ''
+    WHERE id_card_front LIKE 'data:image%' OR id_card_back LIKE 'data:image%' OR id_card_handheld LIKE 'data:image%'
+  `).run();
+
+  // 确保所有用户都有有效 avatar（只修真正为空/null 的，绝不覆盖真实上传的 /uploads/xxx.jpg 或 http URL）
+  // 真实上传头像: '/uploads/xxx.jpg' 或 'http(s)://...' —— 一律保留
+  const existingUsers = db.prepare('SELECT id, nickname, avatar FROM users').all() as Array<{ id: number; nickname: string; avatar: string | null }>;
+  const fixAvatar = db.prepare('UPDATE users SET avatar = ? WHERE id = ?');
   existingUsers.forEach((u) => {
-    const avatar = u.avatar && u.avatar.startsWith('data:') ? u.avatar : generateAvatarDataUrl(u.nickname, u.id);
-    const realName = u.real_name || u.nickname;
-    const idCard = u.id_card || '';
-    const idCardFront = generateIdCardFrontSvg(realName, idCard);
-    const idCardBack = generateIdCardBackSvg();
-    const idCardHandheld = generateHandheldIdCardSvg(realName);
-    updateUser.run(avatar, idCardFront, idCardBack, idCardHandheld, u.id);
+    // 条件修正：只在真的为空时生成 seed，startsWith('data:') 不再作为判断依据
+    if (!u.avatar || u.avatar.trim() === '') {
+      fixAvatar.run(generateAvatarDataUrl(u.nickname, u.id), u.id);
+    }
   });
 
   // ============ 分销商种子数据 ============

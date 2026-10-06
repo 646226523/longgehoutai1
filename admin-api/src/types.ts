@@ -60,6 +60,14 @@ export interface AuthedRequest extends Request {
     permissions: string[];
     isSuper: boolean;
   };
+  /** C 端用户信息 (type='user' token 鉴权后挂载) */
+  user?: {
+    id: number;
+    username: string;
+    nickname: string;
+    avatar: string | null;
+    phone: string | null;
+  };
 }
 
 // 统一 API 响应结构

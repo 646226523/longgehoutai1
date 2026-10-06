@@ -5,10 +5,11 @@
   "type": "module",
   "description": "赛鸽基因溯源平台 - 后台管理系统前端",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-start.cjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dev:pure": "vite"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.7",

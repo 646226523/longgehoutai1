@@ -465,6 +465,100 @@ server.middlewares.use(/^\/api\/detection\/orgs\/(\d+)\/status$/, (req, res, nex
   res.end(JSON.stringify({ code: 0, message: nextStatus === 1 ? '已启用' : '已停用', data: { status: nextStatus } }));
 });
 
+// ======== 检测订单子路由操作(confirm/schedule/cancel)合并为一个全局handler ========
+// 必须在所有 /api/detection/orders 前缀匹配之前注册
+// 不能用正则路径参数 server.middlewares.use(/regex/, handler)
+// 因为 Vite/Connect 会先做前缀匹配剥离路径导致正则失效
+server.middlewares.use((req, res, next) => {
+  const url = req.url || '';
+  const confirmMatch = url.match(/^\/api\/detection\/orders\/(\d+)\/confirm$/);
+  const scheduleMatch = url.match(/^\/api\/detection\/orders\/(\d+)\/schedule$/);
+  const cancelMatch = url.match(/^\/api\/detection\/orders\/(\d+)\/cancel$/);
+
+  if (confirmMatch && req.method === 'POST') {
+    const id = parseInt(confirmMatch[1], 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '无效的订单 ID', data: null }));
+    }
+    const order = detectionOrderStore.get(id);
+    if (!order) {
+      res.statusCode = 404; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 404, message: '预约订单不存在', data: null }));
+    }
+    if (order.status !== 'pending') {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '仅待确认订单可执行确认操作', data: null }));
+    }
+    detectionOrderStore.set(id, { ...order, status: 'confirmed', updated_at: Date.now() });
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ code: 0, message: '已确认预约', data: null }));
+  }
+
+  if (scheduleMatch && req.method === 'POST') {
+    const id = parseInt(scheduleMatch[1], 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '无效的订单 ID', data: null }));
+    }
+    const order = detectionOrderStore.get(id);
+    if (!order) {
+      res.statusCode = 404; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 404, message: '预约订单不存在', data: null }));
+    }
+    if (order.status !== 'confirmed' && order.status !== 'scheduled') {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '仅已确认/已排期订单可执行排期操作', data: null }));
+    }
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const date = String(data.scheduled_date ?? '').trim();
+        if (!date) {
+          res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ code: 400, message: '请选择排期日期', data: null }));
+        }
+        detectionOrderStore.set(id, { ...order, scheduled_date: date, status: 'scheduled', updated_at: Date.now() });
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 0, message: '排期成功', data: null }));
+      } catch {
+        res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code: 400, message: '请求参数错误', data: null }));
+      }
+    });
+    return;
+  }
+
+  if (cancelMatch && req.method === 'POST') {
+    const id = parseInt(cancelMatch[1], 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '无效的订单 ID', data: null }));
+    }
+    const order = detectionOrderStore.get(id);
+    if (!order) {
+      res.statusCode = 404; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 404, message: '预约订单不存在', data: null }));
+    }
+    if (order.status === 'completed') {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '已完成订单不可取消', data: null }));
+    }
+    if (order.status === 'cancelled') {
+      res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ code: 400, message: '该订单已取消', data: null }));
+    }
+    detectionOrderStore.set(id, { ...order, status: 'cancelled', updated_at: Date.now() });
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ code: 0, message: '已取消订单', data: null }));
+  }
+
+  // 不是子路由，继续匹配后续中间件
+  next();
+});
+
 // GET /api/detection/orders - 检测订单分页列表
 server.middlewares.use('/api/detection/orders', (req, res, next) => {
   if (req.method !== 'GET') { next(); return; }
@@ -501,11 +595,10 @@ server.middlewares.use('/api/detection/orders/options', (req, res, next) => {
   res.end(JSON.stringify({ code: 0, message: 'success', data: list }));
 });
 
-// POST /api/detection/orders - 新增订单（仅精确匹配,子路由透传后端）
+// POST /api/detection/orders - 新增订单（仅精确匹配,子路由已由上方正则拦截）
 server.middlewares.use('/api/detection/orders', (req, res, next) => {
   if (req.method !== 'POST') { next(); return; }
   const url = new URL(req.url, 'http://localhost');
-  // 子路由如 /confirm /cancel /schedule 直接透传到后端
   if (url.pathname !== '/') { next(); return; }
   let body = '';
   req.on('data', (chunk) => (body += chunk));

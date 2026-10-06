@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { buildAvatarUrl } from '@/utils/avatar';
 import {
   ModalForm,
   ProTable,
@@ -53,7 +54,8 @@ const BASE_URL = '';
 
 const getImageUrl = (url: string | null | undefined): string => {
   if (!url) return '';
-  if (url.startsWith('data:image')) return url;
+  if (url.startsWith('data:image/svg')) return ''; // SVG seed 占位一律返回空
+  if (url.startsWith('data:image')) return url; // 允许 base64 jpeg/png
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   return BASE_URL + (url.startsWith('/') ? url : '/' + url);
 };
@@ -194,7 +196,7 @@ const AuditList: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Avatar
             size={36}
-            src={record.avatar}
+            src={buildAvatarUrl(record)}
             icon={<UserOutlined />}
             style={{ border: '2px solid #e6f4ff', flexShrink: 0 }}
           />
@@ -254,19 +256,18 @@ const AuditList: React.FC = () => {
       dataIndex: 'id_card_front',
       hideInSearch: true,
       render: (_, record) => {
-        const hasMaterial = record.id_card_front || record.id_card_back || record.id_card_handheld;
-        if (!hasMaterial) {
+        const allImages = [record.id_card_front, record.id_card_back, record.id_card_handheld].filter(Boolean) as string[];
+        if (allImages.length === 0) {
           return <Text type="secondary" style={{ fontSize: 12 }}>暂无材料</Text>;
         }
+        // 选第一张有值的图做缩略图（避免硬编码 front 为空时渲染坏 <img src="">）
+        const thumbSrc = getImageUrl(allImages[0]);
         return (
           <img
-            src={getImageUrl(record.id_card_front)}
-            alt="身份证正面"
+            src={thumbSrc}
+            alt="认证材料"
             style={{ width: 50, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #e8e8e8', cursor: 'zoom-in' }}
-            onClick={() => {
-              const list = [record.id_card_front, record.id_card_back, record.id_card_handheld].filter(Boolean) as string[];
-              openPreview(0, list);
-            }}
+            onClick={() => openPreview(0, allImages)}
           />
         );
       },
@@ -491,7 +492,7 @@ const AuditList: React.FC = () => {
         >
           <Descriptions column={2} size="small">
             <Descriptions.Item label="头像">
-              <Avatar src={record.avatar} icon={<UserOutlined />} size={48} />
+              <Avatar src={buildAvatarUrl(record)} icon={<UserOutlined />} size={48} />
             </Descriptions.Item>
             <Descriptions.Item label="用户ID">{record.id}</Descriptions.Item>
             <Descriptions.Item label="昵称">{record.nickname || record.username}</Descriptions.Item>
@@ -560,9 +561,9 @@ const AuditList: React.FC = () => {
               {hasIdCardHandheld && (
                 <Col span={8}>
                   <MaterialCard
-                    title="手持身份证"
+                    title="活体检测照片"
                     src={record.id_card_handheld}
-                    color="#fa8c16"
+                    color="#722ed1"
                     onPreview={() => {
                       const list = [record.id_card_front, record.id_card_back, record.id_card_handheld].filter(Boolean) as string[];
                       let index = 0;
@@ -834,7 +835,7 @@ const AuditList: React.FC = () => {
             <Descriptions column={1} size="small" style={{ marginBottom: 16 }}>
               <Descriptions.Item label="申请人">
                 <Space>
-                  <Avatar src={auditModal.record.avatar} icon={<UserOutlined />} size={32} />
+                  <Avatar src={buildAvatarUrl(auditModal.record)} icon={<UserOutlined />} size={32} />
                   <Text strong>{auditModal.record.nickname || auditModal.record.username}</Text>
                 </Space>
               </Descriptions.Item>

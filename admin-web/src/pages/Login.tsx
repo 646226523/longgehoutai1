@@ -21,13 +21,30 @@ const Login = () => {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
+  const [carouselImages, setCarouselImages] = useState<string[]>(CAROUSEL_IMAGES);
+
+  // 动态加载登录页轮播图（管理员未配置时使用默认）
+  useEffect(() => {
+    fetch('/api/site-config')
+      .then(r => r.json())
+      .then(res => {
+        const banners = res?.data?.admin_login_banner;
+        if (Array.isArray(banners) && banners.length > 0) {
+          const urls = banners.map((b: any) => b?.url).filter(Boolean);
+          if (urls.length > 0) setCarouselImages(urls);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
+    const images = carouselImages;
+    if (images.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
+      setCurrentIndex((prev) => (prev + 1) % images.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [carouselImages.length]);
 
   const handleSubmit = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -388,12 +405,12 @@ const Login = () => {
       <div className="login-split-root">
         <div className="login-left">
           <div className="login-carousel">
-            {CAROUSEL_IMAGES.map((src, index) => (
+            {carouselImages.map((src, index) => (
               <div
                 key={index}
                 className={`login-carousel-slide${index === currentIndex ? ' active' : ''}`}
               >
-                <img src={src} alt={`赛鸽图片 ${index + 1}`} />
+                <img src={src} alt={`登录页广告 ${index + 1}`} />
               </div>
             ))}
           </div>
@@ -401,7 +418,7 @@ const Login = () => {
           <div className="login-gradient-overlay" />
 
           <div className="login-dots">
-            {CAROUSEL_IMAGES.map((_, index) => (
+            {carouselImages.map((_, index) => (
               <button
                 key={index}
                 className={`login-dot${index === currentIndex ? ' active' : ''}`}

@@ -550,7 +550,7 @@ detectionRouter.post(
       | { id: number; status: string }
       | undefined;
     if (!target) return fail(res, 404, '预约订单不存在');
-    if (target.status !== ORDER_STATUS.PENDING) {
+    if ((target.status ?? '').trim().toLowerCase() !== ORDER_STATUS.PENDING) {
       return fail(res, 400, '仅待确认订单可执行确认操作');
     }
     db.prepare('UPDATE detection_orders SET status = ?, updated_at = ? WHERE id = ?').run(

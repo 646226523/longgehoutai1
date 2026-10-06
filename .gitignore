@@ -190,3 +190,28 @@ screenshots_verify/
 
 # ====== Git 仓库备份 ======
 .git.bak/
+
+# ====== Trae IDE 工作文件（仅 .trae/sessions 已排除）======
+.trae/documents/
+.trae/skills/
+.trae/specs/
+
+# ====== 额外的构建产物目录 ======
+admin-web/dist-deploy/
+admin-web/dist-prod/
+admin-web/dist2/
+admin-web/dist3/
+admin-web/dist4/
+admin-web/dist5/
+admin-web/deploy/
+
+# ====== 临时批处理 JSON（运行时产物）======
+_batch*.json
+role-update.json
+
+# ====== 根目录临时文件 ======
+temp_check.js
+admin-web/_patch2.cjs
+admin-api/curl-test.ps1
+admin-web/scripts/dev-start.cjs
+admin-web/scripts/diagnose-login.py

@@ -1,4 +1,4 @@
-import {
+﻿import {
   ProForm,
   ProFormDatePicker,
   ProFormSelect,
@@ -11,9 +11,7 @@ import {
 } from '@ant-design/pro-components';
 import {
   App,
-  Badge,
   Button,
-  Calendar,
   Card,
   Checkbox,
   Col,
@@ -25,6 +23,7 @@ import {
   Popconfirm,
   Radio,
   Row,
+  Select,
   Segmented,
   Space,
   Steps,
@@ -41,7 +40,7 @@ import {
   PlusOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useTableRefresh } from '../../hooks/useTableRefresh';
 import { useCurrentUser } from '../../app-context';
@@ -91,60 +90,55 @@ interface ScheduleCalendarProps {
 }
 
 const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalendarProps) => {
+  const [panelMode, setPanelMode] = useState<'date' | 'month'>('date');
+  const [currentMonth, setCurrentMonth] = useState<Dayjs>(selectedDate ?? dayjs().startOf('month'));
   const [dayOrders, setDayOrders] = useState<DetectionOrder[]>([]);
   const [loadingDay, setLoadingDay] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState<Dayjs>(
-    selectedDate ?? dayjs().startOf('month')
-  );
-  // 跟踪 Calendar 当前视图模式
-  const [panelMode, setPanelMode] = useState<'date' | 'month'>('date');
-  // 年视图下点击月份后选中的月份
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    (selectedDate ?? dayjs()).format('YYYY-MM')
-  );
 
-  // 选中某日 → 拉当日订单
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
   useEffect(() => {
     if (!selectedDate) return;
-    const dateStr = selectedDate.format('YYYY-MM-DD');
-    setLoadingDay(true);
-    getDetectionCalendarByDate(dateStr)
+    getDetectionCalendarByDate(selectedDate.format('YYYY-MM-DD'))
       .then((list) => setDayOrders(list ?? []))
       .catch(() => setDayOrders([]))
       .finally(() => setLoadingDay(false));
   }, [selectedDate?.format('YYYY-MM-DD')]);
 
-  // 获取某日的排单量
-  const getCount = (day: Dayjs) => {
-    const key = day.format('YYYY-MM-DD');
-    return counts[key] ?? 0;
-  };
-
-  // 年视图：获取某月累计排单量（同月每天 count 之和）
+  const getCount = (dateStr: string) => counts[dateStr] ?? 0;
   const getMonthCount = (yearMonth: string) => {
-    // yearMonth 格式 "YYYY-MM"
     let total = 0;
-    for (const [key, val] of Object.entries(counts)) {
-      if (key.startsWith(yearMonth)) total += val;
-    }
+    for (const [k, v] of Object.entries(counts)) if (k.startsWith(yearMonth)) total += v;
     return total;
   };
-
-  // 日视图热力图（根据 count 等级）
-  const getHeatStyle = (count: number): { bg: string; text: string; label: string } | null => {
+  const getHeatStyle = (count: number) => {
     if (count === 0) return null;
-    if (count <= 2) return { bg: '#e6f4ff', text: '#1677ff', label: `${count}` };
-    if (count <= 5) return { bg: '#bae0ff', text: '#0958d9', label: `${count}` };
-    if (count <= 10) return { bg: '#7cc8ff', text: '#ffffff', label: `${count}` };
-    return { bg: '#1677ff', text: '#ffffff', label: `${count}+` };
+    if (count <= 2) return { bg: '#e6f4ff', text: '#1677ff', label: String(count) };
+    if (count <= 5) return { bg: '#bae0ff', text: '#0958d9', label: String(count) };
+    if (count <= 10) return { bg: '#7cc8ff', text: '#fff', label: String(count) };
+    return { bg: '#1677ff', text: '#fff', label: count + '+' };
   };
 
-  // 排单量颜色等级 → 图例
-  const HEAT_LEGEND = [
-    { bg: '#e6f4ff', text: '#1677ff', range: '1-2' },
-    { bg: '#bae0ff', text: '#0958d9', range: '3-5' },
-    { bg: '#7cc8ff', text: '#ffffff', range: '6-10' },
-    { bg: '#1677ff', text: '#ffffff', range: '10+' },
+  const monthCells = useMemo(() => {
+    const first = currentMonth.startOf('month');
+    const startDow = first.day();
+    const startDate = first.subtract(startDow, 'day');
+    const cells: Dayjs[] = [];
+    for (let i = 0; i < 42; i++) cells.push(startDate.add(i, 'day'));
+    return cells;
+  }, [currentMonth]);
+
+  const yearMonths = useMemo(() => {
+    const y = currentMonth.year();
+    return Array.from({ length: 12 }, (_, i) => dayjs(y + '-' + String(i + 1).padStart(2, '0') + '-01'));
+  }, [currentMonth.year()]);
+
+  const H = [
+    { bg: '#e6f4ff', text: '#1677ff', r: '1-2' },
+    { bg: '#bae0ff', text: '#0958d9', r: '3-5' },
+    { bg: '#7cc8ff', text: '#fff', r: '6-10' },
+    { bg: '#1677ff', text: '#fff', r: '10+' },
   ];
 
   return (
@@ -152,350 +146,214 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
       {/* 左侧日历 */}
       <div style={{ flex: 1, padding: 16, borderRight: '1px solid #f0f0f0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>
-            📅 选择排期日期
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>📅 选择排期日期</div>
+            <Radio.Group
+              value={panelMode}
+              onChange={(e) => setPanelMode(e.target.value)}
+              optionType="button"
+              buttonStyle="solid"
+              size="small"
+            >
+              <Radio.Button value="date">月</Radio.Button>
+              <Radio.Button value="month">年</Radio.Button>
+            </Radio.Group>
           </div>
-          <div style={{ display: 'flex', gap: 4, fontSize: 10, color: '#8b949e', alignItems: 'center' }}>
-            {HEAT_LEGEND.map((l) => (
-              <span
-                key={l.range}
-                style={{
-                  background: l.bg,
-                  color: l.text,
-                  padding: '1px 6px',
-                  borderRadius: 3,
-                  fontSize: 10,
-                  fontWeight: 600,
-                }}
-              >
-                {l.range}
-              </span>
+          <div style={{ display: 'flex', gap: 4, fontSize: 10, alignItems: 'center' }}>
+            {H.map((l) => (
+              <span key={l.r} style={{ background: l.bg, color: l.text, padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600 }}>{l.r}</span>
             ))}
           </div>
         </div>
-        <Calendar
-          value={selectedDate ?? currentMonth}
-          onSelect={(d) => {
-            // 年视图下点击月份：切到月视图 + 选中该月第一天
-            if (panelMode === 'month') {
-              setSelectedMonth(d.format('YYYY-MM'));
-              setPanelMode('date');
-              setCurrentMonth(d.startOf('month'));
-              onSelectDate(d.startOf('month'));
-            } else {
-              onSelectDate(d);
-            }
-          }}
-          onPanelChange={(d, mode) => {
-            setCurrentMonth(d);
-            setPanelMode(mode as 'date' | 'month');
-          }}
-          fullscreen={false}
-          fullCellRender={(day) => {
-            const isYearView = panelMode === 'month';
 
-            // === 年视图：每个 cell 是一个月份 ===
-            if (isYearView) {
-              const yearMonth = day.format('YYYY-MM');
-              const total = getMonthCount(yearMonth);
-              const heat = getHeatStyle(total);
-              const monthName = day.format('M 月');
-              const isSelectedMonth = selectedMonth === yearMonth;
+        {/* 导航 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Button size="small" onClick={() => setCurrentMonth(currentMonth.subtract(1, panelMode === 'date' ? 'month' : 'year'))}>‹</Button>
+          <Select
+            size="small"
+            style={{ width: 100 }}
+            value={currentMonth.year()}
+            onChange={(y) => setCurrentMonth(currentMonth.year(y))}
+            options={Array.from({ length: 5 }, (_, i) => currentMonth.year() - 2 + i).map((y) => ({ label: y + '年', value: y }))}
+          />
+          {panelMode === 'date' && (
+            <Select
+              size="small"
+              style={{ width: 70 }}
+              value={currentMonth.month() + 1}
+              onChange={(m) => setCurrentMonth(currentMonth.month((m as number) - 1))}
+              options={monthNames.map((n, i) => ({ label: n, value: i + 1 }))}
+            />
+          )}
+          <Button size="small" onClick={() => setCurrentMonth(currentMonth.add(1, panelMode === 'date' ? 'month' : 'year'))}>›</Button>
+        </div>
 
-              const yearTipTitle = (
-                <div style={{ fontSize: 12 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                    {day.format('YYYY 年 M 月')}
+        {/* === 月视图 === */}
+        {panelMode === 'date' && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
+              {weekdays.map((w, i) => (
+                <div key={w} style={{ textAlign: 'center', fontSize: 11, color: i === 0 || i === 6 ? '#faad14' : '#8b949e', fontWeight: 600, padding: '4px 0' }}>{w}</div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+              {monthCells.map((day, i) => {
+                const dateStr = day.format('YYYY-MM-DD');
+                const count = getCount(dateStr);
+                const heat = getHeatStyle(count);
+                const isSelected = selectedDate?.format('YYYY-MM-DD') === dateStr;
+                const isToday = dayjs().isSame(day, 'day');
+                const isOtherMonth = !day.isSame(currentMonth, 'month');
+                const isWeekend = day.day() === 0 || day.day() === 6;
+                const tipTitle = (
+                  <div style={{ fontSize: 12 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                      {day.format('YYYY 年 MM 月 DD 日')}
+                      {isToday && <span style={{ color: '#1677ff', marginLeft: 4 }}>· 今天</span>}
+                      {isWeekend && <span style={{ color: '#faad14', marginLeft: 4 }}>· 周末</span>}
+                    </div>
+                    <div style={{ color: '#8b949e' }}>
+                      {count > 0 ? (
+                        <>已排期 <strong style={{ color: '#1677ff' }}>{count}</strong> 单
+                          {count >= 10 && <span style={{ color: '#ff4d4f', marginLeft: 4 }}>⚠️ 已满</span>}
+                          {count >= 5 && count < 10 && <span style={{ color: '#faad14', marginLeft: 4 }}>⚠️ 较繁忙</span>}
+                        </>
+                      ) : <span style={{ color: '#52c41a' }}>🎉 暂无排期</span>}
+                    </div>
                   </div>
-                  <div style={{ color: '#8b949e' }}>
-                    累计排单 <strong style={{ color: '#1677ff' }}>{total}</strong> 单
-                  </div>
-                </div>
-              );
-
-              return (
-                <Tooltip title={yearTipTitle} mouseEnterDelay={0.3} placement="top">
-                  <div
-                    style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: 54,
-                      padding: 2,
-                      boxSizing: 'border-box',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {/* 月份名 */}
+                );
+                return (
+                  <Tooltip key={i} title={tipTitle} mouseEnterDelay={0.3} placement="top">
                     <div
+                      onClick={() => onSelectDate(day)}
                       style={{
-                        position: 'absolute',
-                        top: 4,
-                        left: 6,
-                        fontSize: 11,
-                        color: isSelectedMonth ? '#1677ff' : '#8b949e',
-                        fontWeight: isSelectedMonth ? 700 : 400,
+                        position: 'relative', height: 54, padding: 2, boxSizing: 'border-box', cursor: 'pointer',
+                        border: isSelected ? '2px solid #1677ff' : '1px solid transparent', borderRadius: 4,
+                        background: isSelected ? '#f0f5ff' : 'transparent',
                       }}
                     >
-                      {monthName}
+                      <div style={{ position: 'absolute', top: 3, left: 6, fontSize: 11, color: isOtherMonth ? '#d9d9d9' : isWeekend ? '#faad14' : '#595959', fontWeight: isToday ? 700 : 400 }}>
+                        {day.date()}{isToday && <span style={{ color: '#1677ff', marginLeft: 2, fontSize: 9 }}>今</span>}
+                      </div>
+                      {heat ? (
+                        <div style={{ position: 'absolute', bottom: 3, left: 3, right: 3, height: 28, background: heat.bg, borderRadius: 4, color: heat.text, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {heat.label} 单
+                        </div>
+                      ) : isSelected ? (
+                        <div style={{ position: 'absolute', bottom: 3, left: 3, right: 3, height: 28, background: '#e6f4ff', border: '1px dashed #1677ff', borderRadius: 4, color: '#1677ff', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                          在此排期
+                        </div>
+                      ) : null}
                     </div>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                    {/* 累计排单量色块 */}
+        {/* === 年视图：12 个月份 === */}
+        {panelMode === 'month' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {yearMonths.map((m) => {
+              const ym = m.format('YYYY-MM');
+              const total = getMonthCount(ym);
+              const heat = getHeatStyle(total);
+              return (
+                <Tooltip key={ym} title={<span>{m.format('YYYY 年 M 月')}<br/>累计排单 {total} 单</span>} mouseEnterDelay={0.3} placement="top">
+                  <div
+                    onClick={() => {
+                      setCurrentMonth(m);
+                      setPanelMode('date');
+                      onSelectDate(m.startOf('month'));
+                    }}
+                    style={{
+                      height: 70, padding: 6, boxSizing: 'border-box', cursor: 'pointer',
+                      border: '1px solid #f0f0f0', borderRadius: 6, transition: 'all 0.15s',
+                      display: 'flex', flexDirection: 'column',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#1677ff'; e.currentTarget.style.background = '#f0f5ff'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#f0f0f0'; e.currentTarget.style.background = 'white'; }}
+                  >
+                    <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>
+                      {m.month() + 1} 月
+                    </div>
                     {heat ? (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          left: 4,
-                          right: 4,
-                          height: 30,
-                          background: heat.bg,
-                          borderRadius: 5,
-                          color: heat.text,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: isSelectedMonth ? '0 0 0 2px #1677ff' : 'none',
-                        }}
-                      >
+                      <div style={{ flex: 1, background: heat.bg, borderRadius: 4, color: heat.text, fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {heat.label} 单
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          left: 4,
-                          right: 4,
-                          height: 30,
-                          borderRadius: 5,
-                          fontSize: 10,
-                          color: '#d9d9d9',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
+                      <div style={{ flex: 1, borderRadius: 4, fontSize: 10, color: '#d9d9d9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         无排单
                       </div>
                     )}
                   </div>
                 </Tooltip>
               );
-            }
-
-            // === 月视图：每个 cell 是一个日期 ===
-            const count = getCount(day);
-            const heat = getHeatStyle(count);
-            const isSelected = selectedDate?.format('YYYY-MM-DD') === day.format('YYYY-MM-DD');
-            const isToday = dayjs().isSame(day, 'day');
-            const isOtherMonth = !day.isSame(currentMonth, 'month');
-            const isWeekend = day.day() === 0 || day.day() === 6;
-
-            // Tooltip 内容
-            const tipTitle = (
-              <div style={{ fontSize: 12 }}>
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                  {day.format('YYYY 年 MM 月 DD 日')}
-                  {isToday && <span style={{ color: '#1677ff', marginLeft: 4 }}>· 今天</span>}
-                  {isWeekend && <span style={{ color: '#faad14', marginLeft: 4 }}>· 周末</span>}
-                </div>
-                <div style={{ color: '#8b949e' }}>
-                  {count > 0 ? (
-                    <>
-                      已排期 <strong style={{ color: '#1677ff' }}>{count}</strong> 单
-                      {count >= 10 && <span style={{ color: '#ff4d4f', marginLeft: 4 }}>⚠️ 已满</span>}
-                      {count >= 5 && count < 10 && <span style={{ color: '#faad14', marginLeft: 4 }}>⚠️ 较繁忙</span>}
-                    </>
-                  ) : (
-                    <span style={{ color: '#52c41a' }}>🎉 暂无排期，可安排</span>
-                  )}
-                </div>
-              </div>
-            );
-
-            return (
-              <Tooltip title={tipTitle} mouseEnterDelay={0.3} placement="top">
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: 54,
-                    padding: 2,
-                    boxSizing: 'border-box',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {/* 日期小字（灰色角落） */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      left: 6,
-                      fontSize: 11,
-                      color: isOtherMonth ? '#d9d9d9' : isWeekend ? '#faad14' : '#8b949e',
-                      fontWeight: isToday ? 700 : 400,
-                    }}
-                  >
-                    {day.date()}
-                    {isToday && (
-                      <span style={{ color: '#1677ff', marginLeft: 2, fontSize: 9 }}>今</span>
-                    )}
-                  </div>
-
-                  {/* 排单量色块 */}
-                  {heat && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 4,
-                        left: 4,
-                        right: 4,
-                        height: 30,
-                        background: heat.bg,
-                        borderRadius: 5,
-                        color: heat.text,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: isSelected ? '0 0 0 2px #1677ff' : 'none',
-                      }}
-                    >
-                      {heat.label} 单
-                    </div>
-                  )}
-
-                  {/* 选中态（无排单量的日期也能选中） */}
-                  {isSelected && !heat && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 4,
-                        left: 4,
-                        right: 4,
-                        height: 30,
-                        background: '#e6f4ff',
-                        border: '1px solid #1677ff',
-                        borderRadius: 5,
-                        color: '#1677ff',
-                        fontSize: 11,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                      }}
-                    >
-                      在此排期
-                    </div>
-                  )}
-                </div>
-              </Tooltip>
-            );
-          }}
-        />
+            })}
+          </div>
+        )}
       </div>
 
-      {/* 右侧面板：月视图→当日订单 / 年视图→月份统计 */}
-      <div style={{ width: 340, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
+      {/* 右侧面板 */}
+      <div style={{ width: 340, padding: 16, background: '#fafafa', overflowY: 'auto' }}>
         {panelMode === 'month' ? (
-          // ========== 年视图：月份统计 ==========
           (() => {
-            const month = selectedMonth;
-            const total = getMonthCount(month);
-            // 取该月每天的 counts
-            const daily: { date: string; count: number }[] = [];
-            for (const [key, val] of Object.entries(counts)) {
-              if (key.startsWith(month)) daily.push({ date: key, count: val });
-            }
-            daily.sort((a, b) => a.date.localeCompare(b.date));
-            const maxDay = daily.reduce((m, d) => (d.count > m.count ? d : m), { date: '', count: 0 });
-            const minDay = daily.filter((d) => d.count > 0).reduce(
-              (m, d) => (d.count < m.count ? d : m),
-              { date: '', count: Infinity }
-            );
-            const avg = daily.length > 0 ? (total / daily.length).toFixed(1) : '0';
-            const maxCount = Math.max(1, ...daily.map((d) => d.count));
-
+            const ym = currentMonth.format('YYYY-MM');
+            const total = getMonthCount(ym);
+            const daily = [];
+            for (const [k, v] of Object.entries(counts)) if (k.startsWith(ym)) daily.push({ d: k, c: v });
+            daily.sort((a, b) => a.d.localeCompare(b.d));
+            const maxDay = daily.reduce((m, d) => (d.c > m.c ? d : m), { d: '', c: 0 });
+            const minDay = daily.filter((d) => d.c > 0).reduce((m, d) => (d.c < m.c ? d : m), { d: '', c: Infinity });
+            const avg = daily.length ? (total / daily.length).toFixed(1) : '0';
+            const maxC = Math.max(1, ...daily.map((d) => d.c));
             return (
               <>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
-                  📊 {month.replace('-', ' 年 ')} 月排单统计
-                </div>
-
-                {/* 3 个 KPI */}
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📊 {currentMonth.format('YYYY年MM月')}排单统计</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: '#8b949e' }}>总排单量</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1677ff' }}>{total}</div>
-                    <div style={{ fontSize: 10, color: '#8b949e' }}>单</div>
-                  </div>
-                  <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: '#8b949e' }}>日均排单</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#13c2c2' }}>{avg}</div>
-                    <div style={{ fontSize: 10, color: '#8b949e' }}>单/天</div>
-                  </div>
-                  <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: '#8b949e' }}>活跃天数</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#722ed1' }}>{daily.length}</div>
-                    <div style={{ fontSize: 10, color: '#8b949e' }}>天</div>
-                  </div>
-                </div>
-
-                {/* 最高/最低 */}
-                <Card size="small" style={{ marginBottom: 12, borderRadius: 8 }} styles={{ body: { padding: 12 } }}>
-                  {total === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#8b949e', fontSize: 12, padding: '20px 0' }}>
-                      🎉 该月暂无排单
+                  {[
+                    { l: '总排单量', v: total, u: '单', c: '#1677ff' },
+                    { l: '日均排单', v: avg, u: '单/天', c: '#13c2c2' },
+                    { l: '活跃天数', v: daily.length, u: '天', c: '#722ed1' },
+                  ].map((k) => (
+                    <div key={k.l} style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, color: '#8b949e' }}>{k.l}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div>
+                      <div style={{ fontSize: 10, color: '#8b949e' }}>{k.u}</div>
                     </div>
+                  ))}
+                </div>
+                <Card size="small" styles={{ body: { padding: 12 } }} style={{ marginBottom: 12 }}>
+                  {total === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#8b949e', fontSize: 12, padding: '16px 0' }}>🎉 该月暂无排单</div>
                   ) : (
                     <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontSize: 12, color: '#8b949e' }}>🔥 最高峰</div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#ff4d4f' }}>
-                          {maxDay.date.slice(8)} 日 · {maxDay.count} 单
-                        </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, color: '#8b949e' }}>🔥 最高峰</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#ff4d4f' }}>{maxDay.d.slice(8)} 日 · {maxDay.c} 单</span>
                       </div>
-                      {minDay.count < Infinity && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: 12, color: '#8b949e' }}>❄️ 最低谷</div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#52c41a' }}>
-                            {minDay.date.slice(8)} 日 · {minDay.count} 单
-                          </div>
+                      {minDay.c < Infinity && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 12, color: '#8b949e' }}>❄️ 最低谷</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#52c41a' }}>{minDay.d.slice(8)} 日 · {minDay.c} 单</span>
                         </div>
                       )}
                     </>
                   )}
                 </Card>
-
-                {/* 每日柱状图（迷你） */}
                 {daily.length > 0 && (
-                  <Card size="small" style={{ borderRadius: 8, flex: 1 }} styles={{ body: { padding: 12 } }}>
+                  <Card size="small" styles={{ body: { padding: 12 } }}>
                     <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>每日排单量</div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
-                      {daily.map((d) => {
-                        const h = Math.max(4, (d.count / maxCount) * 72);
-                        const heat = getHeatStyle(d.count);
-                        return (
-                          <Tooltip key={d.date} title={`${d.date}: ${d.count} 单`} mouseEnterDelay={0.2}>
-                            <div
-                              style={{
-                                flex: 1,
-                                height: h,
-                                background: heat?.bg ?? '#f0f0f0',
-                                borderRadius: '3px 3px 0 0',
-                                minWidth: 4,
-                              }}
-                            />
-                          </Tooltip>
-                        );
-                      })}
+                      {daily.map((d) => (
+                        <Tooltip key={d.d} title={d.d + ': ' + d.c + ' 单'} mouseEnterDelay={0.2}>
+                          <div style={{ flex: 1, height: Math.max(4, (d.c / maxC) * 72), background: (getHeatStyle(d.c)?.bg ?? '#f0f0f0'), borderRadius: '3px 3px 0 0', minWidth: 4 }} />
+                        </Tooltip>
+                      ))}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8b949e', marginTop: 4 }}>
-                      <span>{daily[0]?.date.slice(5)}</span>
-                      <span>{daily[daily.length - 1]?.date.slice(5)}</span>
+                      <span>{daily[0].d.slice(5)}</span><span>{daily[daily.length - 1].d.slice(5)}</span>
                     </div>
                   </Card>
                 )}
@@ -503,72 +361,34 @@ const ScheduleCalendar = ({ counts, selectedDate, onSelectDate }: ScheduleCalend
             );
           })()
         ) : !selectedDate ? (
-          <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '40px 0' }}>
-            左侧日历点选一个日期
-          </div>
+          <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '40px 0' }}>左侧日历选一个日期</div>
         ) : (
           <>
-            {/* 当前订单排期预估 */}
-            <Card
-              size="small"
-              style={{ marginBottom: 12, borderRadius: 8 }}
-              styles={{ body: { padding: 12 } }}
-            >
+            <Card size="small" styles={{ body: { padding: 12 } }} style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 4 }}>当前订单排期预估</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#1677ff', marginBottom: 6 }}>
-                {selectedDate.format('YYYY年MM月DD日')}
-              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#1677ff', marginBottom: 6 }}>{selectedDate.format('YYYY年MM月DD日')}</div>
               <div style={{ fontSize: 11, color: '#8b949e' }}>
-                当天已有 <strong style={{ color: '#1f2328' }}>{dayOrders.length}</strong> 个排期
-                {dayOrders.length >= 5 && (
-                  <Tag color="orange" style={{ marginLeft: 6, fontSize: 11 }}>⚠️ 较繁忙</Tag>
-                )}
-                {dayOrders.length >= 10 && (
-                  <Tag color="red" style={{ marginLeft: 6, fontSize: 11 }}>⚠️ 爆满预警</Tag>
-                )}
+                当天已有 <strong>{dayOrders.length}</strong> 个排期
+                {dayOrders.length >= 10 && <Tag color="red" style={{ marginLeft: 6 }}>⚠️ 爆满</Tag>}
+                {dayOrders.length >= 5 && dayOrders.length < 10 && <Tag color="orange" style={{ marginLeft: 6 }}>⚠️ 较繁忙</Tag>}
               </div>
             </Card>
-
-            {/* 当日已有订单 */}
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-              当日已有订单 ({dayOrders.length})
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>当日已有订单 ({dayOrders.length})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {loadingDay ? (
                 <div style={{ textAlign: 'center', padding: 20, color: '#8b949e' }}>加载中...</div>
               ) : dayOrders.length === 0 ? (
-                <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '30px 0' }}>
-                  🎉 当日暂无排期<br />适合安排
-                </div>
+                <div style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', padding: '30px 0' }}>🎉 当日暂无排期<br />适合安排</div>
               ) : (
-                <div>
-                  {dayOrders.map((o) => (
-                    <div
-                      key={o.id}
-                      style={{
-                        padding: '8px 10px',
-                        background: 'white',
-                        borderRadius: 6,
-                        marginBottom: 6,
-                        borderLeft: `3px solid ${ORDER_STATUS_MAP[o.status]?.color ?? '#d9d9d9'}`,
-                        fontSize: 12,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                        <span style={{ fontWeight: 600 }}>{o.order_no}</span>
-                        <Tag
-                          color={ORDER_STATUS_MAP[o.status]?.color ?? 'default'}
-                          style={{ margin: 0, fontSize: 10 }}
-                        >
-                          {ORDER_STATUS_MAP[o.status]?.label ?? o.status}
-                        </Tag>
-                      </div>
-                      <div style={{ color: '#8b949e', fontSize: 11 }}>
-                        {o.user_name} · {o.project}
-                      </div>
+                dayOrders.map((o) => (
+                  <div key={o.id} style={{ padding: '8px 10px', background: 'white', borderRadius: 6, borderLeft: '3px solid ' + (ORDER_STATUS_MAP[o.status]?.color ?? '#d9d9d9'), fontSize: 12 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{o.order_no} · {o.user_name}</div>
+                    <div style={{ color: '#8b949e', fontSize: 11 }}>
+                      <Tag color={ORDER_STATUS_MAP[o.status]?.color ?? 'default'} style={{ marginRight: 6 }}>{ORDER_STATUS_MAP[o.status]?.label ?? o.status}</Tag>
+                      {o.project}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               )}
             </div>
           </>
@@ -636,9 +456,9 @@ const DetectionOrder = () => {
   // 排期日历:每日订单数
   const [calendarCounts, setCalendarCounts] = useState<Record<string, number>>({});
   // 排期日历:点击某日查看订单
-  const [dateOrders, setDateOrders] = useState<DetectionOrder[]>([]);
+  const [dateOrders] = useState<DetectionOrder[]>([]);
   const [dateDrawerVisible, setDateDrawerVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate] = useState<string>('');
 
   // ===== 新增表单的实时联动状态（用于右侧预览） =====
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
@@ -852,30 +672,6 @@ const DetectionOrder = () => {
     }
   };
 
-  // 日历:点击日期查看当日订单
-  const handleDateSelect = (date: Dayjs) => {
-    const ds = date.format('YYYY-MM-DD');
-    setSelectedDate(ds);
-    getDetectionCalendarByDate(ds)
-      .then((rows) => {
-        setDateOrders(rows ?? []);
-        setDateDrawerVisible(true);
-      })
-      .catch(() => {});
-  };
-
-  // 日历单元格渲染:显示当日预约数 Badge
-  const dateCellRender = (date: Dayjs) => {
-    const ds = date.format('YYYY-MM-DD');
-    const count = calendarCounts[ds];
-    if (!count) return null;
-    return (
-      <div style={{ textAlign: 'center' }}>
-        <Badge count={count} style={{ backgroundColor: '#1677ff' }} />
-      </div>
-    );
-  };
-
   const columns: ProColumns<DetectionOrder>[] = [
     { title: '序号', dataIndex: 'index', valueType: 'index', width: 60, hideInSearch: true },
     { title: '订单号', dataIndex: 'order_no', width: 150, ellipsis: true },
@@ -1050,8 +846,12 @@ const DetectionOrder = () => {
           toolBarRender={() => [<RefreshButton key="refresh" actionRef={actionRef as any} />]}
         />
       ) : (
-        <Card title="检测排期日历">
-          <Calendar cellRender={(date) => dateCellRender(date)} onSelect={handleDateSelect} />
+        <Card title="检测排期日历" styles={{ body: { padding: 0 } }}>
+          <ScheduleCalendar
+            counts={calendarCounts}
+            selectedDate={scheduleDate}
+            onSelectDate={setScheduleDate}
+          />
         </Card>
       )}
 
@@ -2202,3 +2002,5 @@ const DetectionOrder = () => {
 };
 
 export default DetectionOrder;
+
+

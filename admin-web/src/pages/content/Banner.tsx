@@ -442,14 +442,16 @@ const BannerDrawer = ({
       open={open}
       onClose={onClose}
       width={680}
-      extra={[
-        <Button key="cancel" onClick={onClose}>
-          取消
-        </Button>,
-        <Button key="submit" type="primary" onClick={handleSubmit}>
-          {editing ? '保存' : '保存并发布'}
-        </Button>,
-      ]}
+      extra={
+        <Space size={20}>
+          <Button onClick={onClose}>
+            取消
+          </Button>
+          <Button type="primary" onClick={handleSubmit}>
+            {editing ? '保存' : '保存并发布'}
+          </Button>
+        </Space>
+      }
     >
       <Form form={form} layout="vertical" key={editing?.id ?? 'empty'}>
         <Card title="基础信息" variant="borderless" style={{ marginBottom: 16 }}>
@@ -527,6 +529,50 @@ const BannerDrawer = ({
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.jump_type !== cur.jump_type || prev.jump_target !== cur.jump_target}>
+            {({ getFieldValue }) => {
+              const t = getFieldValue('jump_type') as string;
+              const target = getFieldValue('jump_target') as string;
+              if (!t || !target) return null;
+              const map: Record<string, string> = {
+                race: '/race-detail/',
+                auction: '/auction/detail/',
+                nft: '/nft-detail/',
+                gene: '/gene-library/',
+                page: '',
+                external: '',
+              };
+              const prefix = map[t] ?? '';
+              const resolved = prefix ? `${prefix}${target}` : target;
+              return (
+                <div style={{
+                  marginTop: -12,
+                  marginBottom: 12,
+                  padding: '8px 12px',
+                  background: 'rgba(22,119,255,0.06)',
+                  border: '1px solid rgba(22,119,255,0.2)',
+                  borderRadius: 6,
+                  fontSize: 12,
+                }}>
+                  <span style={{ color: '#1677ff', fontWeight: 500 }}>💡 最终生成路径：</span>
+                  <code style={{
+                    marginLeft: 6,
+                    padding: '1px 6px',
+                    background: '#fff',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 3,
+                    color: '#555',
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    wordBreak: 'break-all',
+                  }}>{resolved}</code>
+                  <div style={{ marginTop: 4, color: '#999', fontSize: 11 }}>
+                    保存时系统会自动写入 link_url 字段，运营无需手动填写。
+                  </div>
+                </div>
+              );
+            }}
+          </Form.Item>
         </Card>
 
         <Card title="投放规则" variant="borderless" style={{ marginBottom: 16 }}>
@@ -1515,14 +1561,29 @@ const ContentBanner = () => {
     const startTime = values.start_time ? (values.start_time as Dayjs).valueOf() : null;
     const endTime = values.end_time ? (values.end_time as Dayjs).valueOf() : null;
 
+    // 根据 jump_type + jump_target 生成正确的 link_url（保证向后兼容）
+    const jumpType = (values.jump_type as string) || '';
+    const jumpTarget = (values.jump_target as string) || '';
+    let linkUrl = jumpTarget;
+    if (jumpType && jumpTarget) {
+      switch (jumpType) {
+        case 'race':    linkUrl = `/race-detail/${jumpTarget}`; break;
+        case 'auction': linkUrl = `/auction/detail/${jumpTarget}`; break;
+        case 'nft':     linkUrl = `/nft-detail/${jumpTarget}`; break;
+        case 'gene':    linkUrl = `/gene-library/${jumpTarget}`; break;
+        case 'page':
+        case 'external': linkUrl = jumpTarget; break;
+      }
+    }
+
     const payload = {
       title: values.title as string,
       image_url: values.image_url as string,
       position: (values.position as string) ?? 'home_top',
       sort_order: (values.sort_order as number) ?? 0,
-      jump_type: (values.jump_type as string) || undefined,
-      jump_target: (values.jump_target as string) || undefined,
-      link_url: (values.jump_target as string) ?? '',
+      jump_type: jumpType || undefined,
+      jump_target: jumpTarget || undefined,
+      link_url: linkUrl || '',
       start_time: startTime,
       end_time: endTime,
       status: editing ? editing.status : 1,

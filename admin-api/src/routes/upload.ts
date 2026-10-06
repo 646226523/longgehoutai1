@@ -269,4 +269,131 @@ router.post('/upload', async (req, res) => {
   return ok(res, { url: `/uploads/${fileName}`, thumbnails: thumbResponse });
 });
 
+// ==================== 通用文件上传（报告附件等） ====================
+const FILE_UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'reports');
+const FILE_MAX_SIZE = 20 * 1024 * 1024; // 20MB
+
+// 允许的报告文件类型（MIME → 扩展名）
+const ALLOWED_FILE_TYPES: Record<string, string> = {
+  // PDF
+  'application/pdf': '.pdf',
+  // Word
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  // Excel
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  // PowerPoint
+  'application/vnd.ms-powerpoint': '.ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  // 图片
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
+// 按扩展名兜底（某些浏览器/客户端 MIME 为空或不准确）
+const EXT_FALLBACKS: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
+
+function sanitizeFileName(name: string): string {
+  // 移除路径字符 + 控制字符 + 常见非法字符
+  return name.replace(/[\\/:*?"<>|\x00-\x1f]/g, '_').slice(0, 120) || 'unnamed';
+}
+
+router.post('/upload/file', async (req, res) => {
+  try {
+    const { data, name } = req.body as { data?: string; name?: string };
+
+    if (!data || typeof data !== 'string') {
+      return fail(res, 400, '缺少 data 字段（base64）');
+    }
+
+    let mimeType: string;
+    let base64Data: string;
+    let originalExt = '';
+
+    const match = data.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      mimeType = match[1].toLowerCase();
+      base64Data = match[2];
+    } else {
+      // 纯 base64，从 name 推断扩展名
+      if (!/^[A-Za-z0-9+/=]+$/.test(data) || data.length % 4 !== 0) {
+        return fail(res, 400, 'data 格式无效');
+      }
+      base64Data = data;
+      // 从 name 推断 MIME
+      if (name) {
+        const ext = path.extname(name).toLowerCase();
+        originalExt = ext;
+        mimeType = EXT_FALLBACKS[ext] ?? '';
+      } else {
+        return fail(res, 400, '缺少 MIME 信息，请使用 data URI 或提供 name 字段');
+      }
+    }
+
+    // 再从 name 兜底一次
+    if (!mimeType && name) {
+      const ext = path.extname(name).toLowerCase();
+      originalExt = ext;
+      mimeType = EXT_FALLBACKS[ext] ?? '';
+    }
+
+    const ext = ALLOWED_FILE_TYPES[mimeType] || originalExt;
+    if (!ext || !ALLOWED_FILE_TYPES[mimeType]) {
+      return fail(
+        res,
+        400,
+        `不支持的文件类型：${mimeType || '未知'}。仅支持 PDF / DOC / DOCX / XLS / XLSX / PPT / PPTX / JPG / PNG / WEBP / GIF`
+      );
+    }
+
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = Buffer.from(base64Data, 'base64');
+    } catch {
+      return fail(res, 400, 'base64 解码失败');
+    }
+
+    if (fileBuffer.length > FILE_MAX_SIZE) {
+      return fail(res, 400, '文件大小超过 20MB 限制');
+    }
+
+    if (!fs.existsSync(FILE_UPLOAD_DIR)) {
+      fs.mkdirSync(FILE_UPLOAD_DIR, { recursive: true });
+    }
+
+    const safeOriginal = name ? sanitizeFileName(name) : `file${ext}`;
+    const stem = safeOriginal.replace(/\.[^.]+$/, '') || 'file';
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${stem}${ext}`;
+    const filePath = path.join(FILE_UPLOAD_DIR, fileName);
+
+    fs.writeFileSync(filePath, fileBuffer);
+
+    return ok(res, {
+      url: `/uploads/reports/${fileName}`,
+      originalName: safeOriginal,
+      size: fileBuffer.length,
+      mimeType,
+    });
+  } catch (err) {
+    console.error('[upload/file] 上传异常:', err);
+    return fail(res, 500, err instanceof Error ? err.message : '上传失败');
+  }
+});
+
 export default router;

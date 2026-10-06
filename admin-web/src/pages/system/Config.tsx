@@ -1,5 +1,5 @@
-﻿import { PageContainer } from '@ant-design/pro-components';
-import { App, Button, Card, Input, Select, Space, Spin, Switch, Table, Tabs, Tag, Tooltip, Segmented, Alert, type TableProps } from 'antd';
+import { PageContainer } from '@ant-design/pro-components';
+import { App, Button, Card, Input, InputNumber, Select, Space, Spin, Switch, Table, Tabs, Tag, Tooltip, Segmented, Alert, Modal, Form, type TableProps } from 'antd';
 import {
   CameraOutlined,
   CompressOutlined,
@@ -12,12 +12,17 @@ import {
   StopOutlined,
   WechatOutlined,
   FontSizeOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import { getConfigs, updateConfig, type ConfigItem, testQiniuToken } from '../../services/system';
+import ImageUploader from '../../components/ImageUploader';
 
 // ==================== 配置项类型定义 ====================
 // 配置键 → 渲染类型 映射
@@ -53,6 +58,12 @@ const GROUP_LABEL: Record<string, string> = Object.fromEntries(
 // ==================== 字段元信息 ====================
 // 统一在这里定义每个配置键的渲染类型，方便后续扩展
 const FIELD_META: Record<string, FieldMeta> = {
+  // ---------- 基础配置（general 分组主要用 renderGeneralPanel 自定义渲染，此处补默认类型） ----------
+  site_name:        { type: 'text', placeholder: '站点名称' },
+  site_version:     { type: 'text', placeholder: '1.0.0' },
+  admin_page_size:  { type: 'number', suffix: '条' },
+  upload_max_size:  { type: 'number', suffix: 'MB' },
+
   // ---------- 地图 ----------
   map_provider: {
     type: 'select',
@@ -831,7 +842,404 @@ const SystemConfig = () => {
     </div>
   );
 
-  // ==================== 配置值渲染器 ====================
+  // ==================== 基础配置 Tab（品牌 + 登录页轮播图） ====================
+interface BannerItem { url: string; caption?: string; link?: string; }
+
+interface GeneralPanelProps {
+  items: ConfigItem[];
+  canManage: boolean;
+  editingValues: Record<string, string>;
+  setEditingValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  handleSave: (item: ConfigItem) => Promise<void>;
+  hasChanged: (item?: ConfigItem) => boolean;
+  savingKey: string | null;
+  setGroups: React.Dispatch<React.SetStateAction<Array<{ group: string; items: ConfigItem[] }>>>;
+  message: { success: (m: string) => void; error: (m: string) => void; info: (m: string) => void };
+}
+
+// 🔴 注意：不能在普通函数里调用 useState，必须是真正的组件
+const GeneralPanel: React.FC<GeneralPanelProps> = ({
+  items, canManage, editingValues, setEditingValues, handleSave, hasChanged, savingKey, setGroups, message,
+}) => {
+  const logoItem    = items.find(i => i.config_key === 'platform_logo_url');
+  const bannerItem  = items.find(i => i.config_key === 'admin_login_banner');
+
+  const [bannerList, setBannerList] = useState<BannerItem[]>(() => {
+    const raw = bannerItem?.config_value ?? '[]';
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+  });
+  const [bannerModalOpen, setBannerModalOpen] = useState(false);
+  const [bannerForm] = Form.useForm();
+  const [savingBanner, setSavingBanner] = useState(false);
+
+  useEffect(() => {
+    if (!bannerItem) return;
+    const raw = editingValues['admin_login_banner'] ?? bannerItem.config_value ?? '[]';
+    try { const p = JSON.parse(raw); setBannerList(Array.isArray(p) ? p : []); } catch { setBannerList([]); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bannerItem?.config_value]);
+
+  // 本地辅助函数（从 SystemConfig 传入的闭包依赖中独立）
+  const getVal = (item?: ConfigItem): string =>
+    item ? (editingValues[item.config_key] ?? item.config_value ?? '') : '';
+  const setVal = (key: string, v: string) =>
+    setEditingValues((prev) => ({ ...prev, [key]: v }));
+  const findItem = (iks: ConfigItem[], key: string) => iks.find((it) => it.config_key === key);
+
+  // 复用 renderCsRow 样式的内联行渲染（避免跨作用域传递过多 props）
+  const renderCsRow = (
+    label: string, itemKey: string,
+    control: (item: ConfigItem, meta: FieldMeta) => JSX.Element
+  ) => {
+    const item = findItem(items, itemKey);
+    if (!item) return null;
+    const meta = FIELD_META[itemKey] ?? DEFAULT_FIELD_META;
+    const dirty = hasChanged(item);
+    return (
+      <div key={itemKey}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: '10px 12px', borderRadius: 8, background: '#fafafa', marginBottom: 8,
+          border: '1px solid transparent', borderColor: dirty ? '#91caff' : 'transparent', transition: 'border-color .2s',
+        }}
+      >
+        <div style={{ width: 120, display: 'flex', alignItems: 'center', color: '#595959' }}>{label}</div>
+        <div style={{ flex: 1 }}>{control(item, meta)}</div>
+        {canManage && dirty && (
+          <Space size={4}>
+            <Button size="small" type="link" onClick={() => {
+              setEditingValues((prev) => { const n = { ...prev }; delete n[itemKey]; return n; });
+            }}>取消</Button>
+            <Button size="small" type="primary" loading={savingKey === itemKey} onClick={() => handleSave(item)}>保存</Button>
+          </Space>
+        )}
+      </div>
+    );
+  };
+
+  const handleSaveBanner = async () => {
+    if (!bannerItem) return;
+    setSavingBanner(true);
+    try {
+      await updateConfig(bannerItem.config_key, JSON.stringify(bannerList));
+      message.success(`✓ 已保存 ${bannerList.length} 条登录页轮播图`);
+      setGroups((prev) =>
+        prev.map((g) => ({
+          ...g,
+          items: g.items.map((it) =>
+            it.config_key === bannerItem.config_key
+              ? { ...it, config_value: JSON.stringify(bannerList) }
+              : it
+          ),
+        }))
+      );
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
+  const handleAddBanner = () => {
+    if (!canManage) return;
+    bannerForm.setFieldsValue({ url: '', caption: '', link: '' });
+    setBannerModalOpen(true);
+  };
+
+  return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* ===== 平台品牌 Card ===== */}
+        <Card
+          variant="borderless"
+          style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
+          styles={{ body: { padding: 0 } }}
+          title={
+            <Space size={8}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'linear-gradient(135deg,#f6ffed,#d9f7be)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#52c41a', fontSize: 14,
+              }}><PictureOutlined /></div>
+              <div style={{ lineHeight: 1.2 }}>
+                <div style={{ fontWeight: 600, color: '#1f1f1f' }}>平台品牌</div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 400 }}>
+                  LOGO、站点名称与副标题（C 端 & 管理后台登录页共用）
+                </div>
+              </div>
+            </Space>
+          }
+        >
+          <div style={{ padding: '16px 20px' }}>
+            {/* LOGO 上传行 */}
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', paddingBottom: 16, borderBottom: '1px solid #f0f0f0', marginBottom: 16 }}>
+              <div style={{ width: 120, fontWeight: 500, color: '#595959', paddingTop: 6 }}>平台 LOGO</div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <ImageUploader
+                    value={getVal(logoItem) || undefined}
+                    onChange={(url) => setVal(logoItem!.config_key, url as string)}
+                    disabled={!canManage}
+                    sizeHint="建议 400×400px 正方形 · 透明背景 PNG"
+                  />
+                  {logoItem && canManage && (
+                    <Space size={4}>
+                      {hasChanged(logoItem) && (
+                        <>
+                          <Button size="small" type="link"
+                            onClick={() => setEditingValues((prev) => { const n = { ...prev }; delete n[logoItem!.config_key]; return n; })}
+                          >取消</Button>
+                          <Button size="small" type="primary"
+                            loading={savingKey === logoItem.config_key}
+                            onClick={() => handleSave(logoItem)}
+                          >保存 LOGO</Button>
+                        </>
+                      )}
+                    </Space>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', lineHeight: 1.5 }}>
+                  将显示在：用户端 Header <span style={{ color: '#bfbfbf' }}>(24px)</span>、登录/注册页 <span style={{ color: '#bfbfbf' }}>(64px)</span>、管理后台登录页 <span style={{ color: '#bfbfbf' }}>(56px)</span>。透明背景 PNG 效果最佳。
+                </div>
+              </div>
+            </div>
+
+            {/* 平台名称 */}
+            {renderCsRow('平台名称', 'platform_name', (item) => (
+              <Input
+                value={getVal(item)}
+                onChange={(e) => setVal(item.config_key, e.target.value)}
+                disabled={!canManage}
+                placeholder="龙鸽基因"
+                style={{ maxWidth: 360 }}
+              />
+            ))}
+
+            {/* 副标题 */}
+            {renderCsRow('平台副标题', 'platform_subtitle', (item) => (
+              <Input
+                value={getVal(item)}
+                onChange={(e) => setVal(item.config_key, e.target.value)}
+                disabled={!canManage}
+                placeholder="赛鸽数字资产平台"
+                style={{ maxWidth: 360 }}
+              />
+            ))}
+
+            {/* 其他 general 小项 */}
+            {renderCsRow('站点名称', 'site_name', (item) => (
+              <Input
+                value={getVal(item)}
+                onChange={(e) => setVal(item.config_key, e.target.value)}
+                disabled={!canManage}
+                style={{ maxWidth: 360 }}
+              />
+            ))}
+            {renderCsRow('系统版本', 'site_version', (item) => (
+              <Input
+                value={getVal(item)}
+                onChange={(e) => setVal(item.config_key, e.target.value)}
+                disabled={!canManage}
+                style={{ maxWidth: 360 }}
+              />
+            ))}
+            {renderCsRow('默认分页大小', 'admin_page_size', (item) => (
+              <Space.Compact style={{ width: 200 }}>
+                <InputNumber
+                  value={Number(getVal(item)) || 10}
+                  onChange={(v) => setVal(item.config_key, String(v))}
+                  disabled={!canManage}
+                  min={5} max={50}
+                  style={{ width: '100%' }}
+                />
+                <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', backgroundColor: '#f5f5f5', border: '1px solid #d9d9d9', borderRadius: '0 6px 6px 0', color: 'rgba(0,0,0,0.65)' }}>条</span>
+              </Space.Compact>
+            ))}
+            {renderCsRow('上传大小上限', 'upload_max_size', (item) => (
+              <Space.Compact style={{ width: 200 }}>
+                <InputNumber
+                  value={Number(getVal(item)) || 10}
+                  onChange={(v) => setVal(item.config_key, String(v))}
+                  disabled={!canManage}
+                  min={1} max={100}
+                  style={{ width: '100%' }}
+                />
+                <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', backgroundColor: '#f5f5f5', border: '1px solid #d9d9d9', borderRadius: '0 6px 6px 0', color: 'rgba(0,0,0,0.65)' }}>MB</span>
+              </Space.Compact>
+            ))}
+          </div>
+        </Card>
+
+        {/* ===== 管理后台登录页轮播图 Card ===== */}
+        <Card
+          variant="borderless"
+          style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
+          styles={{ body: { padding: 0 } }}
+          title={
+            <Space size={8}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'linear-gradient(135deg,#fff7e6,#ffe7ba)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fa8c16', fontSize: 14,
+              }}><PictureOutlined /></div>
+              <div style={{ lineHeight: 1.2 }}>
+                <div style={{ fontWeight: 600, color: '#1f1f1f' }}>管理后台登录页广告轮播图</div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 400 }}>
+                  未配置时使用默认示例图；支持添加、排序、删除
+                </div>
+              </div>
+            </Space>
+          }
+          extra={
+            canManage && (
+              <Space>
+                <Tag color="blue">{bannerList.length} 条</Tag>
+                <Button size="small" icon={<PlusOutlined />} type="primary" onClick={handleAddBanner}>
+                  添加轮播图
+                </Button>
+                {bannerList.length > 0 && (
+                  <Button size="small" type="primary" loading={savingBanner} onClick={handleSaveBanner}>
+                    保存全部
+                  </Button>
+                )}
+              </Space>
+            )
+          }
+        >
+          <div style={{ padding: '16px 20px' }}>
+            {bannerList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: '#bfbfbf' }}>
+                <PictureOutlined style={{ fontSize: 40, marginBottom: 8 }} />
+                <div>暂无轮播图，点击右上角「添加轮播图」开始配置</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {bannerList.map((b, idx) => (
+                  <div key={idx}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 8,
+                      background: '#fafafa', border: '1px solid #f0f0f0',
+                    }}
+                  >
+                    {/* 缩略图 */}
+                    <div style={{ width: 120, height: 72, borderRadius: 6, overflow: 'hidden', background: '#f0f0f0', flexShrink: 0 }}>
+                      {b.url ? (
+                        <img src={b.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf', fontSize: 12 }}>无图</div>
+                      )}
+                    </div>
+                    {/* 序号 */}
+                    <Tag style={{ width: 36, textAlign: 'center' }}>{idx + 1}</Tag>
+                    {/* 编辑区 */}
+                    <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <Input
+                        placeholder="图片 URL"
+                        value={b.url}
+                        onChange={(e) => {
+                          const next = [...bannerList]; next[idx] = { ...next[idx], url: e.target.value };
+                          setBannerList(next);
+                        }}
+                        style={{ flex: 2, minWidth: 160 }}
+                        disabled={!canManage}
+                      />
+                      <Input
+                        placeholder="标题/描述（可选）"
+                        value={b.caption || ''}
+                        onChange={(e) => {
+                          const next = [...bannerList]; next[idx] = { ...next[idx], caption: e.target.value };
+                          setBannerList(next);
+                        }}
+                        style={{ flex: 1, minWidth: 140 }}
+                        disabled={!canManage}
+                      />
+                      <Input
+                        placeholder="跳转链接（可选）"
+                        value={b.link || ''}
+                        onChange={(e) => {
+                          const next = [...bannerList]; next[idx] = { ...next[idx], link: e.target.value };
+                          setBannerList(next);
+                        }}
+                        style={{ flex: 1, minWidth: 140 }}
+                        disabled={!canManage}
+                      />
+                    </div>
+                    {/* 操作按钮 */}
+                    {canManage && (
+                      <Space size={4}>
+                        <Button size="small" icon={<ArrowUpOutlined />} disabled={idx === 0}
+                          onClick={() => {
+                            const next = [...bannerList]; [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            setBannerList(next);
+                          }}
+                        />
+                        <Button size="small" icon={<ArrowDownOutlined />} disabled={idx === bannerList.length - 1}
+                          onClick={() => {
+                            const next = [...bannerList]; [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                            setBannerList(next);
+                          }}
+                        />
+                        <Button size="small" danger icon={<DeleteOutlined />}
+                          onClick={() => setBannerList(bannerList.filter((_, i) => i !== idx))}
+                        />
+                      </Space>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* 添加轮播图 Modal */}
+        <Modal
+          title="添加登录页轮播图"
+          open={bannerModalOpen}
+          onCancel={() => setBannerModalOpen(false)}
+          onOk={async () => {
+            try {
+              const values = await bannerForm.validateFields();
+              setBannerList((prev) => [...prev, { url: values.url, caption: values.caption, link: values.link }]);
+              setBannerModalOpen(false);
+              message.info('已添加到列表，点击「保存全部」后生效');
+            } catch { /* validateFields 失败不处理 */ }
+          }}
+          okText="添加"
+          cancelText="取消"
+        >
+          <Form form={bannerForm} layout="vertical">
+            {/* ImageUploader 不走 Form.Item（非受控组件），验证 hidden url 字段 */}
+            <Form.Item
+              label="图片"
+              name="url"
+              rules={[{ required: true, message: '请上传图片' }]}
+            >
+              {/* url 字段是 hidden Input，ImageUploader 上传后通过 onChange 调用 bannerForm.setFieldsValue({ url }) 回填 */}
+              <Input style={{ display: 'none' }} />
+            </Form.Item>
+            <div style={{ marginBottom: 16 }}>
+              <ImageUploader
+                maxCount={1}
+                onChange={(url) => {
+                  if (typeof url === 'string') {
+                    bannerForm.setFieldsValue({ url });
+                  }
+                }}
+              />
+            </div>
+            <Form.Item label="标题/描述（可选）" name="caption">
+              <Input placeholder="例如：欢迎使用赛鸽基因溯源平台" />
+            </Form.Item>
+            <Form.Item label="跳转链接（可选）" name="link">
+              <Input placeholder="例如：/dashboard" />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    );
+};
+
+// ==================== 配置值渲染器（SystemConfig 内部） ====================
   const renderValue = (record: ConfigItem) => {
     const fieldMeta = FIELD_META[record.config_key] ?? DEFAULT_FIELD_META;
     const rawValue = editingValues[record.config_key] ?? record.config_value ?? '';
@@ -1034,6 +1442,20 @@ const SystemConfig = () => {
                 g.group === 'customer_service' ? (
                   // 客服配置：使用 Card 分组布局
                   renderCustomerServicePanel(g.items)
+                ) :
+                g.group === 'general' ? (
+                  // 基础配置：平台品牌 + 登录页轮播图 自定义 Card 布局
+                  <GeneralPanel
+                    items={g.items}
+                    canManage={canManage}
+                    editingValues={editingValues}
+                    setEditingValues={setEditingValues}
+                    handleSave={handleSave}
+                    hasChanged={hasChanged}
+                    savingKey={savingKey}
+                    setGroups={setGroups}
+                    message={message}
+                  />
                 ) : (
                 <div>
                   {/* 分组顶部的额外操作区 */}

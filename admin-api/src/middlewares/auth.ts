@@ -210,6 +210,51 @@ export function authenticate(req: AuthedRequest, res: Response, next: NextFuncti
   }
 }
 
+/**
+ * C 端用户鉴权中间件:校验 type='user' 的 JWT
+ * 挂载 req.user (C 端用户信息)
+ */
+export function authenticateUser(req: AuthedRequest, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    fail(res, 401, '请先登录');
+    return;
+  }
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, config.jwt.secret) as unknown as { sub: number; username: string; type: string };
+    if (payload.type !== 'user') {
+      fail(res, 401, '令牌类型无效');
+      return;
+    }
+    const user = db
+      .prepare('SELECT id, username, nickname, avatar, phone, status FROM users WHERE id = ?')
+      .get(payload.sub) as
+      | { id: number; username: string; nickname: string; avatar: string | null; phone: string | null; status: number }
+      | undefined;
+    if (!user) {
+      fail(res, 401, '用户不存在');
+      return;
+    }
+    if (user.status !== 1) {
+      fail(res, 403, '账号已被封禁');
+      return;
+    }
+    req.user = {
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      avatar: user.avatar,
+      phone: user.phone,
+    };
+    next();
+  } catch (err) {
+    const message = err instanceof jwt.TokenExpiredError ? '登录已过期,请重新登录' : '令牌无效';
+    fail(res, 401, message);
+    return;
+  }
+}
+
 // 权限校验中间件工厂:校验当前用户是否拥有指定权限
 // 超管直接放行
 export function requirePermission(permission: string) {

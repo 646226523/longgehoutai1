@@ -342,9 +342,9 @@ userRouter.put(
       return fail(res, 400, '无效的用户 ID');
     }
     const target = db
-      .prepare('SELECT id, username, nickname, phone, real_name FROM users WHERE id = ?')
+      .prepare('SELECT id, username, nickname, phone, real_name, avatar FROM users WHERE id = ?')
       .get(id) as
-      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null }
+      | { id: number; username: string; nickname: string; phone: string | null; real_name: string | null; avatar: string | null }
       | undefined;
     if (!target) {
       return fail(res, 404, '用户不存在');
@@ -362,6 +362,7 @@ userRouter.put(
       id_card,
       growth_value,
       member_level_id,
+      avatar,
     } = req.body as {
       nickname?: string;
       phone?: string;
@@ -369,6 +370,7 @@ userRouter.put(
       id_card?: string;
       growth_value?: number;
       member_level_id?: number | null;
+      avatar?: string;
     };
 
     // member_level_id 校验(若提供需为有效等级)
@@ -383,7 +385,7 @@ userRouter.put(
 
     db.prepare(
       `UPDATE users SET nickname = ?, phone = ?, real_name = ?, id_card = ?,
-              growth_value = ?, member_level_id = ?, updated_at = ?
+              growth_value = ?, member_level_id = ?, avatar = ?, updated_at = ?
        WHERE id = ?`
     ).run(
       nickname ?? '',
@@ -392,6 +394,7 @@ userRouter.put(
       id_card ?? null,
       typeof growth_value === 'number' ? growth_value : 0,
       member_level_id === undefined ? null : (member_level_id as number | null),
+      avatar === undefined ? target.avatar : avatar,
       Date.now(),
       id
     );
@@ -1029,7 +1032,7 @@ userRouter.post(
       : Math.random().toString(36).slice(-8) + 'Aa1';
     const hashed = bcrypt.hashSync(raw, 10);
 
-    db.prepare('UPDATE users SET password = ?, updated_at = ? WHERE id = ?')
+    db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
       .run(hashed, Date.now(), id);
 
     return ok(res, { new_password: raw }, '密码已重置');
