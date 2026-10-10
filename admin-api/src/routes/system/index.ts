@@ -6,6 +6,7 @@ import adminRoutes from './admin';
 import roleRoutes from './role';
 import auditRoutes from './audit';
 import configRoutes from './config';
+import smsLogsRoutes from './sms-logs';
 
 const router = Router();
 
@@ -52,6 +53,7 @@ router.get('/permissions', requirePermission('system:role:manage'), (_req: Authe
 router.use('/admins', adminRoutes); // /api/system/admins/*
 router.use('/roles', roleRoutes); // /api/system/roles/*
 router.use('/audit-logs', auditRoutes); // /api/system/audit-logs/*
+router.use('/sms-logs', smsLogsRoutes); // /api/system/sms-logs/*
 router.use('/', configRoutes); // /api/system/configs/* 与 /api/system/dictionaries/*
 
 export default router;

@@ -97,8 +97,13 @@ router.put(
     if (!exists) {
       return fail(res, 404, '配置项不存在');
     }
+    const rawValue = config_value ?? '';
+    const trimmed = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+    if (typeof trimmed === 'string' && trimmed.length === 0 && rawValue.trim() === '') {
+      // 仅空白字符 → 按空处理（但允许真正的空值，某些配置就是空字符串）
+    }
     db.prepare('UPDATE system_config SET config_value = ?, updated_at = ? WHERE config_key = ?').run(
-      config_value ?? '',
+      trimmed,
       Date.now(),
       key
     );

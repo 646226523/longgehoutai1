@@ -18,6 +18,7 @@ import statisticsRouter from './routes/statistics';
 import uploadRouter from './routes/upload';
 import publicRouter from './routes/public';
 import publicViewsRouter from './routes/public-views';
+import kefuRouter from './routes/kefu';
 import type { ApiResponse } from './types';
 
 const app = express();
@@ -71,6 +72,7 @@ app.use('/api/auction', auctionRouter);
 app.use('/api/arbitration', arbitrationRouter);
 app.use('/api/statistics', statisticsRouter);
 app.use('/api', uploadRouter);
+app.use('/api/kefu', kefuRouter);
 
 // 静态文件服务:下载目录
 app.use('/downloads', express.static(path.join(__dirname, '..', 'downloads')));
