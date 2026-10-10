@@ -161,6 +161,28 @@ export function initUserDb(db: DB): void {
     }
   }
 
+  // 辅助: 读取任意表的列名集合
+  const columnNamesIn = (d: DB, table: string): Set<string> => {
+    const cols = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    return new Set(cols.map((c) => c.name));
+  };
+
+  // ============ 会员等级付费订阅字段 ============
+  if (!columnNamesIn(db, 'member_levels').has('price')) {
+    db.exec('ALTER TABLE member_levels ADD COLUMN price REAL NOT NULL DEFAULT 0');
+  }
+  if (!columnNamesIn(db, 'member_levels').has('duration_days')) {
+    db.exec('ALTER TABLE member_levels ADD COLUMN duration_days INTEGER NOT NULL DEFAULT 0');
+  }
+
+  // ============ users 表会员有效期字段 ============
+  if (!columnNames.has('member_expire_at')) {
+    db.exec('ALTER TABLE users ADD COLUMN member_expire_at BIGINT');
+  }
+  if (!columnNames.has('member_source')) {
+    db.exec("ALTER TABLE users ADD COLUMN member_source TEXT DEFAULT 'auto_growth'");
+  }
+
   // ============ 分销商表 ============
   db.exec(`
     CREATE TABLE IF NOT EXISTS distributors (
@@ -214,6 +236,26 @@ export function initUserDb(db: DB): void {
     );
     CREATE INDEX IF NOT EXISTS idx_user_coupons_user ON user_coupons(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_coupons_status ON user_coupons(status);
+  `);
+
+  // ============ 会员订单表 ============
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS member_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      level_id INTEGER NOT NULL,
+      order_no TEXT NOT NULL UNIQUE,
+      price REAL NOT NULL,
+      duration_days INTEGER NOT NULL,
+      pay_method TEXT NOT NULL DEFAULT 'mock',
+      start_at INTEGER NOT NULL,
+      end_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (level_id) REFERENCES member_levels(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_member_orders_user ON member_orders(user_id);
+    CREATE INDEX IF NOT EXISTS idx_member_orders_created ON member_orders(user_id, created_at DESC);
   `);
 
   // 用户余额/积分/黑名单索引
@@ -511,6 +553,23 @@ const users = [
       { name: '拍卖手续费减免券', type: 'amount', value: 300, min_amount: 2000, total_count: 1000, remain_count: 950, expire_days: 90, description: '拍卖成交手续费减免', status: 1 },
     ];
     coupons.forEach((c) => insertCoupon.run(c));
+  }
+
+  // ============ 会员等级付费订阅字段回填 ============
+  // 为已存在的 4 个等级设置 price/duration_days（silver 不暴露给 C 端付费）
+  const existingLevels = db.prepare('SELECT id, code, price FROM member_levels').all() as Array<{ id: number; code: string; price: number }>;
+  const payRules: Record<string, { price: number; duration_days: number }> = {
+    bronze:  { price: 0,   duration_days: 0 },
+    silver:  { price: 0,   duration_days: 0 },   // 仅成长值解锁
+    gold:    { price: 99,  duration_days: 30 },
+    diamond: { price: 999, duration_days: 365 },
+  };
+  const updateLevelPrice = db.prepare('UPDATE member_levels SET price = ?, duration_days = ? WHERE id = ?');
+  for (const l of existingLevels) {
+    const rule = payRules[l.code];
+    if (rule && l.price !== rule.price) {
+      updateLevelPrice.run(rule.price, rule.duration_days, l.id);
+    }
   }
 
   // eslint-disable-next-line no-console

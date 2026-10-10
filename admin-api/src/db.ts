@@ -183,6 +183,24 @@ function initSchema(): void {
   ensureColumn('lofts', 'description', 'TEXT');
   ensureColumn('lofts', 'status', 'INTEGER DEFAULT 1');
   ensureColumn('competitions', 'loft_id', 'INTEGER');
+
+  // ===== 短信日志表（频率限制 + 审计 + 验证码存储） =====
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sms_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      scene TEXT NOT NULL,           -- register / login / reset_password
+      code TEXT NOT NULL,
+      provider TEXT,                 -- tencent / dev_null
+      status TEXT NOT NULL,          -- sent / failed / used / expired
+      error_msg TEXT,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+      expire_at INTEGER NOT NULL,
+      used_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_sms_logs_phone_scene ON sms_logs(phone, scene, created_at);
+    CREATE INDEX IF NOT EXISTS idx_sms_logs_status ON sms_logs(status);
+  `);
 }
 
 function tableExists(table: string): boolean {
@@ -519,6 +537,15 @@ function initSeedData(): void {
     ['wecom_cs_corp_id', '', '企微 CorpID', 'customer_service', '企业微信管理后台 → 我的企业 → 企业信息', 8],
     ['wecom_cs_corp_secret', '', '企微客服 Secret', 'customer_service', '企业微信管理后台 → 应用管理 → 客服', 9],
     ['wecom_cs_kf_account', '', '企微客服账号', 'customer_service', '格式: kf@企业简称', 10],
+
+    // ===== 短信服务（腾讯云） =====
+    ['sms_enabled', '0', '启用短信服务', 'sms', '0=关闭（开发阶段用 DevNull，验证码打印到后端日志）, 1=启用腾讯云', 1],
+    ['sms_tencent_secret_id', '', '腾讯云 SecretId', 'sms', '腾讯云控制台 → 访问管理 → API 密钥管理', 2],
+    ['sms_tencent_secret_key', '', '腾讯云 SecretKey', 'sms', '敏感信息，仅后端使用', 3],
+    ['sms_tencent_sdk_app_id', '', '腾讯云 SdkAppId', 'sms', '腾讯云 SMS 控制台 → 应用管理 → 应用列表 → SdkAppId', 4],
+    ['sms_tencent_sign_name', '', '短信签名', 'sms', '腾讯云 SMS 控制台 → 国内短信 → 签名管理', 5],
+    ['sms_tencent_template_id_register', '', '注册验证码模板 ID', 'sms', '腾讯云 SMS 控制台 → 国内短信 → 正文模板管理 → 用于注册场景', 6],
+    ['sms_tencent_template_id_reset', '', '重置密码模板 ID', 'sms', '腾讯云 SMS 控制台 → 国内短信 → 正文模板管理 → 用于密码重置/修改', 7],
   ];
   configs.forEach((c) => insertConfig.run(...c));
 

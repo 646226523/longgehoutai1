@@ -6,6 +6,14 @@ import db from '../db';
 import { config } from '../config';
 import { authenticateUser } from '../middlewares/auth';
 import type { ApiResponse, AuthedRequest } from '../types';
+import {
+  createSmsProvider,
+  isRateLimited,
+  logSent,
+  logFailed,
+  verifyCode as verifySmsCode,
+  SMS_CONFIG,
+} from '../modules/sms';
 
 const router = Router();
 
@@ -130,10 +138,56 @@ router.get('/__public-ip', async (_req, res) => {
 // C 端用户体系 —— 公开路由（无需鉴权）
 // ============================================================================
 
-// ---------- 验证码内存存储 ----------
+// ---------- 验证码内存存储（兼容旧逻辑 + 辅助校验） ----------
 interface CodeEntry { code: string; expireAt: number }
 const verifyCodeStore = new Map<string, CodeEntry>();
 const PHONE_RE = /^1[3-9]\d{9}$/;
+
+/** 生成 6 位随机验证码 */
+function genCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// ---------- POST /api/user/send-code ----------
+// body: { phone, scene?: 'register'|'login'|'reset_password' }
+// 返回: { expireAt } —— 不再回传 code 本身
+router.post('/user/send-code', async (req, res) => {
+  const { phone, scene = 'register' } = req.body as { phone?: string; scene?: string };
+
+  if (!phone || !PHONE_RE.test(phone)) {
+    return fail(res, 400, '请输入正确的手机号');
+  }
+  if (!['register', 'login', 'reset_password'].includes(scene)) {
+    return fail(res, 400, '未知的验证码场景');
+  }
+
+  // 频率限制：60s 内同 phone+scene 只允许一次
+  if (isRateLimited(phone, scene)) {
+    return fail(res, 429, '验证码发送过于频繁，请 60 秒后重试');
+  }
+
+  const code = genCode();
+  const expireAt = Date.now() + SMS_CONFIG.TTL;
+
+  try {
+    const provider = createSmsProvider();
+    const result = await provider.send({ phone, scene, code });
+
+    if (result.success) {
+      // 1) 写 DB 日志（用于频率限制 + 校验 + 审计）
+      logSent(phone, scene, code, provider.name);
+      // 2) 写内存 Map（兼容旧校验逻辑 + 快速访问）
+      verifyCodeStore.set(`${phone}:${scene}`, { code, expireAt });
+      return ok(res, { expireAt }, '验证码已发送');
+    } else {
+      logFailed(phone, scene, provider.name, result.error || '未知错误');
+      return fail(res, 503, `验证码发送失败：${result.error || '请稍后重试'}`);
+    }
+  } catch (err: any) {
+    logFailed(phone, scene, 'unknown', err?.message || String(err));
+    return fail(res, 503, `验证码发送异常，请稍后重试`);
+  }
+});
 
 /** 生成首字母 SVG 头像 data URL */
 function genAvatar(nickname: string, seed: number): string {
@@ -189,17 +243,19 @@ router.post('/user/register', (req, res) => {
   if (!loftName || loftName.trim().length < 2) return fail(res, 400, '请输入鸽舍名称（至少2个字符）');
   if (!verifyCode) return fail(res, 400, '请输入验证码');
 
-  // 验证码校验
-  const stored = verifyCodeStore.get(phone);
-  if (!stored) return fail(res, 400, '请先获取验证码');
-  if (Date.now() > stored.expireAt) {
-    verifyCodeStore.delete(phone);
-    return fail(res, 400, '验证码已过期');
+  // 验证码校验（优先 DB sms_logs，fallback 内存 Map）
+  const smsOk = verifySmsCode(phone, 'register', verifyCode);
+  if (!smsOk.ok) {
+    // fallback：兼容旧内存校验（send-code 也写 verifyCodeStore）
+    const legacy = verifyCodeStore.get(`${phone}:register`);
+    if (!legacy || legacy.code !== verifyCode || Date.now() > legacy.expireAt) {
+      verifyCodeStore.delete(`${phone}:register`);
+      return fail(res, 400, smsOk.reason || '验证码错误或已过期');
+    }
+    verifyCodeStore.delete(`${phone}:register`);
+  } else {
+    verifyCodeStore.delete(`${phone}:register`);
   }
-  if (stored.code !== verifyCode) {
-    return fail(res, 400, '验证码错误');
-  }
-  verifyCodeStore.delete(phone); // 一次性使用
 
   // 检查是否已存在
   const exist = db
@@ -221,9 +277,10 @@ router.post('/user/register', (req, res) => {
 
   const userId = info.lastInsertRowid as number;
   const token = signUserToken(userId, phone);
+  const membership = buildMembership(userId);
 
   return ok(res, {
-    userId, phone, nickname, avatar, token,
+    userId, phone, nickname, avatar, token, membership,
   }, '注册成功');
 });
 
@@ -244,14 +301,18 @@ router.post('/user/login', (req, res) => {
 
   // 验证码登录
   if (verifyCode) {
-    const stored = verifyCodeStore.get(phone);
-    if (!stored) return fail(res, 400, '请先获取验证码');
-    if (Date.now() > stored.expireAt) {
-      verifyCodeStore.delete(phone);
-      return fail(res, 400, '验证码已过期');
+    // DB 校验优先 + 内存 fallback
+    const smsOk = verifySmsCode(phone, 'login', verifyCode);
+    if (!smsOk.ok) {
+      const legacy = verifyCodeStore.get(`${phone}:login`);
+      if (!legacy || legacy.code !== verifyCode || Date.now() > legacy.expireAt) {
+        verifyCodeStore.delete(`${phone}:login`);
+        return fail(res, 400, smsOk.reason || '验证码错误或已过期');
+      }
+      verifyCodeStore.delete(`${phone}:login`);
+    } else {
+      verifyCodeStore.delete(`${phone}:login`);
     }
-    if (stored.code !== verifyCode) return fail(res, 400, '验证码错误');
-    verifyCodeStore.delete(phone);
 
     if (!user) {
       // 验证码登录自动注册
@@ -265,13 +326,15 @@ router.post('/user/login', (req, res) => {
         .run(phone, phone, nickname, avatar);
       const newId = info.lastInsertRowid as number;
       const token = signUserToken(newId, phone);
-      return ok(res, { userId: newId, phone, nickname, avatar, token }, '登录成功');
+      const membership = buildMembership(newId);
+      return ok(res, { userId: newId, phone, nickname, avatar, token, membership }, '登录成功');
     }
 
     if (user.status !== 1) return fail(res, 403, '账号已被封禁');
     const token = signUserToken(user.id, phone);
+    const membership = buildMembership(user.id);
     return ok(res, {
-      userId: user.id, phone, nickname: user.nickname, avatar: user.avatar, token,
+      userId: user.id, phone, nickname: user.nickname, avatar: user.avatar, token, membership,
     }, '登录成功');
   }
 
@@ -284,8 +347,9 @@ router.post('/user/login', (req, res) => {
   }
 
   const token = signUserToken(user.id, phone);
+  const membership = buildMembership(user.id);
   return ok(res, {
-    userId: user.id, phone, nickname: user.nickname, avatar: user.avatar, token,
+    userId: user.id, phone, nickname: user.nickname, avatar: user.avatar, token, membership,
   }, '登录成功');
 });
 
@@ -460,6 +524,293 @@ router.get('/site-config', (_req, res) => {
     const e = err as Error;
     return fail(res, 500, '站点配置读取失败: ' + e.message);
   }
+});
+
+// ============================================================================
+// C 端会员付费订阅模块
+// ============================================================================
+
+/** 有效期叠加:续费时叠加到原到期日之后,已过期/首次付费从 now 开始 */
+export function computeNewExpireAt(currentExpireAt: number | null, durationDays: number): number {
+  const now = Date.now();
+  const durationMs = durationDays * 86_400_000; // 86400000ms = 1 天
+  if (!currentExpireAt || currentExpireAt <= now) {
+    return now + durationMs;
+  }
+  return currentExpireAt + durationMs;
+}
+
+/** 订单号生成 */
+function genOrderNo(): string {
+  const ts = Date.now().toString(36);
+  const rand = Math.floor(Math.random() * 10_000).toString().padStart(4, '0');
+  return `MEMBER-${ts}-${rand}`.toUpperCase();
+}
+
+/** 会员权益条目类型 */
+interface BenefitItem {
+  id: number;
+  name: string;
+  type: string;
+  value: string | null;
+  description: string | null;
+}
+
+/** 批量查询某等级的权益条目(只查 status=1) */
+function queryBenefitsByLevel(levelId: number): BenefitItem[] {
+  return db.prepare(
+    `SELECT id, name, type, value, description
+     FROM member_benefits WHERE level_id = ? AND status = 1
+     ORDER BY id ASC`
+  ).all(levelId) as BenefitItem[];
+}
+
+/** 构建某用户的 membership 信息(查询函数,供 subscribe/login/register 复用) */
+function buildMembership(userId: number): {
+  levelId: number | null;
+  levelName: string | null;
+  levelCode: string | null;
+  levelPrice: number;
+  levelDurationDays: number;
+  memberExpireAt: number | null;
+  memberRemainingDays: number | null;
+  memberSource: string;
+  memberBenefits: BenefitItem[];
+} {
+  const row = db.prepare(
+    `SELECT u.member_level_id, u.member_expire_at, u.member_source,
+            ml.name AS level_name, ml.code AS level_code, ml.price, ml.duration_days
+     FROM users u
+     LEFT JOIN member_levels ml ON ml.id = u.member_level_id
+     WHERE u.id = ?`
+  ).get(userId) as
+    | {
+        member_level_id: number | null;
+        member_expire_at: number | null;
+        member_source: string | null;
+        level_name: string | null;
+        level_code: string | null;
+        price: number | null;
+        duration_days: number | null;
+      }
+    | undefined;
+
+  if (!row) {
+    return {
+      levelId: null, levelName: null, levelCode: null,
+      levelPrice: 0, levelDurationDays: 0,
+      memberExpireAt: null, memberRemainingDays: null, memberSource: 'auto_growth',
+      memberBenefits: [],
+    };
+  }
+
+  const now = Date.now();
+  const memberRemainingDays = row.member_expire_at && row.member_expire_at > now
+    ? Math.ceil((row.member_expire_at - now) / 86_400_000)
+    : null;
+
+  const benefits = row.member_level_id ? queryBenefitsByLevel(row.member_level_id) : [];
+
+  return {
+    levelId: row.member_level_id,
+    levelName: row.level_name,
+    levelCode: row.level_code,
+    levelPrice: row.price ?? 0,
+    levelDurationDays: row.duration_days ?? 0,
+    memberExpireAt: row.member_expire_at,
+    memberRemainingDays,
+    memberSource: row.member_source ?? 'auto_growth',
+    memberBenefits: benefits,
+  };
+}
+
+// ---------- GET /api/user/levels —— C 端可用会员等级列表 ----------
+router.get('/user/levels', (_req, res) => {
+  const rows = db.prepare(
+    `SELECT id, code, name, icon, benefits, min_growth, sort, price, duration_days, status
+     FROM member_levels WHERE status = 1 ORDER BY sort ASC`
+  ).all() as Array<{
+    id: number; code: string; name: string; icon: string | null;
+    benefits: string | null; min_growth: number; sort: number;
+    price: number; duration_days: number; status: number;
+  }>;
+  // 每个等级追加 benefits_list(从 member_benefits JOIN)
+  const enriched = rows.map((l) => ({
+    ...l,
+    benefits_list: queryBenefitsByLevel(l.id),
+  }));
+  return ok(res, enriched);
+});
+
+// ---------- GET /api/user/me/membership —— 当前会员状态 ----------
+router.get('/user/me/membership', authenticateUser, (req: AuthedRequest, res: Response) => {
+  const uid = req.user!.id;
+  return ok(res, buildMembership(uid));
+});
+
+// ---------- POST /api/user/me/subscribe —— 会员订阅(核心) ----------
+router.post('/user/me/subscribe', authenticateUser, (req: AuthedRequest, res: Response) => {
+  const uid = req.user!.id;
+  const { level_id, pay_method = 'mock' } = req.body as { level_id?: number; pay_method?: string };
+
+  // 参数校验
+  if (!level_id || typeof level_id !== 'number') {
+    return fail(res, 400, '请指定目标会员等级');
+  }
+
+  const level = db.prepare(
+    'SELECT id, code, name, price, duration_days, status FROM member_levels WHERE id = ?'
+  ).get(level_id) as
+    | { id: number; code: string; name: string; price: number; duration_days: number; status: number }
+    | undefined;
+
+  if (!level) return fail(res, 404, '会员等级不存在');
+  if (level.status !== 1) return fail(res, 400, '该会员等级暂不可用');
+  if (level.price <= 0) return fail(res, 400, '该等级为免费等级,无需订阅');
+  if (!level.duration_days || level.duration_days <= 0) {
+    return fail(res, 400, '该等级未配置订阅时长');
+  }
+
+  // 用户状态校验
+  const userRow = db.prepare(
+    'SELECT status, member_expire_at FROM users WHERE id = ?'
+  ).get(uid) as { status: number; member_expire_at: number | null };
+  if (!userRow) return fail(res, 404, '用户不存在');
+  if (userRow.status !== 1) return fail(res, 403, '账号已被封禁');
+
+  // 幂等保护:3 秒内同一用户对同一等级的重复提交,返回上一笔订单
+  const nowMs = Date.now();
+  const threeSecAgo = nowMs - 3000;
+  const recentDup = db.prepare(
+    `SELECT order_no FROM member_orders
+     WHERE user_id = ? AND level_id = ? AND created_at >= ?
+     ORDER BY created_at DESC LIMIT 1`
+  ).get(uid, level_id, threeSecAgo) as { order_no: string } | undefined;
+
+  // 幂等快速返回:3 秒内重复提交,直接返回已有订单 + 会员状态
+  if (recentDup) {
+    const membership = buildMembership(uid);
+    return ok(res, {
+      orderNo: recentDup.order_no,
+      idempotent: true,
+      levelId: level.id,
+      levelName: level.name,
+      price: level.price,
+      durationDays: level.duration_days,
+      startAt: null,
+      endAt: membership.memberExpireAt,
+      membership,
+    }, '已存在同名订阅订单');
+  }
+
+  // 事务:创建订单 + 更新用户
+  let newOrderNo = '';
+  const tx = db.transaction(() => {
+    const currentExpire = userRow.member_expire_at;
+    const newExpire = computeNewExpireAt(currentExpire, level.duration_days);
+    const startAt = currentExpire && currentExpire > nowMs ? currentExpire : nowMs;
+    newOrderNo = genOrderNo();
+
+    // 更新 users
+    db.prepare(
+      `UPDATE users
+       SET member_level_id = ?, member_expire_at = ?, member_source = 'paid', updated_at = ?
+       WHERE id = ?`
+    ).run(level.id, newExpire, nowMs, uid);
+
+    // 创建订单
+    db.prepare(
+      `INSERT INTO member_orders (user_id, level_id, order_no, price, duration_days, pay_method, start_at, end_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(uid, level.id, newOrderNo, level.price, level.duration_days, pay_method, startAt, newExpire);
+
+    return newExpire;
+  });
+
+  const expireAt = tx();
+  const membership = buildMembership(uid);
+
+  return ok(res, {
+    orderNo: newOrderNo,
+    idempotent: false,
+    levelId: level.id,
+    levelName: level.name,
+    price: level.price,
+    durationDays: level.duration_days,
+    startAt: nowMs,
+    endAt: expireAt,
+    membership,
+  }, '订阅成功');
+});
+
+// ---------- GET /api/user/me/member-orders —— 历史订单列表 ----------
+router.get('/user/me/member-orders', authenticateUser, (req: AuthedRequest, res: Response) => {
+  const uid = req.user!.id;
+  const { page = 1, page_size = 20 } = req.query as { page?: string | number; page_size?: string | number };
+  const p = Math.max(1, Number(page) || 1);
+  const ps = Math.min(100, Math.max(1, Number(page_size) || 20));
+  const offset = (p - 1) * ps;
+
+  const total = (db.prepare(
+    'SELECT COUNT(*) AS c FROM member_orders WHERE user_id = ?'
+  ).get(uid) as { c: number }).c;
+
+  const list = db.prepare(
+    `SELECT mo.id, mo.order_no, mo.price, mo.duration_days, mo.pay_method,
+            mo.start_at, mo.end_at, mo.created_at,
+            ml.name AS level_name, ml.code AS level_code
+     FROM member_orders mo
+     LEFT JOIN member_levels ml ON ml.id = mo.level_id
+     WHERE mo.user_id = ?
+     ORDER BY mo.created_at DESC
+     LIMIT ? OFFSET ?`
+  ).all(uid, ps, offset) as Array<{
+    id: number; order_no: string; price: number; duration_days: number;
+    pay_method: string; start_at: number; end_at: number; created_at: number;
+    level_name: string | null; level_code: string | null;
+  }>;
+
+  return ok(res, { list, total, page: p, pageSize: ps });
+});
+
+// ---------- POST /api/user/me/change-password —— C 端用户自助改密 ----------
+// body: { verifyCode, newPassword }  —— 通过短信验证码二次验证,无需当前密码
+router.post('/user/me/change-password', authenticateUser, (req: AuthedRequest, res: Response) => {
+  const uid = req.user!.id;
+  const { verifyCode, newPassword } = req.body as { verifyCode?: string; newPassword?: string };
+
+  // 1. 校验新密码
+  if (!newPassword || newPassword.length < 8 || newPassword.length > 20) {
+    return fail(res, 400, '新密码长度需 8-20 位');
+  }
+  if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+    return fail(res, 400, '新密码需同时包含字母和数字');
+  }
+
+  // 2. 取用户手机号
+  const user = db.prepare('SELECT phone FROM users WHERE id = ?').get(uid) as { phone: string } | undefined;
+  if (!user) return fail(res, 404, '用户不存在');
+  if (!user.phone) return fail(res, 400, '账号未绑定手机号，无法使用验证码改密');
+
+  // 3. 校验短信验证码（scene=reset_password）
+  if (!verifyCode) return fail(res, 400, '请输入短信验证码');
+  const smsOk = verifySmsCode(user.phone, 'reset_password', verifyCode);
+  if (!smsOk.ok) {
+    const legacy = verifyCodeStore.get(`${user.phone}:reset_password`);
+    if (!legacy || legacy.code !== verifyCode || Date.now() > legacy.expireAt) {
+      verifyCodeStore.delete(`${user.phone}:reset_password`);
+      return fail(res, 400, smsOk.reason || '验证码错误或已过期');
+    }
+    verifyCodeStore.delete(`${user.phone}:reset_password`);
+  } else {
+    verifyCodeStore.delete(`${user.phone}:reset_password`);
+  }
+
+  // 4. 更新密码
+  const hash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, uid);
+
+  return ok(res, null, '密码修改成功，请使用新密码重新登录');
 });
 
 export default router;

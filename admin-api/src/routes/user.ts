@@ -1105,10 +1105,11 @@ userRouter.patch(
       | { id: number; username: string; nickname: string; balance: number } | undefined;
     if (!target) return fail(res, 404, '用户不存在');
 
-    if (typeof amount !== 'number' || amount === 0) {
+    const amountNum = Number(amount);
+    if (!Number.isFinite(amountNum) || amountNum === 0) {
       return fail(res, 400, '调整金额必须为非零数字');
     }
-    if (target.balance + amount < 0) {
+    if (target.balance + amountNum < 0) {
       return fail(res, 400, '余额不足,无法扣除');
     }
 
@@ -1119,8 +1120,8 @@ userRouter.patch(
     };
 
     db.prepare('UPDATE users SET balance = balance + ?, updated_at = ? WHERE id = ?')
-      .run(amount, Date.now(), id);
-    return ok(res, { balance: target.balance + amount }, `余额已${amount > 0 ? '增加' : '扣除'} ${Math.abs(amount).toFixed(2)} 元${reason ? ` (${reason})` : ''}`);
+      .run(amountNum, Date.now(), id);
+    return ok(res, { balance: target.balance + amountNum }, `余额已${amountNum > 0 ? '增加' : '扣除'} ${Math.abs(amountNum).toFixed(2)} 元${reason ? ` (${reason})` : ''}`);
   }
 );
 
@@ -1138,13 +1139,14 @@ userRouter.patch(
       | { id: number; username: string; nickname: string; points: number } | undefined;
     if (!target) return fail(res, 404, '用户不存在');
 
-    if (typeof amount !== 'number' || amount === 0) {
+    const amountNum = Number(amount);
+    if (!Number.isFinite(amountNum) || amountNum === 0) {
       return fail(res, 400, '调整数量必须为非零整数');
     }
-    if (!Number.isInteger(amount)) {
+    if (!Number.isInteger(amountNum)) {
       return fail(res, 400, '积分必须为整数');
     }
-    if (target.points + amount < 0) {
+    if (target.points + amountNum < 0) {
       return fail(res, 400, '积分不足,无法扣除');
     }
 
@@ -1155,8 +1157,8 @@ userRouter.patch(
     };
 
     db.prepare('UPDATE users SET points = points + ?, updated_at = ? WHERE id = ?')
-      .run(amount, Date.now(), id);
-    return ok(res, { points: target.points + amount }, `积分已${amount > 0 ? '增加' : '扣除'} ${Math.abs(amount)}${reason ? ` (${reason})` : ''}`);
+      .run(amountNum, Date.now(), id);
+    return ok(res, { points: target.points + amountNum }, `积分已${amountNum > 0 ? '增加' : '扣除'} ${Math.abs(amountNum)}${reason ? ` (${reason})` : ''}`);
   }
 );
 
