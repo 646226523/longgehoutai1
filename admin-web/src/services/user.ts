@@ -1,4 +1,4 @@
-﻿import { http } from './request';
+import { http } from './request';
 
 // ==================== 通用分页结果 ====================
 export interface PageResult<T> {
@@ -362,12 +362,12 @@ export async function grantUserCoupon(userId: number, couponId: number, count: n
 
 // 调整余额(amount 正数增加/负数扣除)
 export async function adjustUserBalance(userId: number, amount: number, reason?: string): Promise<{ balance: number }> {
-  return http.patch(`/user/users/${userId}/balance`, { amount, reason });
+  return http.patch(`/user/users/${userId}/balance`, { amount: Number(amount), reason });
 }
 
 // 调整积分(amount 正数增加/负数扣除)
 export async function adjustUserPoints(userId: number, amount: number, reason?: string): Promise<{ points: number }> {
-  return http.patch(`/user/users/${userId}/points`, { amount, reason });
+  return http.patch(`/user/users/${userId}/points`, { amount: Number(amount), reason });
 }
 
 // 加入/移出黑名单

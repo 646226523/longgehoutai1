@@ -23,6 +23,7 @@
         "pdfkit": "^0.19.1",
         "sharp": "^0.35.4",
         "sql.js": "^1.14.1",
+        "tencentcloud-sdk-nodejs": "^4.1.324",
         "tsx": "^4.15.4"
     },
     "devDependencies": {

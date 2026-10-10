@@ -4,7 +4,7 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { App, Button, Card, Checkbox, DatePicker, Descriptions, Drawer, Empty, Form, Input, Modal, Popconfirm, Segmented, Space, Spin, Tabs, Tag, Tree } from 'antd';
+import { App, Button, Card, Checkbox, DatePicker, Descriptions, Drawer, Empty, Form, Input, Popconfirm, Segmented, Space, Spin, Tabs, Tag, Tree } from 'antd';
 import { ArrowLeftOutlined, CheckCircleFilled, DeleteOutlined, EyeOutlined, ExperimentOutlined, FileExcelOutlined, FileOutlined, FilePdfOutlined, FilePptOutlined, FileTextOutlined, FileWordOutlined, InfoCircleOutlined, LoadingOutlined, PlusOutlined, QrcodeOutlined, UploadOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -84,7 +84,7 @@ function toTreeData(node: LineageNode | null, path: string): TreeNode[] {
 
 // 基因档案详情
 const GeneDetail = () => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { id } = useParams<{ id: string }>();
   const profileId = Number(id);
   const navigate = useNavigate();
@@ -985,7 +985,7 @@ const GeneDetail = () => {
                                 danger
                                 icon={<DeleteOutlined />}
                                 onClick={() => {
-                                  Modal.confirm({
+                                  modal.confirm({
                                     title: '移除检测报告文件？',
                                     content: '仅移除表单关联，服务器上的原文件不会被删除',
                                     okText: '确认移除',

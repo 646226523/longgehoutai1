@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import { Tabs, Tag, Progress, Button, Space, Tooltip, Modal } from 'antd';
+import { App, Tabs, Tag, Progress, Button, Space, Tooltip, Modal } from 'antd';
 import {
   TrophyOutlined,
   RiseOutlined,
@@ -1089,6 +1089,7 @@ const getProvinceMapOption = (provinceName: string, mode: MapMode = 'trails', ge
 };
 
 const DataCenter = () => {
+  const { modal } = App.useApp();
   const [currentTime, setCurrentTime] = useState(dayjs());
   const [mapReady, setMapReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -1714,7 +1715,7 @@ const DataCenter = () => {
   const handleTerminateAuction = useCallback(() => {
     if (!selectedAuction) return;
     const itemName = selectedAuction.name;
-    Modal.confirm({
+    modal.confirm({
       title: '终止拍卖确认',
       content: (
         <div style={{ padding: '12px 0' }}>
@@ -1738,7 +1739,7 @@ const DataCenter = () => {
         );
         setSelectedAuction((prev) => (prev ? { ...prev, status: 'ended' as const } : null));
         setAuctionDetailOpen(false);
-        Modal.success({
+        modal.success({
           title: '拍卖已终止',
           content: `鸽子「${itemName}」的拍卖已成功终止。`,
           centered: true,

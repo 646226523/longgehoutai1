@@ -442,6 +442,7 @@ const SessionFormDrawer = ({
   onSubmit: (data: AuctionSessionCreateParams & { items: SelectedItem[] }, saveDraft: boolean) => Promise<void>;
   editing: AuctionSession | null;
 }) => {
+  const { modal } = App.useApp();
   const { token } = theme.useToken();
   const [form] = Form.useForm();
   const [items, setItems] = useState<SelectedItem[]>([]);
@@ -506,23 +507,23 @@ const SessionFormDrawer = ({
 
   const handleSave = async (saveDraft: boolean) => {
     if (!name.trim()) {
-      Modal.warning({ title: '请填写场次名称' });
+      modal.warning({ title: '请填写场次名称' });
       return;
     }
     if (endTime && startTime && endTime <= startTime) {
-      Modal.warning({ title: '结束时间必须晚于开始时间' });
+      modal.warning({ title: '结束时间必须晚于开始时间' });
       return;
     }
     if (!saveDraft && items.length === 0) {
-      Modal.warning({ title: '请至少添加一羽拍品' });
+      modal.warning({ title: '请至少添加一羽拍品' });
       return;
     }
     if (publishStatus === 'scheduled' && !publishTime) {
-      Modal.warning({ title: '请选择定时发布时间' });
+      modal.warning({ title: '请选择定时发布时间' });
       return;
     }
     if (publishStatus === 'scheduled' && publishTime && startTime && publishTime >= startTime) {
-      Modal.warning({ title: '发布时间须早于拍卖开始时间' });
+      modal.warning({ title: '发布时间须早于拍卖开始时间' });
       return;
     }
 

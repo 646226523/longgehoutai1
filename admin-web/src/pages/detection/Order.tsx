@@ -1,4 +1,4 @@
-﻿import {
+import {
   ProForm,
   ProFormDatePicker,
   ProFormSelect,
@@ -423,7 +423,7 @@ type ScheduleValue = Dayjs | null;
 
 // 检测预约订单管理:列表 + 新增/编辑 + 状态流转 + 排期日历
 const DetectionOrder = () => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const currentUser = useCurrentUser();
   const canView = hasPermission(currentUser, 'detection:view');
   const actionRef = useRef<ActionType>();
@@ -898,7 +898,7 @@ const DetectionOrder = () => {
               test_org: getFormString('test_org'),
             });
             if (disabled) {
-              Modal.warning({
+              modal.warning({
                 title: '请先完善以下必填信息',
                 content: (
                   <div>

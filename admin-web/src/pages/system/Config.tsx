@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, Button, Card, Input, InputNumber, Select, Space, Spin, Switch, Table, Tabs, Tag, Tooltip, Segmented, Alert, Modal, Form, type TableProps } from 'antd';
+import { App, Button, Card, Input, InputNumber, Select, Space, Spin, Switch, Table, Tabs, Tag, Tooltip, Segmented, Alert, Modal, Form, DatePicker, Row, Col, Statistic, type TableProps } from 'antd';
 import {
   CameraOutlined,
   CompressOutlined,
@@ -16,12 +16,14 @@ import {
   DeleteOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { useCurrentUser } from '../../app-context';
 import { hasPermission } from '../../access';
 import { getConfigs, updateConfig, type ConfigItem, testQiniuToken } from '../../services/system';
+import { http } from '../../services/request';
 import ImageUploader from '../../components/ImageUploader';
 
 // ==================== 配置项类型定义 ====================
@@ -36,6 +38,7 @@ interface FieldMeta {
   extra?: string;      // 显示在下方的帮助文本
   maxLength?: number;
   suffix?: string;     // Input 的后缀单位，如 'MB'
+  required?: boolean;  // 是否必填（全局保存时校验）
 }
 
 // ==================== 分组元信息 ====================
@@ -49,6 +52,7 @@ const GROUP_META: Record<string, { label: string; sort: number; icon?: string }>
   image:           { label: '图片处理', sort: 6 },
   payment:         { label: '支付管理', sort: 7 },
   customer_service:{ label: '客服配置', sort: 8 },
+  sms:             { label: '短信服务', sort: 9 },
   business:        { label: '业务配置', sort: 99 },
 };
 const GROUP_LABEL: Record<string, string> = Object.fromEntries(
@@ -218,6 +222,21 @@ const FIELD_META: Record<string, FieldMeta> = {
   wecom_cs_corp_id:    { type: 'text' },
   wecom_cs_corp_secret:{ type: 'password' },
   wecom_cs_kf_account: { type: 'text' },
+
+  // ---------- 短信服务（腾讯云） ----------
+  sms_enabled: {
+    type: 'select',
+    options: [
+      { label: '关闭（开发模式，验证码打印到后端日志）', value: '0' },
+      { label: '启用（使用腾讯云真实发送）', value: '1' },
+    ],
+  },
+  sms_tencent_secret_id:     { type: 'password', placeholder: '腾讯云 SecretId' },
+  sms_tencent_secret_key:    { type: 'password', placeholder: '腾讯云 SecretKey（敏感，仅后端使用）' },
+  sms_tencent_sdk_app_id:    { type: 'text',     placeholder: 'sms-xxxxxxxxxx' },
+  sms_tencent_sign_name:     { type: 'text',     placeholder: '签名内容，如"赛鸽基因"' },
+  sms_tencent_template_id_register: { type: 'text', placeholder: '注册验证码模板 ID，如 198765' },
+  sms_tencent_template_id_reset:    { type: 'text', placeholder: '重置密码模板 ID，如 198766' },
 };
 
 // 未在 FIELD_META 中定义的默认字段
@@ -227,20 +246,35 @@ const DEFAULT_FIELD_META: FieldMeta = { type: 'text' };
 type GroupExtraAction = { key: string; label: string };
 const GROUP_EXTRA_ACTIONS: Record<string, GroupExtraAction[]> = {
   cloud_storage: [{ key: 'test_qiniu', label: '🔑 测试七牛云 Token' }],
+  sms: [{ key: 'test_sms', label: '📱 发送测试短信' }],
 };
 
 // ==================== 组件主体 ====================
 const SystemConfig = () => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const currentUser = useCurrentUser();
   const canManage = hasPermission(currentUser, 'system:config:manage');
   const [groups, setGroups] = useState<Array<{ group: string; items: ConfigItem[] }>>([]);
   const [loading, setLoading] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('');
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
-  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [savingGroup, setSavingGroup] = useState(false);
   const [showPasswordKeys, setShowPasswordKeys] = useState<Record<string, boolean>>({});
   const [testingKey, setTestingKey] = useState<string | null>(null);
+
+  // ---------- 短信日志子面板 state ----------
+  const [smsSubTab, setSmsSubTab] = useState<'config' | 'logs'>('config');
+  const [smsLogs, setSmsLogs] = useState<any[]>([]);
+  const [smsLogsTotal, setSmsLogsTotal] = useState(0);
+  const [smsLogsLoading, setSmsLogsLoading] = useState(false);
+  const [smsStats, setSmsStats] = useState<any>(null);
+  const [smsStatsLoading, setSmsStatsLoading] = useState(false);
+  const [smsQuery, setSmsQuery] = useState({
+    phone: '', scene: '', status: '', startTime: undefined as number | undefined,
+    endTime: undefined as number | undefined,
+  });
+  const [smsPage, setSmsPage] = useState(1);
+  const [smsPageSize, setSmsPageSize] = useState(20);
 
   // 加载配置列表
   const loadConfigs = useCallback(async () => {
@@ -270,32 +304,7 @@ const SystemConfig = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 保存配置值
-  const handleSave = async (item: ConfigItem) => {
-    const newValue = editingValues[item.config_key] ?? item.config_value ?? '';
-    setSavingKey(item.config_key);
-    try {
-      await updateConfig(item.config_key, newValue);
-      message.success('✓ 配置已更新');
-      setGroups((prev) =>
-        prev.map((g) => ({
-          ...g,
-          items: g.items.map((it) =>
-            it.config_key === item.config_key ? { ...it, config_value: newValue } : it
-          ),
-        }))
-      );
-      setEditingValues((prev) => {
-        const next = { ...prev };
-        delete next[item.config_key];
-        return next;
-      });
-    } catch {
-      // 拦截器已提示
-    } finally {
-      setSavingKey(null);
-    }
-  };
+  // ---------- 辅助 ----------
 
   // 测试七牛云 Token
   const handleTestQiniu = async () => {
@@ -311,6 +320,99 @@ const SystemConfig = () => {
       setTestingKey(null);
     }
   };
+
+  // 测试腾讯云短信
+  const handleTestSms = async () => {
+    // 弹一个 Modal 让管理员输入测试手机号
+    modal.confirm({
+      title: '发送测试短信',
+      okText: '发送',
+      cancelText: '取消',
+      content: (
+        <div>
+          <p style={{ marginBottom: 8, color: '#666', fontSize: 12 }}>
+            将使用当前 system_config 中的短信配置发送验证码到指定手机号
+          </p>
+          <Input
+            id="sms_test_phone"
+            placeholder="如 13800138000"
+            maxLength={11}
+            onPressEnter={() => document.querySelector<HTMLInputElement>('#sms_test_phone')?.value}
+          />
+        </div>
+      ),
+      onOk: async () => {
+        const phone = document.querySelector<HTMLInputElement>('#sms_test_phone')?.value?.trim();
+        if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+          message.error('请输入正确的 11 位手机号');
+          return Promise.reject();
+        }
+        setTestingKey('test_sms');
+        try {
+          // 调 send-code 接口（scene=register，dev_null 模式下验证码会打印到后端日志）
+          const res = await fetch('http://localhost:3015/api/user/send-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, scene: 'register' }),
+          }).then((r) => r.json());
+          if (res.code === 0) {
+            message.success(
+              `✓ 测试短信发送成功！(provider=dev_null 时验证码已打印后端日志)`
+            );
+          } else {
+            message.error(`发送失败: ${res.message}`);
+          }
+        } catch (err) {
+          message.error(`${(err as Error).message} — 请检查后端 sms_enabled=1 并配置完整的腾讯云参数`);
+        } finally {
+          setTestingKey(null);
+        }
+      },
+    });
+  };
+
+  // ========== 短信日志查询 ==========
+  const fetchSmsLogs = useCallback(async () => {
+    setSmsLogsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(smsPage),
+        pageSize: String(smsPageSize),
+      });
+      if (smsQuery.phone) params.set('phone', smsQuery.phone);
+      if (smsQuery.scene) params.set('scene', smsQuery.scene);
+      if (smsQuery.status) params.set('status', smsQuery.status);
+      if (smsQuery.startTime) params.set('startTime', String(smsQuery.startTime));
+      if (smsQuery.endTime) params.set('endTime', String(smsQuery.endTime));
+      const res: any = await http.get(`/system/sms-logs?${params.toString()}`);
+      setSmsLogs(res?.list ?? []);
+      setSmsLogsTotal(res?.total ?? 0);
+    } catch (err) {
+      message.error('加载短信日志失败: ' + (err as Error).message);
+    } finally {
+      setSmsLogsLoading(false);
+    }
+  }, [smsPage, smsPageSize, smsQuery, http, message]);
+
+  const fetchSmsStats = useCallback(async () => {
+    setSmsStatsLoading(true);
+    try {
+      const res: any = await http.get('/system/sms-logs/stats');
+      setSmsStats(res ?? null);
+    } catch (err) {
+      console.warn('加载短信统计失败:', err);
+    } finally {
+      setSmsStatsLoading(false);
+    }
+  }, [http]);
+
+  // 切换到 sms 日志子 tab 时自动加载
+  useEffect(() => {
+    if (activeGroup === 'sms' && smsSubTab === 'logs') {
+      fetchSmsLogs();
+      fetchSmsStats();
+    }
+  }, [activeGroup, smsSubTab, fetchSmsLogs, fetchSmsStats]);
 
   // ========== 图片处理专用：辅助工具 ==========
   // 根据 config_key 查找 ConfigItem（从当前分组 items 里取）
@@ -332,6 +434,140 @@ const SystemConfig = () => {
     if (cur === undefined) return false;
     return cur !== (item.config_value ?? '');
   };
+
+  // 获取当前 activeGroup 的 items
+  const getActiveGroupItems = useCallback((): ConfigItem[] => {
+    const g = groups.find((g) => g.group === activeGroup);
+    return g?.items ?? [];
+  }, [groups, activeGroup]);
+
+  // 当前分组是否有任何未保存改动
+  const hasAnyChangeInActiveGroup = useCallback((): boolean => {
+    const items = getActiveGroupItems();
+    return items.some((it) => hasChanged(it));
+  }, [getActiveGroupItems, editingValues]);
+
+  // 动态 requiredIf 判断 —— 根据开关决定哪些字段必填
+  const isDynamicRequired = useCallback(
+    (key: string, items: ConfigItem[]): boolean => {
+      const getValByKey = (k: string) => editingValues[k] ?? items.find((i) => i.config_key === k)?.config_value ?? '';
+      // sms_enabled='1' → 腾讯云参数必填
+      if (getValByKey('sms_enabled') === '1') {
+        if (['sms_tencent_secret_id', 'sms_tencent_secret_key', 'sms_tencent_sdk_app_id',
+             'sms_tencent_sign_name', 'sms_tencent_template_id_register', 'sms_tencent_template_id_reset'].includes(key))
+          return true;
+      }
+      // cloud_storage_provider='qiniu' → 七牛云参数必填
+      if (getValByKey('cloud_storage_provider') === 'qiniu') {
+        if (['qiniu_access_key', 'qiniu_secret_key', 'qiniu_bucket'].includes(key))
+          return true;
+      }
+      // pay_wechat_enable='1' → 微信参数必填
+      if (getValByKey('pay_wechat_enable') === '1') {
+        if (['pay_wechat_appid', 'pay_wechat_mch_id', 'pay_wechat_api_key', 'pay_wechat_notify_url'].includes(key))
+          return true;
+      }
+      // pay_alipay_enable='1' → 支付宝参数必填
+      if (getValByKey('pay_alipay_enable') === '1') {
+        if (['pay_alipay_appid', 'pay_alipay_private_key', 'pay_alipay_public_key', 'pay_alipay_notify_url'].includes(key))
+          return true;
+      }
+      // pay_yft_enable='1' → 易付通参数必填
+      if (getValByKey('pay_yft_enable') === '1') {
+        if (['pay_yft_appid', 'pay_yft_secret_key', 'pay_yft_notify_url'].includes(key))
+          return true;
+      }
+      return false;
+    },
+    [editingValues]
+  );
+
+  // 校验当前分组必填项 —— 返回未通过校验的配置名称列表
+  const validateActiveGroup = useCallback((): string[] => {
+    const items = getActiveGroupItems();
+    const missing: string[] = [];
+    items.forEach((it) => {
+      const fm = FIELD_META[it.config_key];
+      const val = editingValues[it.config_key] ?? it.config_value ?? '';
+      const staticRequired = fm?.required === true;
+      const dynamicRequired = isDynamicRequired(it.config_key, items);
+      if ((staticRequired || dynamicRequired) && !String(val).trim()) {
+        missing.push(it.name);
+      }
+    });
+    return missing;
+  }, [getActiveGroupItems, isDynamicRequired, editingValues]);
+
+  // 全局保存：当前分组所有改动一次提交
+  const handleSaveAll = useCallback(async () => {
+    if (savingGroup) return;
+    const items = getActiveGroupItems();
+    const changedKeys = items.filter((it) => hasChanged(it)).map((it) => it.config_key);
+    if (changedKeys.length === 0) return;
+
+    // 1. 校验必填
+    const missing = validateActiveGroup();
+    if (missing.length > 0) {
+      message.error(`以下配置项未填写：${missing.join('、')}`);
+      return;
+    }
+
+    // 2. 防重入 + loading
+    setSavingGroup(true);
+    const failedNames: string[] = [];
+
+    try {
+      // 3. 串行保存（for-of + try-catch，失败的记录后继续）
+      for (const key of changedKeys) {
+        const item = items.find((i) => i.config_key === key)!;
+        const newValue = editingValues[key];
+        try {
+          await updateConfig(key, newValue);
+          // 成功 → 更新 groups 内对应项的 config_value
+          setGroups((prev) =>
+            prev.map((g) => ({
+              ...g,
+              items: g.items.map((it) =>
+                it.config_key === key
+                  ? { ...it, config_value: newValue }
+                  : it
+              ),
+            }))
+          );
+        } catch {
+          failedNames.push(item.name);
+        }
+      }
+
+      // 4. 清理 editingValues（本次保存涉及的 key）
+      setEditingValues((prev) => {
+        const next = { ...prev };
+        changedKeys.forEach((k) => delete next[k]);
+        return next;
+      });
+
+      // 5. 汇总提示
+      if (failedNames.length === 0) {
+        message.success(`✓ ${changedKeys.length} 项配置已保存`);
+      } else {
+        message.warning(
+          `${changedKeys.length - failedNames.length}/${changedKeys.length} 项保存成功。失败：${failedNames.join('、')}`
+        );
+      }
+    } finally {
+      setSavingGroup(false);
+    }
+  }, [savingGroup, getActiveGroupItems, validateActiveGroup, editingValues, message]);
+
+  // 取消当前分组所有改动
+  const handleResetChanges = useCallback(() => {
+    const items = getActiveGroupItems();
+    setEditingValues((prev) => {
+      const next = { ...prev };
+      items.forEach((it) => delete next[it.config_key]);
+      return next;
+    });
+  }, [getActiveGroupItems, editingValues]);
 
   // ========== 图片处理专用：缩略图尺寸行（宽 + 高） ==========
   type ThumbRow = { label: string; widthKey: string; heightKey: string };
@@ -386,30 +622,7 @@ const SystemConfig = () => {
             suffix="px"
             style={{ width: 130 }}
           />
-          {canManage && dirty && (
-            <Space size={4} style={{ marginLeft: 'auto' }}>
-              <Button
-                size="small"
-                type="link"
-                onClick={() => {
-                  setEditingValues((prev) => {
-                    const n = { ...prev };
-                    delete n[w.config_key]; delete n[h.config_key];
-                    return n;
-                  });
-                }}
-              >取消</Button>
-              <Button
-                size="small"
-                type="primary"
-                loading={savingKey === w.config_key || savingKey === h.config_key}
-                onClick={async () => {
-                  await handleSave(w);
-                  await handleSave(h);
-                }}
-              >保存</Button>
-            </Space>
-          )}
+          {/* 全局保存按钮已移至 Tab 右上角（tabBarExtraContent） */}
         </div>
       </div>
     );
@@ -478,14 +691,7 @@ const SystemConfig = () => {
                 placeholder="例如 © 赛鸽基因"
                 style={{ flex: 1, maxWidth: 360 }}
               />
-              {canManage && hasChanged(textItem) && (
-                <Button
-                  size="small"
-                  type="primary"
-                  loading={savingKey === textItem.config_key}
-                  onClick={() => handleSave(textItem)}
-                >保存</Button>
-              )}
+              {/* 全局保存按钮已移至 Tab 右上角 */}
             </div>
 
             {/* 水印位置 */}
@@ -498,14 +704,7 @@ const SystemConfig = () => {
                 disabled={!canManage}
                 style={{ width: 200 }}
               />
-              {canManage && hasChanged(posItem) && (
-                <Button
-                  size="small"
-                  type="primary"
-                  loading={savingKey === posItem.config_key}
-                  onClick={() => handleSave(posItem)}
-                >保存</Button>
-              )}
+              {/* 全局保存按钮已移至 Tab 右上角 */}
             </div>
           </>
         )}
@@ -623,12 +822,7 @@ const SystemConfig = () => {
                   style={{ flex: 1, maxWidth: 320 }}
                   options={FIELD_META.image_compress_quality.options}
                 />
-                <Button
-                  type="primary"
-                  size="small"
-                  loading={savingKey === item.config_key}
-                  onClick={() => handleSave(item)}
-                >保存设置</Button>
+                {/* 全局保存按钮已移至 Tab 右上角 */}
               </div>
             );
           })()}
@@ -672,27 +866,7 @@ const SystemConfig = () => {
           {label}
         </div>
         <div style={{ flex: 1 }}>{control(item, meta)}</div>
-        {canManage && dirty && (
-          <Space size={4}>
-            <Button
-              size="small"
-              type="link"
-              onClick={() => {
-                setEditingValues((prev) => {
-                  const n = { ...prev };
-                  delete n[itemKey];
-                  return n;
-                });
-              }}
-            >取消</Button>
-            <Button
-              size="small"
-              type="primary"
-              loading={savingKey === itemKey}
-              onClick={() => handleSave(item)}
-            >保存</Button>
-          </Space>
-        )}
+        {/* 全局保存按钮已移至 Tab 右上角 */}
       </div>
     );
   };
@@ -842,6 +1016,283 @@ const SystemConfig = () => {
     </div>
   );
 
+  // ==================== 支付管理 Tab — 品牌化 Provider Card 布局 ====================
+  const renderPaymentPanel = (items: ConfigItem[]) => {
+    // ---- 内部 helper: 渲染一个紧凑的字段 ----
+    const payField = (
+      label: string,
+      key: string,
+      kind: 'text' | 'password' | 'select' = 'text',
+    ): JSX.Element | null => {
+      const item = findItem(items, key);
+      if (!item) return null;
+      const meta = FIELD_META[key] ?? DEFAULT_FIELD_META;
+      const dirty = hasChanged(item);
+      const controlProps = {
+        value: getVal(item),
+        onChange: (e: any) => setVal(key, String(e?.target?.value ?? e)),
+        disabled: !canManage,
+        placeholder: meta.placeholder,
+        style: { width: '100%' },
+      };
+      let control: JSX.Element;
+      if (kind === 'select' || meta.type === 'select') {
+        control = <Select {...controlProps} options={meta.options ?? []} />;
+      } else if (kind === 'password' || meta.type === 'password') {
+        control = <Input.Password {...controlProps} />;
+      } else {
+        control = <Input {...controlProps} />;
+      }
+      return (
+        <div key={key} style={{ marginBottom: 0 }}>
+          <div style={{
+            fontSize: 12, color: '#595959', marginBottom: 4, fontWeight: 500,
+          }}>{label}</div>
+          <div style={{
+            border: `1px solid ${dirty ? '#1677ff' : '#d9d9d9'}`,
+            borderRadius: 6,
+            transition: 'border-color .2s',
+            ...(dirty ? { boxShadow: '0 0 0 2px rgba(22,119,255,.1)' } : {}),
+          }}>
+            {control}
+          </div>
+          {meta.extra && (
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 4, lineHeight: 1.4 }}>
+              {meta.extra}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ---- 内部 helper: Provider Card ----
+    const ProviderCard = ({
+      brand, name, subtitle, brandColor, brandBg, children,
+    }: {
+      brand: JSX.Element; name: string; subtitle: string;
+      brandColor: string; brandBg: string; children: React.ReactNode;
+    }) => {
+      const enableKey =
+        name === '微信支付' ? 'pay_wechat_enable' :
+        name === '支付宝' ? 'pay_alipay_enable' :
+        'pay_yft_enable';
+      const enabled = getVal(findItem(items, enableKey)) === '1';
+      const enableItem = findItem(items, enableKey);
+
+      return (
+        <Card
+          variant="borderless"
+          style={{ borderRadius: 14, border: '1px solid #f0f0f0' }}
+          styles={{ body: { padding: 0 } }}
+          title={
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+            }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 10,
+                background: brandBg, color: brandColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {brand}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontWeight: 600, fontSize: 14, color: '#1f1f1f',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  {name}
+                  <Tag
+                    color={enabled ? 'success' : 'default'}
+                    style={{ margin: 0, fontSize: 11, lineHeight: '18px', paddingInline: 6 }}
+                  >
+                    {enabled ? '● 已启用' : '○ 已关闭'}
+                  </Tag>
+                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 400 }}>
+                  {subtitle}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#8c8c8c' }}>入口开关</span>
+                <Switch
+                  checked={enabled}
+                  disabled={!canManage}
+                  onChange={(v) => enableItem && setVal(enableItem.config_key, v ? '1' : '0')}
+                  size="default"
+                  style={{ backgroundColor: enabled ? brandColor : undefined }}
+                />
+              </div>
+            </div>
+          }
+        >
+          <div style={{ padding: '18px 20px 20px' }}>
+            {/* 灰底分隔标题 */}
+            {children}
+          </div>
+        </Card>
+      );
+    };
+
+    // ---- Section divider (子分组标题) ----
+    const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: '#8c8c8c',
+          textTransform: 'uppercase', letterSpacing: 0.5,
+          marginBottom: 10, paddingBottom: 6,
+          borderBottom: '1px dashed #f0f0f0',
+        }}>{title}</div>
+        {children}
+      </div>
+    );
+
+    // ---- 顶部状态概览 ----
+    const wechatEnabled = getVal(findItem(items, 'pay_wechat_enable')) === '1';
+    const alipayEnabled = getVal(findItem(items, 'pay_alipay_enable')) === '1';
+    const yftEnabled    = getVal(findItem(items, 'pay_yft_enable')) === '1';
+    const enabledCount = [wechatEnabled, alipayEnabled, yftEnabled].filter(Boolean).length;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* 顶部状态概览条 */}
+        <Card
+          size="small"
+          variant="borderless"
+          style={{
+            borderRadius: 12,
+            border: '1px solid #e8ecf1',
+            background: 'linear-gradient(135deg,#fafcff 0%,#f1f5f9 100%)',
+          }}
+        >
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: 'linear-gradient(135deg,#e0edff,#bae0ff)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#1677ff', fontSize: 18,
+            }}>💳</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: '#1f1f1f', fontSize: 14 }}>
+                支付通道总览
+              </div>
+              <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                已启用 {enabledCount} / 3 个通道 — 管理各支付渠道的商户凭据与回调地址
+              </div>
+            </div>
+            {/* 状态 pills */}
+            {[
+              { name: '微信支付', enabled: wechatEnabled, color: '#07C160', bg: '#f6ffed' },
+              { name: '支付宝',   enabled: alipayEnabled, color: '#1677ff', bg: '#e6f4ff' },
+              { name: '易付通',   enabled: yftEnabled,    color: '#fa541c', bg: '#fff2e8' },
+            ].map((p) => (
+              <div
+                key={p.name}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '5px 12px', borderRadius: 16,
+                  background: p.enabled ? p.bg : '#f5f5f5',
+                  border: `1px solid ${p.enabled ? p.color + '40' : '#d9d9d9'}`,
+                  fontSize: 12, fontWeight: 500,
+                  color: p.enabled ? p.color : '#8c8c8c',
+                }}
+              >
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: p.enabled ? p.color : '#bfbfbf',
+                }} />
+                {p.name} {p.enabled ? '运行中' : '已关闭'}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* 微信支付 Card — 绿色品牌 */}
+        <ProviderCard
+          brand={<WechatOutlined style={{ color: '#07C160', fontSize: 18 }} />}
+          name="微信支付"
+          subtitle="JSAPI / Native / APP 支付，APIv3 签名"
+          brandColor="#07C160"
+          brandBg="linear-gradient(135deg,#f6ffed,#d9f7be)"
+        >
+          <Section title="基础参数">
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12}>{payField('AppID', 'pay_wechat_appid')}</Col>
+              <Col xs={24} sm={12}>{payField('商户号 MchID', 'pay_wechat_mch_id')}</Col>
+            </Row>
+          </Section>
+          <Section title="API 密钥 & 证书路径">
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12}>{payField('APIv3 密钥', 'pay_wechat_api_key', 'password')}</Col>
+              <Col xs={24} sm={12}>{payField('证书 apiclient_cert.pem', 'pay_wechat_cert_path')}</Col>
+              <Col xs={24} sm={12}>{payField('私钥 apiclient_key.pem', 'pay_wechat_key_path')}</Col>
+            </Row>
+          </Section>
+          <Section title="回调地址">
+            {payField('支付结果通知 URL', 'pay_wechat_notify_url')}
+          </Section>
+        </ProviderCard>
+
+        {/* 支付宝 Card — 蓝色品牌 */}
+        <ProviderCard
+          brand={
+            <span style={{
+              color: '#1677ff', fontSize: 18, fontWeight: 700, lineHeight: 1,
+            }}>支</span>
+          }
+          name="支付宝"
+          subtitle="电脑网站 / 手机网站 / 当面付，RSA2 签名"
+          brandColor="#1677ff"
+          brandBg="linear-gradient(135deg,#e6f4ff,#bae0ff)"
+        >
+          <Section title="基础参数">
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12}>{payField('应用 AppID', 'pay_alipay_appid')}</Col>
+              <Col xs={24} sm={12}>{payField('网关环境', 'pay_alipay_gateway', 'select')}</Col>
+            </Row>
+          </Section>
+          <Section title="密钥配置">
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12}>{payField('应用私钥', 'pay_alipay_private_key', 'password')}</Col>
+              <Col xs={24} sm={12}>{payField('支付宝公钥', 'pay_alipay_public_key', 'password')}</Col>
+            </Row>
+          </Section>
+          <Section title="回调地址">
+            {payField('异步通知 URL', 'pay_alipay_notify_url')}
+          </Section>
+        </ProviderCard>
+
+        {/* 易付通 Card — 橙红色品牌 */}
+        <ProviderCard
+          brand={
+            <span style={{
+              color: '#fa541c', fontSize: 18, fontWeight: 700, lineHeight: 1,
+            }}>易</span>
+          }
+          name="易付通"
+          subtitle="H5 / 二维码支付，商户中心签名"
+          brandColor="#fa541c"
+          brandBg="linear-gradient(135deg,#fff2e8,#ffd8bf)"
+        >
+          <Section title="基础参数">
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12}>{payField('商户 AppID', 'pay_yft_appid')}</Col>
+              <Col xs={24} sm={12}>{payField('网关接口地址', 'pay_yft_gateway')}</Col>
+            </Row>
+          </Section>
+          <Section title="密钥配置">
+            {payField('商户 SecretKey', 'pay_yft_secret_key', 'password')}
+          </Section>
+          <Section title="回调地址">
+            {payField('支付结果异步通知 URL', 'pay_yft_notify_url')}
+          </Section>
+        </ProviderCard>
+      </div>
+    );
+  };
+
   // ==================== 基础配置 Tab（品牌 + 登录页轮播图） ====================
 interface BannerItem { url: string; caption?: string; link?: string; }
 
@@ -850,16 +1301,14 @@ interface GeneralPanelProps {
   canManage: boolean;
   editingValues: Record<string, string>;
   setEditingValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  handleSave: (item: ConfigItem) => Promise<void>;
   hasChanged: (item?: ConfigItem) => boolean;
-  savingKey: string | null;
   setGroups: React.Dispatch<React.SetStateAction<Array<{ group: string; items: ConfigItem[] }>>>;
   message: { success: (m: string) => void; error: (m: string) => void; info: (m: string) => void };
 }
 
 // 🔴 注意：不能在普通函数里调用 useState，必须是真正的组件
 const GeneralPanel: React.FC<GeneralPanelProps> = ({
-  items, canManage, editingValues, setEditingValues, handleSave, hasChanged, savingKey, setGroups, message,
+  items, canManage, editingValues, setEditingValues, hasChanged, setGroups, message,
 }) => {
   const logoItem    = items.find(i => i.config_key === 'platform_logo_url');
   const bannerItem  = items.find(i => i.config_key === 'admin_login_banner');
@@ -905,14 +1354,7 @@ const GeneralPanel: React.FC<GeneralPanelProps> = ({
       >
         <div style={{ width: 120, display: 'flex', alignItems: 'center', color: '#595959' }}>{label}</div>
         <div style={{ flex: 1 }}>{control(item, meta)}</div>
-        {canManage && dirty && (
-          <Space size={4}>
-            <Button size="small" type="link" onClick={() => {
-              setEditingValues((prev) => { const n = { ...prev }; delete n[itemKey]; return n; });
-            }}>取消</Button>
-            <Button size="small" type="primary" loading={savingKey === itemKey} onClick={() => handleSave(item)}>保存</Button>
-          </Space>
-        )}
+        {/* 全局保存按钮已移至 Tab 右上角（tabBarExtraContent） */}
       </div>
     );
   };
@@ -980,21 +1422,7 @@ const GeneralPanel: React.FC<GeneralPanelProps> = ({
                     disabled={!canManage}
                     sizeHint="建议 400×400px 正方形 · 透明背景 PNG"
                   />
-                  {logoItem && canManage && (
-                    <Space size={4}>
-                      {hasChanged(logoItem) && (
-                        <>
-                          <Button size="small" type="link"
-                            onClick={() => setEditingValues((prev) => { const n = { ...prev }; delete n[logoItem!.config_key]; return n; })}
-                          >取消</Button>
-                          <Button size="small" type="primary"
-                            loading={savingKey === logoItem.config_key}
-                            onClick={() => handleSave(logoItem)}
-                          >保存 LOGO</Button>
-                        </>
-                      )}
-                    </Space>
-                  )}
+                  {/* 全局保存按钮已移至 Tab 右上角 */}
                 </div>
                 <div style={{ fontSize: 12, color: '#8c8c8c', lineHeight: 1.5 }}>
                   将显示在：用户端 Header <span style={{ color: '#bfbfbf' }}>(24px)</span>、登录/注册页 <span style={{ color: '#bfbfbf' }}>(64px)</span>、管理后台登录页 <span style={{ color: '#bfbfbf' }}>(56px)</span>。透明背景 PNG 效果最佳。
@@ -1382,34 +1810,6 @@ const GeneralPanel: React.FC<GeneralPanelProps> = ({
       width: 170,
       render: (val) => (val ? dayjs(Number(val)).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
-    {
-      title: '操作',
-      key: 'action',
-      width: 100,
-      fixed: 'right',
-      render: (_, record) => {
-        const fm = FIELD_META[record.config_key] ?? DEFAULT_FIELD_META;
-        // switch 类型：保存按钮始终可用（用户切换开关即算变更）
-        const changed =
-          fm.type === 'switch'
-            ? editingValues[record.config_key] !== undefined
-            : editingValues[record.config_key] !== undefined &&
-              editingValues[record.config_key] !== (record.config_value ?? '');
-        return canManage ? (
-          <Button
-            type="link"
-            size="small"
-            disabled={!changed}
-            loading={savingKey === record.config_key}
-            onClick={() => handleSave(record)}
-          >
-            保存
-          </Button>
-        ) : (
-          <Tag>只读</Tag>
-        );
-      },
-    },
   ];
 
   // ==================== 渲染 ====================
@@ -1424,6 +1824,26 @@ const GeneralPanel: React.FC<GeneralPanelProps> = ({
         <Tabs
           activeKey={activeGroup}
           onChange={setActiveGroup}
+          tabBarExtraContent={
+            canManage && hasAnyChangeInActiveGroup() ? (
+              <Space>
+                <Button
+                  onClick={handleResetChanges}
+                  disabled={savingGroup}
+                >
+                  取消改动
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  loading={savingGroup}
+                  onClick={handleSaveAll}
+                >
+                  保存设置
+                </Button>
+              </Space>
+            ) : null
+          }
           items={groups.map((g) => {
             const extraActions = GROUP_EXTRA_ACTIONS[g.group] ?? [];
             return {
@@ -1450,12 +1870,280 @@ const GeneralPanel: React.FC<GeneralPanelProps> = ({
                     canManage={canManage}
                     editingValues={editingValues}
                     setEditingValues={setEditingValues}
-                    handleSave={handleSave}
                     hasChanged={hasChanged}
-                    savingKey={savingKey}
                     setGroups={setGroups}
                     message={message}
                   />
+                ) :
+                g.group === 'sms' ? (
+                  // 短信服务：Segmented 切换「配置参数」/「发送记录」
+                  <div>
+                    <Segmented
+                      value={smsSubTab}
+                      onChange={(v) => setSmsSubTab(v as 'config' | 'logs')}
+                      options={[
+                        { label: '⚙️ 配置参数', value: 'config' },
+                        { label: '📋 发送记录', value: 'logs' },
+                      ]}
+                      style={{ marginBottom: 16 }}
+                    />
+                    {smsSubTab === 'config' ? (
+                      <div>
+                        {/* 分组顶部的额外操作区 */}
+                        {extraActions.length > 0 && (
+                          <div style={{ marginBottom: 12 }}>
+                            {extraActions.map((a) =>
+                              a.key === 'test_sms' ? (
+                                <Button
+                                  key={a.key}
+                                  type="dashed"
+                                  icon={<PlayCircleOutlined />}
+                                  loading={testingKey === a.key}
+                                  onClick={handleTestSms}
+                                >
+                                  {a.label}
+                                </Button>
+                              ) : null
+                            )}
+                          </div>
+                        )}
+                        <Table<ConfigItem>
+                          rowKey="config_key"
+                          columns={columns}
+                          dataSource={g.items}
+                          pagination={false}
+                          size="middle"
+                          scroll={{ x: 1000 }}
+                        />
+                      </div>
+                    ) : (
+                      // ========== 短信日志子面板 ==========
+                      <div>
+                        {/* Stats cards */}
+                        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                          <Col xs={12} sm={8} md={4}>
+                            <Card loading={smsStatsLoading}>
+                              <Statistic
+                                title="今日发送"
+                                value={smsStats?.todayCount ?? 0}
+                                suffix="条"
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={8} md={4}>
+                            <Card loading={smsStatsLoading}>
+                              <Statistic
+                                title="累计发送"
+                                value={smsStats?.total ?? 0}
+                                suffix="条"
+                                valueStyle={{ color: '#1677ff' }}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={8} md={4}>
+                            <Card loading={smsStatsLoading}>
+                              <Statistic
+                                title="发送失败"
+                                value={smsStats?.failedCount ?? 0}
+                                suffix="条"
+                                valueStyle={{ color: '#cf1322' }}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={8} md={4}>
+                            <Card loading={smsStatsLoading}>
+                              <Statistic
+                                title="已使用"
+                                value={smsStats?.usedCount ?? 0}
+                                suffix="条"
+                                valueStyle={{ color: '#389e0d' }}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={8} md={4}>
+                            <Card loading={smsStatsLoading}>
+                              <Statistic
+                                title="已过期"
+                                value={smsStats?.expiredCount ?? 0}
+                                suffix="条"
+                                valueStyle={{ color: '#d48806' }}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={8} md={4}>
+                            <Card loading={smsStatsLoading}>
+                              <Statistic
+                                title="独立手机号"
+                                value={smsStats?.distinctPhone ?? 0}
+                                suffix="个"
+                                valueStyle={{ color: '#722ed1' }}
+                              />
+                            </Card>
+                          </Col>
+                        </Row>
+
+                        {/* 筛选区 */}
+                        <Card size="small" style={{ marginBottom: 12 }}>
+                          <Space wrap size={12}>
+                            <Input
+                              placeholder="手机号"
+                              allowClear
+                              style={{ width: 180 }}
+                              value={smsQuery.phone}
+                              onChange={(e) => setSmsQuery(q => ({ ...q, phone: e.target.value }))}
+                              onPressEnter={() => { setSmsPage(1); fetchSmsLogs(); }}
+                            />
+                            <Select
+                              placeholder="场景"
+                              allowClear
+                              style={{ width: 140 }}
+                              value={smsQuery.scene || undefined}
+                              onChange={(v) => setSmsQuery(q => ({ ...q, scene: v || '' }))}
+                              options={[
+                                { value: 'register', label: '注册验证' },
+                                { value: 'login', label: '登录验证' },
+                                { value: 'reset_password', label: '重置密码' },
+                              ]}
+                            />
+                            <Select
+                              placeholder="状态"
+                              allowClear
+                              style={{ width: 140 }}
+                              value={smsQuery.status || undefined}
+                              onChange={(v) => setSmsQuery(q => ({ ...q, status: v || '' }))}
+                              options={[
+                                { value: 'sent', label: '已发送' },
+                                { value: 'failed', label: '发送失败' },
+                                { value: 'used', label: '已使用' },
+                                { value: 'expired', label: '已过期' },
+                              ]}
+                            />
+                            <DatePicker.RangePicker
+                              showTime
+                              format="YYYY-MM-DD HH:mm"
+                              value={[
+                                smsQuery.startTime ? dayjs(smsQuery.startTime) : null,
+                                smsQuery.endTime ? dayjs(smsQuery.endTime) : null,
+                              ]}
+                              onChange={(dates) => {
+                                setSmsQuery(q => ({
+                                  ...q,
+                                  startTime: dates?.[0]?.valueOf(),
+                                  endTime: dates?.[1]?.valueOf(),
+                                }));
+                              }}
+                            />
+                            <Button type="primary" onClick={() => { setSmsPage(1); fetchSmsLogs(); }}>
+                              查询
+                            </Button>
+                            <Button onClick={() => {
+                              setSmsQuery({ phone: '', scene: '', status: '', startTime: undefined, endTime: undefined });
+                              setSmsPage(1);
+                              fetchSmsLogs();
+                            }}>
+                              重置
+                            </Button>
+                          </Space>
+                        </Card>
+
+                        {/* 日志表格 */}
+                        <Table
+                          rowKey="id"
+                          loading={smsLogsLoading}
+                          dataSource={smsLogs}
+                          size="middle"
+                          scroll={{ x: 1000 }}
+                          pagination={{
+                            current: smsPage,
+                            pageSize: smsPageSize,
+                            total: smsLogsTotal,
+                            showSizeChanger: true,
+                            showQuickJumper: true,
+                            showTotal: (t) => `共 ${t} 条`,
+                            onChange: (p, ps) => {
+                              setSmsPage(p);
+                              setSmsPageSize(ps);
+                              // fetchSmsLogs 在 useEffect 里监听 smsPage 变化会自动触发
+                            },
+                          }}
+                          columns={[
+                            {
+                              title: '手机号',
+                              dataIndex: 'phone',
+                              width: 130,
+                              render: (v: string) => (
+                                <a onClick={() => {
+                                  navigator.clipboard?.writeText(v);
+                                  message.success('已复制: ' + v);
+                                }}>{v}</a>
+                              ),
+                            },
+                            {
+                              title: '场景',
+                              dataIndex: 'scene',
+                              width: 110,
+                              render: (v: string) => ({
+                                register: '注册验证',
+                                login: '登录验证',
+                                reset_password: '重置密码',
+                              })[v] ?? v,
+                            },
+                            {
+                              title: '供应商',
+                              dataIndex: 'provider',
+                              width: 110,
+                              render: (v: string) => (
+                                <Tag color={v === 'tencent' ? 'blue' : 'default'}>
+                                  {v === 'tencent' ? '腾讯云' : v === 'dev_null' ? '开发模拟' : v}
+                                </Tag>
+                              ),
+                            },
+                            {
+                              title: '状态',
+                              dataIndex: 'status',
+                              width: 110,
+                              render: (v: string) => {
+                                const colorMap: Record<string, string> = {
+                                  sent: 'blue', failed: 'red', used: 'green', expired: 'orange',
+                                };
+                                const labelMap: Record<string, string> = {
+                                  sent: '已发送', failed: '发送失败', used: '已使用', expired: '已过期',
+                                };
+                                return <Tag color={colorMap[v] ?? 'default'}>{labelMap[v] ?? v}</Tag>;
+                              },
+                            },
+                            {
+                              title: '发送时间',
+                              dataIndex: 'created_at',
+                              width: 170,
+                              render: (v: number) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-',
+                            },
+                            {
+                              title: '过期时间',
+                              dataIndex: 'expire_at',
+                              width: 170,
+                              render: (v: number) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-',
+                            },
+                            {
+                              title: '使用时间',
+                              dataIndex: 'used_at',
+                              width: 170,
+                              render: (v: number) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-',
+                            },
+                            {
+                              title: '错误信息',
+                              dataIndex: 'error_msg',
+                              ellipsis: true,
+                              render: (v: string) => v || '-',
+                            },
+                          ]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) :
+                g.group === 'payment' ? (
+                  renderPaymentPanel(g.items)
                 ) : (
                 <div>
                   {/* 分组顶部的额外操作区 */}
@@ -1469,6 +2157,16 @@ const GeneralPanel: React.FC<GeneralPanelProps> = ({
                             icon={<PlayCircleOutlined />}
                             loading={testingKey === a.key}
                             onClick={handleTestQiniu}
+                          >
+                            {a.label}
+                          </Button>
+                        ) : a.key === 'test_sms' ? (
+                          <Button
+                            key={a.key}
+                            type="dashed"
+                            icon={<PlayCircleOutlined />}
+                            loading={testingKey === a.key}
+                            onClick={handleTestSms}
                           >
                             {a.label}
                           </Button>
